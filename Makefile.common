@@ -1,0 +1,20 @@
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# Makefile.common
+#
+# Define common paths and variables
+#
+
+TOP ?= $(shell git rev-parse --show-toplevel)
+
+export SCRIPT_DIR := $(abspath $(TOP)/script)
+export BUILD_IP_TCL := $(SCRIPT_DIR)/build_ip.tcl
+export GENERATE_BITSTREAM_TCL := $(SCRIPT_DIR)/generate_bitstream.tcl
+export PARSE_FLIST_TCL := $(SCRIPT_DIR)/parse_flist.tcl
+export PROGRAM_FPGA_TCL := $(SCRIPT_DIR)/program_fpga.tcl
+
+export BLACKPARROT_DIR := $(abspath $(TOP)/../black-parrot)
+export BLACKPARROT_SUB_DIR := $(abspath $(TOP)/../black-parrot-subsystems)
+export BLACKPARROT_SDK_DIR := $(abspath $(TOP)/../black-parrot-sdk)
+export ZYNQPARROT_DIR := $(abspath $(TOP)/../zynq-parrot)
+
