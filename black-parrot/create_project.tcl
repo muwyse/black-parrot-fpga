@@ -1,0 +1,811 @@
+# Set the reference directory for source file relative paths (by default the value is script directory path)
+set origin_dir "."
+set blackparrot_dir "$origin_dir/rtl"
+
+# Set the project name
+set _xil_proj_name_ "vcu128_bp"
+
+set script_file "bp_fpga.tcl"
+
+# Help information for this script
+proc print_help {} {
+  variable script_file
+  puts "\nDescription:"
+  puts "Recreate a Vivado project from this script. The created project will be"
+  puts "functionally equivalent to the original project for which this script was"
+  puts "generated. The script contains commands for creating a project, filesets,"
+  puts "runs, adding/importing sources and setting properties on various objects.\n"
+  puts "Syntax:"
+  puts "$script_file"
+  puts "$script_file -tclargs \[--origin_dir <path>\]"
+  puts "$script_file -tclargs \[--project_name <name>\]"
+  puts "$script_file -tclargs \[--help\]\n"
+  puts "Usage:"
+  puts "Name                   Description"
+  puts "-------------------------------------------------------------------------"
+  puts "\[--origin_dir <path>\]  Determine source file paths wrt this path. Default"
+  puts "                       origin_dir path value is \".\", otherwise, the value"
+  puts "                       that was set with the \"-paths_relative_to\" switch"
+  puts "                       when this script was generated.\n"
+  puts "\[--project_name <name>\] Create project with the specified name. Default"
+  puts "                       name is the name of the project from where this"
+  puts "                       script was generated.\n"
+  puts "\[--help\]               Print help information for this script"
+  puts "-------------------------------------------------------------------------\n"
+  exit 0
+}
+
+if { $::argc > 0 } {
+  for {set i 0} {$i < $::argc} {incr i} {
+    set option [string trim [lindex $::argv $i]]
+    switch -regexp -- $option {
+      "--origin_dir"   { incr i; set origin_dir [lindex $::argv $i] }
+      "--project_name" { incr i; set _xil_proj_name_ [lindex $::argv $i] }
+      "--help"         { print_help }
+      default {
+        if { [regexp {^-} $option] } {
+          puts "ERROR: Unknown option '$option' specified, please type '$script_file -tclargs --help' for usage info.\n"
+          return 1
+        }
+      }
+    }
+  }
+}
+
+# Create project
+create_project ${_xil_proj_name_} ./${_xil_proj_name_} -part xcvu37p-fsvh2892-2L-e-es1
+
+# Set the directory path for the new project
+set proj_dir [get_property directory [current_project]]
+
+# Set project properties
+set obj [current_project]
+set_property -name "default_lib" -value "xil_defaultlib" -objects $obj
+set_property -name "ip_cache_permissions" -value "read write" -objects $obj
+set_property -name "ip_output_repo" -value "$proj_dir/${_xil_proj_name_}.cache/ip" -objects $obj
+set_property -name "part" -value "xcvu37p-fsvh2892-2L-e-es1" -objects $obj
+
+# Create 'sources_1' fileset (if not found)
+if {[string equal [get_filesets -quiet sources_1] ""]} {
+  create_fileset -srcset sources_1
+}
+
+## Automatically discover BlackParrot source files
+# reads the top-level flist and returns a 2-element list: [list $include_dirs $source_files]
+proc load_bp_sources_from_flist { blackparrot_dir origin_dir } {
+  # Set include vars used in flists
+  set BP_TOP_DIR "$blackparrot_dir/bp_top/"
+  set BP_COMMON_DIR "$blackparrot_dir/bp_common/"
+  set BP_BE_DIR "$blackparrot_dir/bp_be/"
+  set BP_FE_DIR "$blackparrot_dir/bp_fe/"
+  set BP_ME_DIR "$blackparrot_dir/bp_me/"
+  set BASEJUMP_STL_DIR "$blackparrot_dir/external/basejump_stl/"
+  set HARDFLOAT_DIR "$blackparrot_dir/external/HardFloat/"
+
+  set flist_path "${blackparrot_dir}/bp_top/syn/flist.vcs"
+
+  set f [split [string trim [read [open $flist_path r]]] "\n"]
+  set source_files [list ]
+  set include_dirs [list ]
+  foreach x $f {
+    if {![string match "" $x] && ![string match "#" [string index $x 0]]} {
+      # If the item starts with +incdir+, directory files need to be added
+      if {[string match "+" [string index $x 0]]} {
+        set trimchars "+incdir+"
+        set temp [string trimleft $x $trimchars]
+        set expanded [subst $temp]
+        lappend include_dirs $expanded
+      } elseif {[string match "*bsg_mem_1rw_sync_mask_write_bit.v" $x]} {
+        # bitmasked memories are incorrectly inferred in Kintex 7 and Ultrascale+ FPGAs, this version maps into lutram correctly
+        set replace_hard "$BASEJUMP_STL_DIR/hard/ultrascale_plus/bsg_mem/bsg_mem_1rw_sync_mask_write_bit.v"
+        set expanded [subst $replace_hard]
+        set normalized [file normalize $expanded]
+        lappend source_files $normalized
+      } elseif {[string match "*bsg_mem_1rw_sync_mask_write_bit_synth.v" $x]} {
+        # omit this file, it's unused now that we've replaced the bsg_mem_1rw_sync_mask_write_bit module above
+      } elseif {[string match "*bsg_mem_1rw_sync_mask_write_byte.v" $x]} {
+        # bitmasked memories are incorrectly inferred in Kintex 7 and Ultrascale+ FPGAs, this version maps into lutram correctly
+        set replace_hard "$origin_dir/v/bsg_mem_1rw_sync_mask_write_byte.v"
+        set expanded [subst $replace_hard]
+        set normalized [file normalize $expanded]
+        lappend source_files $normalized
+        set bytewrite_bram "$origin_dir/v/bytewrite_bram.v"
+        set expanded [subst $bytewrite_bram]
+        set normalized [file normalize $expanded]
+        lappend source_files $normalized
+      } elseif {[string match "*bsg_mem_1rw_sync_mask_write_byte_synth.v" $x]} {
+        # omit this file, it's unused now
+      } else {
+        set expanded [subst $x]
+        set normalized [file normalize $expanded]
+        lappend source_files $normalized
+      }
+    }
+  }
+
+  list $include_dirs $source_files
+}
+
+lassign [load_bp_sources_from_flist $blackparrot_dir $origin_dir] flist_include_dirs flist_source_files
+
+add_files -norecurse -scan_for_includes -fileset sources_1 $flist_source_files
+
+foreach source_file $flist_source_files {
+  set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$source_file"]]
+  set_property -name "file_type" -value "SystemVerilog" -objects $file_obj
+}
+
+# Include directories
+set_property include_dirs $flist_include_dirs [current_fileset]
+
+# Additional source files
+set obj [get_filesets sources_1]
+set files [list \
+ [file normalize "${origin_dir}/../common/v/bp_stream_host.v"] \
+ [file normalize "${origin_dir}/../common/v/bp_stream_mmio.v"] \
+ [file normalize "${origin_dir}/../common/v/bp_stream_nbf_loader.v"] \
+ [file normalize "${origin_dir}/v/bsg_m_axi_lite_to_fifo_sync.v"] \
+ [file normalize "${blackparrot_dir}/external/basejump_stl/bsg_cache/bsg_cache_to_axi_rx.v"] \
+ [file normalize "${blackparrot_dir}/external/basejump_stl/bsg_cache/bsg_cache_to_axi_tx.v"] \
+ [file normalize "${blackparrot_dir}/external/basejump_stl/bsg_cache/bsg_cache_to_axi.v"] \
+ [file normalize "${proj_dir}/design_1_wrapper.v"] \
+]
+add_files -norecurse -fileset $obj $files
+
+set file "$origin_dir/../common/v/bp_stream_host.v"
+set file [file normalize $file]
+set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$file"]]
+set_property -name "file_type" -value "SystemVerilog" -objects $file_obj
+
+set file "$origin_dir/../common/v/bp_stream_mmio.v"
+set file [file normalize $file]
+set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$file"]]
+set_property -name "file_type" -value "SystemVerilog" -objects $file_obj
+
+set file "$origin_dir/../common/v/bp_stream_nbf_loader.v"
+set file [file normalize $file]
+set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$file"]]
+set_property -name "file_type" -value "SystemVerilog" -objects $file_obj
+
+set file "$origin_dir/v/bsg_m_axi_lite_to_fifo_sync.v"
+set file [file normalize $file]
+set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$file"]]
+set_property -name "file_type" -value "SystemVerilog" -objects $file_obj
+
+set file "$blackparrot_dir/external/basejump_stl/bsg_cache/bsg_cache_to_axi_rx.v"
+set file [file normalize $file]
+set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$file"]]
+set_property -name "file_type" -value "SystemVerilog" -objects $file_obj
+
+set file "$blackparrot_dir/external/basejump_stl/bsg_cache/bsg_cache_to_axi_tx.v"
+set file [file normalize $file]
+set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$file"]]
+set_property -name "file_type" -value "SystemVerilog" -objects $file_obj
+
+set file "$blackparrot_dir/external/basejump_stl/bsg_cache/bsg_cache_to_axi.v"
+set file [file normalize $file]
+set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$file"]]
+set_property -name "file_type" -value "SystemVerilog" -objects $file_obj
+
+set file "$proj_dir/design_1_wrapper.v"
+set file [file normalize $file]
+set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$file"]]
+set_property -name "file_type" -value "SystemVerilog" -objects $file_obj
+
+# Set 'sources_1' fileset file properties for local files
+# None
+
+# Set 'sources_1' fileset properties
+set obj [get_filesets sources_1]
+set_property -name "top" -value "design_1_wrapper" -objects $obj
+set_property -name "top_auto_set" -value "0" -objects $obj
+
+# Create 'constrs_1' fileset (if not found)
+if {[string equal [get_filesets -quiet constrs_1] ""]} {
+  create_fileset -constrset constrs_1
+}
+
+# Set 'constrs_1' fileset object
+set obj [get_filesets constrs_1]
+
+# Add/Import constrs file and set constrs file properties
+set file "[file normalize "$origin_dir/xdc/design_1.xdc"]"
+set file_added [add_files -norecurse -fileset $obj [list $file]]
+set file "$origin_dir/xdc/design_1.xdc"
+set file [file normalize $file]
+set file_obj [get_files -of_objects [get_filesets constrs_1] [list "*$file"]]
+set_property -name "file_type" -value "XDC" -objects $file_obj
+
+# Set 'constrs_1' fileset properties
+set obj [get_filesets constrs_1]
+set_property -name "target_part" -value "xcvu37p-fsvh2892-2L-e-es1" -objects $obj
+
+# Create 'sim_1' fileset (if not found)
+if {[string equal [get_filesets -quiet sim_1] ""]} {
+  create_fileset -simset sim_1
+}
+
+# Set 'sim_1' fileset object
+set obj [get_filesets sim_1]
+# Empty (no sources present)
+
+# Set 'sim_1' fileset properties
+set obj [get_filesets sim_1]
+set_property -name "top" -value "design_1_wrapper" -objects $obj
+set_property -name "top_auto_set" -value "0" -objects $obj
+set_property -name "top_lib" -value "xil_defaultlib" -objects $obj
+
+# Set 'utils_1' fileset object
+set obj [get_filesets utils_1]
+# Empty (no sources present)
+
+# Set 'utils_1' fileset properties
+set obj [get_filesets utils_1]
+
+
+# Adding sources referenced in BDs, if not already added
+
+
+# Proc to create BD design_1
+proc cr_bd_design_1 { parentCell } {
+
+  # CHANGE DESIGN NAME HERE
+  set design_name design_1
+
+  common::send_msg_id "BD_TCL-003" "INFO" "Currently there is no design <$design_name> in project, so creating one..."
+
+  create_bd_design $design_name
+
+  set bCheckIPsPassed 1
+  ##################################################################
+  # CHECK IPs
+  ##################################################################
+  set bCheckIPs 1
+  if { $bCheckIPs == 1 } {
+     set list_check_ips "\
+  xilinx.com:ip:axi_clock_converter:2.1\
+  xilinx.com:ip:axi_protocol_converter:2.1\
+  xilinx.com:ip:clk_wiz:6.0\
+  xilinx.com:ip:hbm:1.0\
+  xilinx.com:ip:ila:6.2\
+  xilinx.com:ip:proc_sys_reset:5.0\
+  xilinx.com:ip:smartconnect:1.0\
+  xilinx.com:ip:util_ds_buf:2.1\
+  xilinx.com:ip:xdma:4.1\
+  "
+
+   set list_ips_missing ""
+   common::send_msg_id "BD_TCL-006" "INFO" "Checking if the following IPs exist in the project's IP catalog: $list_check_ips ."
+
+   foreach ip_vlnv $list_check_ips {
+      set ip_obj [get_ipdefs -all $ip_vlnv]
+      if { $ip_obj eq "" } {
+         lappend list_ips_missing $ip_vlnv
+      }
+   }
+
+   if { $list_ips_missing ne "" } {
+      catch {common::send_msg_id "BD_TCL-115" "ERROR" "The following IPs are not found in the IP Catalog:\n  $list_ips_missing\n\nResolution: Please add the repository containing the IP(s) to the project." }
+      set bCheckIPsPassed 0
+   }
+
+  }
+
+  if { $bCheckIPsPassed != 1 } {
+    common::send_msg_id "BD_TCL-1003" "WARNING" "Will not continue with creation of design due to the error(s) above."
+    return 3
+  }
+
+  variable script_folder
+
+  if { $parentCell eq "" } {
+     set parentCell [get_bd_cells /]
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+
+  # Create interface ports
+  set m_axi_lite [ create_bd_intf_port -mode Master -vlnv xilinx.com:interface:aximm_rtl:1.0 m_axi_lite ]
+  set_property -dict [ list \
+   CONFIG.ADDR_WIDTH {32} \
+   CONFIG.DATA_WIDTH {32} \
+   CONFIG.FREQ_HZ {50000000} \
+   CONFIG.PROTOCOL {AXI4LITE} \
+   ] $m_axi_lite
+
+  set pci_express_x4 [ create_bd_intf_port -mode Master -vlnv xilinx.com:interface:pcie_7x_mgt_rtl:1.0 pci_express_x4 ]
+
+  set pcie_refclk [ create_bd_intf_port -mode Slave -vlnv xilinx.com:interface:diff_clock_rtl:1.0 pcie_refclk ]
+  set_property -dict [ list \
+   CONFIG.FREQ_HZ {100000000} \
+   ] $pcie_refclk
+
+  set s_apb [ create_bd_intf_port -mode Slave -vlnv xilinx.com:interface:apb_rtl:1.0 s_apb ]
+
+  set s_apb_1 [ create_bd_intf_port -mode Slave -vlnv xilinx.com:interface:apb_rtl:1.0 s_apb_1 ]
+
+  set s_axi [ create_bd_intf_port -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 s_axi ]
+  set_property -dict [ list \
+   CONFIG.ADDR_WIDTH {33} \
+   CONFIG.ARUSER_WIDTH {0} \
+   CONFIG.AWUSER_WIDTH {0} \
+   CONFIG.BUSER_WIDTH {0} \
+   CONFIG.DATA_WIDTH {256} \
+   CONFIG.FREQ_HZ {50000000} \
+   CONFIG.HAS_BRESP {1} \
+   CONFIG.HAS_BURST {1} \
+   CONFIG.HAS_CACHE {1} \
+   CONFIG.HAS_LOCK {1} \
+   CONFIG.HAS_PROT {1} \
+   CONFIG.HAS_QOS {1} \
+   CONFIG.HAS_REGION {1} \
+   CONFIG.HAS_RRESP {1} \
+   CONFIG.HAS_WSTRB {1} \
+   CONFIG.ID_WIDTH {6} \
+   CONFIG.MAX_BURST_LENGTH {256} \
+   CONFIG.NUM_READ_OUTSTANDING {1} \
+   CONFIG.NUM_READ_THREADS {1} \
+   CONFIG.NUM_WRITE_OUTSTANDING {1} \
+   CONFIG.NUM_WRITE_THREADS {1} \
+   CONFIG.PROTOCOL {AXI4} \
+   CONFIG.READ_WRITE_MODE {READ_WRITE} \
+   CONFIG.RUSER_BITS_PER_BYTE {0} \
+   CONFIG.RUSER_WIDTH {0} \
+   CONFIG.SUPPORTS_NARROW_BURST {1} \
+   CONFIG.WUSER_BITS_PER_BYTE {0} \
+   CONFIG.WUSER_WIDTH {0} \
+   ] $s_axi
+
+
+  # Create ports
+  set apb_complete [ create_bd_port -dir O -type data apb_complete ]
+  set apb_complete_1 [ create_bd_port -dir O apb_complete_1 ]
+  set mig_clk [ create_bd_port -dir O -type clk mig_clk ]
+  set_property -dict [ list \
+   CONFIG.ASSOCIATED_BUSIF {s_axi:m_axi_lite} \
+   CONFIG.ASSOCIATED_RESET {mig_rstn} \
+   CONFIG.FREQ_HZ {50000000} \
+ ] $mig_clk
+  set mig_rstn [ create_bd_port -dir O -from 0 -to 0 -type rst mig_rstn ]
+  set pcie_clk [ create_bd_port -dir O -type clk pcie_clk ]
+  set_property -dict [ list \
+   CONFIG.ASSOCIATED_RESET {pcie_rstn} \
+   CONFIG.FREQ_HZ {250000000} \
+ ] $pcie_clk
+  set pcie_lnk_up [ create_bd_port -dir O -type data pcie_lnk_up ]
+  set pcie_perstn [ create_bd_port -dir I -type rst pcie_perstn ]
+  set_property -dict [ list \
+   CONFIG.POLARITY {ACTIVE_LOW} \
+ ] $pcie_perstn
+  set pcie_rstn [ create_bd_port -dir O -from 0 -to 0 -type rst pcie_rstn ]
+  set reset [ create_bd_port -dir I -type rst reset ]
+  set_property -dict [ list \
+   CONFIG.POLARITY {ACTIVE_HIGH} \
+ ] $reset
+
+  # Create instance: axi_clock_converter_0, and set properties
+  set axi_clock_converter_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_clock_converter:2.1 axi_clock_converter_0 ]
+  set_property -dict [ list \
+   CONFIG.ACLK_ASYNC {1} \
+   CONFIG.PROTOCOL {AXI4LITE} \
+   CONFIG.SYNCHRONIZATION_STAGES {3} \
+ ] $axi_clock_converter_0
+
+  # Create instance: axi_clock_converter_1, and set properties
+  set axi_clock_converter_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_clock_converter:2.1 axi_clock_converter_1 ]
+  set_property -dict [ list \
+   CONFIG.ACLK_ASYNC {1} \
+   CONFIG.ADDR_WIDTH {33} \
+   CONFIG.DATA_WIDTH {256} \
+   CONFIG.ID_WIDTH {6} \
+   CONFIG.PROTOCOL {AXI3} \
+ ] $axi_clock_converter_1
+
+  # Create instance: axi_protocol_convert_0, and set properties
+  set axi_protocol_convert_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_protocol_converter:2.1 axi_protocol_convert_0 ]
+  set_property -dict [ list \
+   CONFIG.ADDR_WIDTH {33} \
+   CONFIG.DATA_WIDTH {256} \
+   CONFIG.ID_WIDTH {6} \
+   CONFIG.MI_PROTOCOL {AXI3} \
+   CONFIG.SI_PROTOCOL {AXI4} \
+   CONFIG.TRANSLATION_MODE {2} \
+ ] $axi_protocol_convert_0
+
+  # Create instance: clk_wiz_0, and set properties
+  set clk_wiz_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:clk_wiz:6.0 clk_wiz_0 ]
+  set_property -dict [ list \
+   CONFIG.CLKOUT1_JITTER {123.073} \
+   CONFIG.CLKOUT1_PHASE_ERROR {85.928} \
+   CONFIG.CLKOUT1_REQUESTED_OUT_FREQ {50.0000} \
+   CONFIG.CLKOUT2_JITTER {107.111} \
+   CONFIG.CLKOUT2_PHASE_ERROR {85.928} \
+   CONFIG.CLKOUT2_USED {true} \
+   CONFIG.CLKOUT3_JITTER {107.111} \
+   CONFIG.CLKOUT3_PHASE_ERROR {85.928} \
+   CONFIG.CLKOUT3_REQUESTED_OUT_FREQ {100.000} \
+   CONFIG.CLKOUT3_USED {true} \
+   CONFIG.CLKOUT4_JITTER {89.528} \
+   CONFIG.CLKOUT4_PHASE_ERROR {85.928} \
+   CONFIG.CLKOUT4_REQUESTED_OUT_FREQ {250.000} \
+   CONFIG.CLKOUT4_USED {true} \
+   CONFIG.MMCM_CLKFBOUT_MULT_F {4.000} \
+   CONFIG.MMCM_CLKOUT0_DIVIDE_F {20.000} \
+   CONFIG.MMCM_CLKOUT1_DIVIDE {10} \
+   CONFIG.MMCM_CLKOUT2_DIVIDE {10} \
+   CONFIG.MMCM_CLKOUT3_DIVIDE {4} \
+   CONFIG.MMCM_DIVCLK_DIVIDE {1} \
+   CONFIG.NUM_OUT_CLKS {4} \
+   CONFIG.PRIM_SOURCE {Global_buffer} \
+   CONFIG.USE_LOCKED {false} \
+   CONFIG.USE_RESET {false} \
+ ] $clk_wiz_0
+
+  # Create instance: hbm_0, and set properties
+  set hbm_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:hbm:1.0 hbm_0 ]
+  set_property -dict [ list \
+   CONFIG.HBM_MMCM_FBOUT_MULT0 {70} \
+   CONFIG.USER_APB_PCLK_0 {100} \
+   CONFIG.USER_AXI_CLK_FREQ {250} \
+   CONFIG.USER_CLK_SEL_LIST0 {AXI_00_ACLK} \
+   CONFIG.USER_CLK_SEL_LIST1 {AXI_16_ACLK} \
+   CONFIG.USER_HBM_DENSITY {8GB} \
+   CONFIG.USER_HBM_STACK {2} \
+   CONFIG.USER_MC0_ECC_BYPASS {true} \
+   CONFIG.USER_MC0_MAINTAIN_COHERENCY {false} \
+   CONFIG.USER_MC0_REORDER_EN {false} \
+   CONFIG.USER_MC0_REORDER_QUEUE_EN {false} \
+   CONFIG.USER_MC10_ECC_BYPASS {true} \
+   CONFIG.USER_MC10_MAINTAIN_COHERENCY {false} \
+   CONFIG.USER_MC10_REORDER_EN {false} \
+   CONFIG.USER_MC10_REORDER_QUEUE_EN {false} \
+   CONFIG.USER_MC11_ECC_BYPASS {true} \
+   CONFIG.USER_MC11_MAINTAIN_COHERENCY {false} \
+   CONFIG.USER_MC11_REORDER_EN {false} \
+   CONFIG.USER_MC11_REORDER_QUEUE_EN {false} \
+   CONFIG.USER_MC12_ECC_BYPASS {true} \
+   CONFIG.USER_MC12_MAINTAIN_COHERENCY {false} \
+   CONFIG.USER_MC12_REORDER_EN {false} \
+   CONFIG.USER_MC12_REORDER_QUEUE_EN {false} \
+   CONFIG.USER_MC13_ECC_BYPASS {true} \
+   CONFIG.USER_MC13_MAINTAIN_COHERENCY {false} \
+   CONFIG.USER_MC13_REORDER_EN {false} \
+   CONFIG.USER_MC13_REORDER_QUEUE_EN {false} \
+   CONFIG.USER_MC14_ECC_BYPASS {true} \
+   CONFIG.USER_MC14_MAINTAIN_COHERENCY {false} \
+   CONFIG.USER_MC14_REORDER_EN {false} \
+   CONFIG.USER_MC14_REORDER_QUEUE_EN {false} \
+   CONFIG.USER_MC15_ECC_BYPASS {true} \
+   CONFIG.USER_MC15_MAINTAIN_COHERENCY {false} \
+   CONFIG.USER_MC15_REORDER_EN {false} \
+   CONFIG.USER_MC15_REORDER_QUEUE_EN {false} \
+   CONFIG.USER_MC1_ECC_BYPASS {true} \
+   CONFIG.USER_MC1_MAINTAIN_COHERENCY {false} \
+   CONFIG.USER_MC1_REORDER_EN {false} \
+   CONFIG.USER_MC1_REORDER_QUEUE_EN {false} \
+   CONFIG.USER_MC2_ECC_BYPASS {true} \
+   CONFIG.USER_MC2_MAINTAIN_COHERENCY {false} \
+   CONFIG.USER_MC2_REORDER_EN {false} \
+   CONFIG.USER_MC2_REORDER_QUEUE_EN {false} \
+   CONFIG.USER_MC3_ECC_BYPASS {true} \
+   CONFIG.USER_MC3_MAINTAIN_COHERENCY {false} \
+   CONFIG.USER_MC3_REORDER_EN {false} \
+   CONFIG.USER_MC3_REORDER_QUEUE_EN {false} \
+   CONFIG.USER_MC4_ECC_BYPASS {true} \
+   CONFIG.USER_MC4_MAINTAIN_COHERENCY {false} \
+   CONFIG.USER_MC4_REORDER_EN {false} \
+   CONFIG.USER_MC4_REORDER_QUEUE_EN {false} \
+   CONFIG.USER_MC5_ECC_BYPASS {true} \
+   CONFIG.USER_MC5_MAINTAIN_COHERENCY {false} \
+   CONFIG.USER_MC5_REORDER_EN {false} \
+   CONFIG.USER_MC5_REORDER_QUEUE_EN {false} \
+   CONFIG.USER_MC6_ECC_BYPASS {true} \
+   CONFIG.USER_MC6_MAINTAIN_COHERENCY {false} \
+   CONFIG.USER_MC6_REORDER_EN {false} \
+   CONFIG.USER_MC6_REORDER_QUEUE_EN {false} \
+   CONFIG.USER_MC7_ECC_BYPASS {true} \
+   CONFIG.USER_MC7_MAINTAIN_COHERENCY {false} \
+   CONFIG.USER_MC7_REORDER_EN {false} \
+   CONFIG.USER_MC7_REORDER_QUEUE_EN {false} \
+   CONFIG.USER_MC8_ECC_BYPASS {true} \
+   CONFIG.USER_MC8_MAINTAIN_COHERENCY {false} \
+   CONFIG.USER_MC8_REORDER_EN {false} \
+   CONFIG.USER_MC8_REORDER_QUEUE_EN {false} \
+   CONFIG.USER_MC9_ECC_BYPASS {true} \
+   CONFIG.USER_MC9_MAINTAIN_COHERENCY {false} \
+   CONFIG.USER_MC9_REORDER_EN {false} \
+   CONFIG.USER_MC9_REORDER_QUEUE_EN {false} \
+   CONFIG.USER_MC_ENABLE_01 {TRUE} \
+   CONFIG.USER_MC_ENABLE_02 {TRUE} \
+   CONFIG.USER_MC_ENABLE_03 {TRUE} \
+   CONFIG.USER_MC_ENABLE_04 {TRUE} \
+   CONFIG.USER_MC_ENABLE_05 {TRUE} \
+   CONFIG.USER_MC_ENABLE_06 {TRUE} \
+   CONFIG.USER_MC_ENABLE_07 {TRUE} \
+   CONFIG.USER_MC_ENABLE_08 {TRUE} \
+   CONFIG.USER_MC_ENABLE_09 {TRUE} \
+   CONFIG.USER_MC_ENABLE_10 {TRUE} \
+   CONFIG.USER_MC_ENABLE_11 {TRUE} \
+   CONFIG.USER_MC_ENABLE_12 {TRUE} \
+   CONFIG.USER_MC_ENABLE_13 {TRUE} \
+   CONFIG.USER_MC_ENABLE_14 {TRUE} \
+   CONFIG.USER_MC_ENABLE_15 {TRUE} \
+   CONFIG.USER_MC_ENABLE_APB_01 {TRUE} \
+   CONFIG.USER_MEMORY_DISPLAY {8192} \
+   CONFIG.USER_PHY_ENABLE_08 {TRUE} \
+   CONFIG.USER_PHY_ENABLE_09 {TRUE} \
+   CONFIG.USER_PHY_ENABLE_10 {TRUE} \
+   CONFIG.USER_PHY_ENABLE_11 {TRUE} \
+   CONFIG.USER_PHY_ENABLE_12 {TRUE} \
+   CONFIG.USER_PHY_ENABLE_13 {TRUE} \
+   CONFIG.USER_PHY_ENABLE_14 {TRUE} \
+   CONFIG.USER_PHY_ENABLE_15 {TRUE} \
+   CONFIG.USER_SAXI_00 {true} \
+   CONFIG.USER_SAXI_01 {false} \
+   CONFIG.USER_SAXI_02 {false} \
+   CONFIG.USER_SAXI_03 {false} \
+   CONFIG.USER_SAXI_04 {false} \
+   CONFIG.USER_SAXI_05 {false} \
+   CONFIG.USER_SAXI_06 {false} \
+   CONFIG.USER_SAXI_07 {false} \
+   CONFIG.USER_SAXI_08 {false} \
+   CONFIG.USER_SAXI_09 {false} \
+   CONFIG.USER_SAXI_10 {false} \
+   CONFIG.USER_SAXI_11 {false} \
+   CONFIG.USER_SAXI_12 {false} \
+   CONFIG.USER_SAXI_13 {false} \
+   CONFIG.USER_SAXI_14 {false} \
+   CONFIG.USER_SAXI_15 {false} \
+   CONFIG.USER_SAXI_16 {true} \
+   CONFIG.USER_SAXI_17 {false} \
+   CONFIG.USER_SAXI_18 {false} \
+   CONFIG.USER_SAXI_19 {false} \
+   CONFIG.USER_SAXI_20 {false} \
+   CONFIG.USER_SAXI_21 {false} \
+   CONFIG.USER_SAXI_22 {false} \
+   CONFIG.USER_SAXI_23 {false} \
+   CONFIG.USER_SAXI_24 {false} \
+   CONFIG.USER_SAXI_25 {false} \
+   CONFIG.USER_SAXI_26 {false} \
+   CONFIG.USER_SAXI_27 {false} \
+   CONFIG.USER_SAXI_28 {false} \
+   CONFIG.USER_SAXI_29 {false} \
+   CONFIG.USER_SAXI_30 {false} \
+   CONFIG.USER_SAXI_31 {false} \
+   CONFIG.USER_SINGLE_STACK_SELECTION {LEFT} \
+   CONFIG.USER_SWITCH_ENABLE_00 {TRUE} \
+   CONFIG.USER_SWITCH_ENABLE_01 {TRUE} \
+   CONFIG.USER_TEMP_POLL_CNT_0 {100000} \
+ ] $hbm_0
+
+  # Create instance: ila_0, and set properties
+  set ila_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:ila:6.2 ila_0 ]
+  set_property -dict [ list \
+   CONFIG.ALL_PROBE_SAME_MU_CNT {2} \
+   CONFIG.C_PROBE0_MU_CNT {2} \
+   CONFIG.C_PROBE10_MU_CNT {2} \
+   CONFIG.C_PROBE11_MU_CNT {2} \
+   CONFIG.C_PROBE12_MU_CNT {2} \
+   CONFIG.C_PROBE13_MU_CNT {2} \
+   CONFIG.C_PROBE14_MU_CNT {2} \
+   CONFIG.C_PROBE15_MU_CNT {2} \
+   CONFIG.C_PROBE16_MU_CNT {2} \
+   CONFIG.C_PROBE17_MU_CNT {2} \
+   CONFIG.C_PROBE18_MU_CNT {2} \
+   CONFIG.C_PROBE19_MU_CNT {2} \
+   CONFIG.C_PROBE1_MU_CNT {2} \
+   CONFIG.C_PROBE20_MU_CNT {2} \
+   CONFIG.C_PROBE21_MU_CNT {2} \
+   CONFIG.C_PROBE22_MU_CNT {2} \
+   CONFIG.C_PROBE23_MU_CNT {2} \
+   CONFIG.C_PROBE24_MU_CNT {2} \
+   CONFIG.C_PROBE25_MU_CNT {2} \
+   CONFIG.C_PROBE26_MU_CNT {2} \
+   CONFIG.C_PROBE27_MU_CNT {2} \
+   CONFIG.C_PROBE28_MU_CNT {2} \
+   CONFIG.C_PROBE29_MU_CNT {2} \
+   CONFIG.C_PROBE2_MU_CNT {2} \
+   CONFIG.C_PROBE30_MU_CNT {2} \
+   CONFIG.C_PROBE31_MU_CNT {2} \
+   CONFIG.C_PROBE32_MU_CNT {2} \
+   CONFIG.C_PROBE33_MU_CNT {2} \
+   CONFIG.C_PROBE34_MU_CNT {2} \
+   CONFIG.C_PROBE35_MU_CNT {2} \
+   CONFIG.C_PROBE36_MU_CNT {2} \
+   CONFIG.C_PROBE37_MU_CNT {2} \
+   CONFIG.C_PROBE38_MU_CNT {2} \
+   CONFIG.C_PROBE39_MU_CNT {2} \
+   CONFIG.C_PROBE3_MU_CNT {2} \
+   CONFIG.C_PROBE40_MU_CNT {2} \
+   CONFIG.C_PROBE41_MU_CNT {2} \
+   CONFIG.C_PROBE42_MU_CNT {2} \
+   CONFIG.C_PROBE43_MU_CNT {2} \
+   CONFIG.C_PROBE4_MU_CNT {2} \
+   CONFIG.C_PROBE5_MU_CNT {2} \
+   CONFIG.C_PROBE6_MU_CNT {2} \
+   CONFIG.C_PROBE7_MU_CNT {2} \
+   CONFIG.C_PROBE8_MU_CNT {2} \
+   CONFIG.C_PROBE9_MU_CNT {2} \
+ ] $ila_0
+
+  # Create instance: proc_sys_reset_0, and set properties
+  set proc_sys_reset_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:proc_sys_reset:5.0 proc_sys_reset_0 ]
+
+  # Create instance: proc_sys_reset_1, and set properties
+  set proc_sys_reset_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:proc_sys_reset:5.0 proc_sys_reset_1 ]
+
+  # Create instance: proc_sys_reset_2, and set properties
+  set proc_sys_reset_2 [ create_bd_cell -type ip -vlnv xilinx.com:ip:proc_sys_reset:5.0 proc_sys_reset_2 ]
+
+  # Create instance: proc_sys_reset_3, and set properties
+  set proc_sys_reset_3 [ create_bd_cell -type ip -vlnv xilinx.com:ip:proc_sys_reset:5.0 proc_sys_reset_3 ]
+
+  # Create instance: smartconnect_0, and set properties
+  set smartconnect_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:smartconnect:1.0 smartconnect_0 ]
+  set_property -dict [ list \
+   CONFIG.NUM_MI {2} \
+   CONFIG.NUM_SI {1} \
+ ] $smartconnect_0
+
+  # Create instance: util_ds_buf_0, and set properties
+  set util_ds_buf_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:util_ds_buf:2.1 util_ds_buf_0 ]
+  set_property -dict [ list \
+   CONFIG.C_BUF_TYPE {IBUFDSGTE} \
+ ] $util_ds_buf_0
+
+  # Create instance: xdma_0, and set properties
+  set xdma_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xdma:4.1 xdma_0 ]
+  set_property -dict [ list \
+   CONFIG.PF0_DEVICE_ID_mqdma {9034} \
+   CONFIG.PF2_DEVICE_ID_mqdma {9034} \
+   CONFIG.PF3_DEVICE_ID_mqdma {9034} \
+   CONFIG.axi_data_width {128_bit} \
+   CONFIG.axilite_master_en {true} \
+   CONFIG.axilite_master_scale {Kilobytes} \
+   CONFIG.axilite_master_size {64} \
+   CONFIG.axisten_freq {250} \
+   CONFIG.en_gt_selection {true} \
+   CONFIG.mode_selection {Advanced} \
+   CONFIG.pcie_blk_locn {PCIE4C_X1Y0} \
+   CONFIG.pf0_device_id {9014} \
+   CONFIG.pf0_msix_cap_pba_bir {BAR_1} \
+   CONFIG.pf0_msix_cap_table_bir {BAR_1} \
+   CONFIG.pl_link_cap_max_link_speed {8.0_GT/s} \
+   CONFIG.pl_link_cap_max_link_width {X4} \
+   CONFIG.plltype {QPLL1} \
+   CONFIG.select_quad {GTY_Quad_227} \
+ ] $xdma_0
+
+  # Create interface connections
+  connect_bd_intf_net -intf_net SAPB_1_0_1 [get_bd_intf_ports s_apb_1] [get_bd_intf_pins hbm_0/SAPB_1]
+  connect_bd_intf_net -intf_net axi_clock_converter_0_M_AXI [get_bd_intf_ports m_axi_lite] [get_bd_intf_pins axi_clock_converter_0/M_AXI]
+  connect_bd_intf_net -intf_net axi_clock_converter_1_M_AXI [get_bd_intf_pins axi_clock_converter_1/M_AXI] [get_bd_intf_pins smartconnect_0/S00_AXI]
+  connect_bd_intf_net -intf_net axi_protocol_convert_0_M_AXI [get_bd_intf_pins axi_clock_converter_1/S_AXI] [get_bd_intf_pins axi_protocol_convert_0/M_AXI]
+  connect_bd_intf_net -intf_net pcie_refclk_1 [get_bd_intf_ports pcie_refclk] [get_bd_intf_pins util_ds_buf_0/CLK_IN_D]
+  connect_bd_intf_net -intf_net s_apb_1 [get_bd_intf_ports s_apb] [get_bd_intf_pins hbm_0/SAPB_0]
+  connect_bd_intf_net -intf_net s_axi_1 [get_bd_intf_ports s_axi] [get_bd_intf_pins axi_protocol_convert_0/S_AXI]
+  connect_bd_intf_net -intf_net [get_bd_intf_nets s_axi_1] [get_bd_intf_ports s_axi] [get_bd_intf_pins ila_0/SLOT_0_AXI]
+  connect_bd_intf_net -intf_net smartconnect_0_M00_AXI [get_bd_intf_pins hbm_0/SAXI_00] [get_bd_intf_pins smartconnect_0/M00_AXI]
+  connect_bd_intf_net -intf_net smartconnect_0_M01_AXI [get_bd_intf_pins hbm_0/SAXI_16] [get_bd_intf_pins smartconnect_0/M01_AXI]
+  connect_bd_intf_net -intf_net xdma_0_M_AXI_LITE [get_bd_intf_pins axi_clock_converter_0/S_AXI] [get_bd_intf_pins xdma_0/M_AXI_LITE]
+  connect_bd_intf_net -intf_net xdma_0_pcie_mgt [get_bd_intf_ports pci_express_x4] [get_bd_intf_pins xdma_0/pcie_mgt]
+
+  # Create port connections
+  connect_bd_net -net clk_wiz_0_clk_out1 [get_bd_ports mig_clk] [get_bd_pins axi_clock_converter_0/m_axi_aclk] [get_bd_pins axi_clock_converter_1/s_axi_aclk] [get_bd_pins axi_protocol_convert_0/aclk] [get_bd_pins clk_wiz_0/clk_out1] [get_bd_pins ila_0/clk] [get_bd_pins proc_sys_reset_1/slowest_sync_clk]
+  connect_bd_net -net clk_wiz_0_clk_out2 [get_bd_pins clk_wiz_0/clk_out2] [get_bd_pins hbm_0/HBM_REF_CLK_0] [get_bd_pins hbm_0/HBM_REF_CLK_1]
+  connect_bd_net -net clk_wiz_0_clk_out3 [get_bd_pins clk_wiz_0/clk_out3] [get_bd_pins hbm_0/APB_0_PCLK] [get_bd_pins hbm_0/APB_1_PCLK] [get_bd_pins proc_sys_reset_2/slowest_sync_clk]
+  connect_bd_net -net clk_wiz_0_clk_out4 [get_bd_pins axi_clock_converter_1/m_axi_aclk] [get_bd_pins clk_wiz_0/clk_out4] [get_bd_pins hbm_0/AXI_00_ACLK] [get_bd_pins hbm_0/AXI_16_ACLK] [get_bd_pins proc_sys_reset_3/slowest_sync_clk] [get_bd_pins smartconnect_0/aclk]
+  connect_bd_net -net hbm_0_apb_complete_0 [get_bd_ports apb_complete] [get_bd_pins hbm_0/apb_complete_0]
+  connect_bd_net -net hbm_0_apb_complete_1 [get_bd_ports apb_complete_1] [get_bd_pins hbm_0/apb_complete_1]
+  connect_bd_net -net pcie_perstn_1 [get_bd_ports pcie_perstn] [get_bd_pins xdma_0/sys_rst_n]
+  connect_bd_net -net proc_sys_reset_0_peripheral_aresetn [get_bd_ports pcie_rstn] [get_bd_pins proc_sys_reset_0/peripheral_aresetn]
+  connect_bd_net -net proc_sys_reset_1_peripheral_aresetn [get_bd_ports mig_rstn] [get_bd_pins axi_clock_converter_0/m_axi_aresetn] [get_bd_pins axi_clock_converter_1/s_axi_aresetn] [get_bd_pins axi_protocol_convert_0/aresetn] [get_bd_pins proc_sys_reset_1/peripheral_aresetn]
+  connect_bd_net -net proc_sys_reset_2_peripheral_aresetn [get_bd_pins hbm_0/APB_0_PRESET_N] [get_bd_pins hbm_0/APB_1_PRESET_N] [get_bd_pins proc_sys_reset_2/peripheral_aresetn]
+  connect_bd_net -net proc_sys_reset_3_peripheral_aresetn [get_bd_pins axi_clock_converter_1/m_axi_aresetn] [get_bd_pins hbm_0/AXI_00_ARESET_N] [get_bd_pins hbm_0/AXI_16_ARESET_N] [get_bd_pins proc_sys_reset_3/peripheral_aresetn] [get_bd_pins smartconnect_0/aresetn]
+  connect_bd_net -net reset_1 [get_bd_ports reset] [get_bd_pins proc_sys_reset_0/ext_reset_in] [get_bd_pins proc_sys_reset_1/ext_reset_in] [get_bd_pins proc_sys_reset_2/ext_reset_in] [get_bd_pins proc_sys_reset_3/ext_reset_in]
+  connect_bd_net -net util_ds_buf_0_IBUF_DS_ODIV2 [get_bd_pins util_ds_buf_0/IBUF_DS_ODIV2] [get_bd_pins xdma_0/sys_clk]
+  connect_bd_net -net util_ds_buf_0_IBUF_OUT [get_bd_pins util_ds_buf_0/IBUF_OUT] [get_bd_pins xdma_0/sys_clk_gt]
+  connect_bd_net -net xdma_0_axi_aclk [get_bd_ports pcie_clk] [get_bd_pins axi_clock_converter_0/s_axi_aclk] [get_bd_pins clk_wiz_0/clk_in1] [get_bd_pins proc_sys_reset_0/slowest_sync_clk] [get_bd_pins xdma_0/axi_aclk]
+  connect_bd_net -net xdma_0_axi_aresetn [get_bd_pins axi_clock_converter_0/s_axi_aresetn] [get_bd_pins proc_sys_reset_0/aux_reset_in] [get_bd_pins proc_sys_reset_1/aux_reset_in] [get_bd_pins proc_sys_reset_2/aux_reset_in] [get_bd_pins proc_sys_reset_3/aux_reset_in] [get_bd_pins xdma_0/axi_aresetn]
+  connect_bd_net -net xdma_0_user_lnk_up [get_bd_ports pcie_lnk_up] [get_bd_pins xdma_0/user_lnk_up]
+
+  # Create address segments
+  create_bd_addr_seg -range 0x00010000 -offset 0x44A00000 [get_bd_addr_spaces xdma_0/M_AXI_LITE] [get_bd_addr_segs m_axi_lite/Reg] SEG_m_axi_lite_Reg
+  create_bd_addr_seg -range 0x08000000 -offset 0x00000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM00] SEG_hbm_0_HBM_MEM00
+  create_bd_addr_seg -range 0x08000000 -offset 0x10000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM01] SEG_hbm_0_HBM_MEM01
+  create_bd_addr_seg -range 0x08000000 -offset 0x08000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM00] SEG_hbm_0_HBM_MEM002
+  create_bd_addr_seg -range 0x08000000 -offset 0x20000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM02] SEG_hbm_0_HBM_MEM02
+  create_bd_addr_seg -range 0x08000000 -offset 0x30000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM03] SEG_hbm_0_HBM_MEM03
+  create_bd_addr_seg -range 0x08000000 -offset 0x40000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM04] SEG_hbm_0_HBM_MEM04
+  create_bd_addr_seg -range 0x08000000 -offset 0x50000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM05] SEG_hbm_0_HBM_MEM05
+  create_bd_addr_seg -range 0x08000000 -offset 0x60000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM06] SEG_hbm_0_HBM_MEM06
+  create_bd_addr_seg -range 0x08000000 -offset 0x70000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM07] SEG_hbm_0_HBM_MEM07
+  create_bd_addr_seg -range 0x08000000 -offset 0x80000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM08] SEG_hbm_0_HBM_MEM08
+  create_bd_addr_seg -range 0x08000000 -offset 0x90000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM09] SEG_hbm_0_HBM_MEM09
+  create_bd_addr_seg -range 0x08000000 -offset 0xA0000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM10] SEG_hbm_0_HBM_MEM10
+  create_bd_addr_seg -range 0x08000000 -offset 0xB0000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM11] SEG_hbm_0_HBM_MEM11
+  create_bd_addr_seg -range 0x08000000 -offset 0xC0000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM12] SEG_hbm_0_HBM_MEM12
+  create_bd_addr_seg -range 0x08000000 -offset 0xD0000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM13] SEG_hbm_0_HBM_MEM13
+  create_bd_addr_seg -range 0x08000000 -offset 0xE0000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM14] SEG_hbm_0_HBM_MEM14
+  create_bd_addr_seg -range 0x08000000 -offset 0xF0000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM15] SEG_hbm_0_HBM_MEM15
+  create_bd_addr_seg -range 0x08000000 -offset 0x18000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM01] SEG_hbm_0_HBM_MEM015
+  create_bd_addr_seg -range 0x08000000 -offset 0x000100000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM16] SEG_hbm_0_HBM_MEM16
+  create_bd_addr_seg -range 0x08000000 -offset 0x000110000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM17] SEG_hbm_0_HBM_MEM17
+  create_bd_addr_seg -range 0x08000000 -offset 0x000120000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM18] SEG_hbm_0_HBM_MEM18
+  create_bd_addr_seg -range 0x08000000 -offset 0x000130000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM19] SEG_hbm_0_HBM_MEM19
+  create_bd_addr_seg -range 0x08000000 -offset 0x000140000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM20] SEG_hbm_0_HBM_MEM20
+  create_bd_addr_seg -range 0x08000000 -offset 0x000150000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM21] SEG_hbm_0_HBM_MEM21
+  create_bd_addr_seg -range 0x08000000 -offset 0x000160000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM22] SEG_hbm_0_HBM_MEM22
+  create_bd_addr_seg -range 0x08000000 -offset 0x000170000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM23] SEG_hbm_0_HBM_MEM23
+  create_bd_addr_seg -range 0x08000000 -offset 0x000180000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM24] SEG_hbm_0_HBM_MEM24
+  create_bd_addr_seg -range 0x08000000 -offset 0x000190000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM25] SEG_hbm_0_HBM_MEM25
+  create_bd_addr_seg -range 0x08000000 -offset 0x0001A0000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM26] SEG_hbm_0_HBM_MEM26
+  create_bd_addr_seg -range 0x08000000 -offset 0x0001B0000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM27] SEG_hbm_0_HBM_MEM27
+  create_bd_addr_seg -range 0x08000000 -offset 0x28000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM02] SEG_hbm_0_HBM_MEM028
+  create_bd_addr_seg -range 0x08000000 -offset 0x0001C0000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM28] SEG_hbm_0_HBM_MEM28
+  create_bd_addr_seg -range 0x08000000 -offset 0x0001D0000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM29] SEG_hbm_0_HBM_MEM29
+  create_bd_addr_seg -range 0x08000000 -offset 0x0001E0000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM30] SEG_hbm_0_HBM_MEM30
+  create_bd_addr_seg -range 0x08000000 -offset 0x0001F0000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM31] SEG_hbm_0_HBM_MEM31
+  create_bd_addr_seg -range 0x08000000 -offset 0x38000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM03] SEG_hbm_0_HBM_MEM0311
+  create_bd_addr_seg -range 0x08000000 -offset 0x48000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM04] SEG_hbm_0_HBM_MEM0414
+  create_bd_addr_seg -range 0x08000000 -offset 0x58000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM05] SEG_hbm_0_HBM_MEM0517
+  create_bd_addr_seg -range 0x08000000 -offset 0x68000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM06] SEG_hbm_0_HBM_MEM0620
+  create_bd_addr_seg -range 0x08000000 -offset 0x78000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM07] SEG_hbm_0_HBM_MEM0723
+  create_bd_addr_seg -range 0x08000000 -offset 0x88000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM08] SEG_hbm_0_HBM_MEM0826
+  create_bd_addr_seg -range 0x08000000 -offset 0x98000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM09] SEG_hbm_0_HBM_MEM0929
+  create_bd_addr_seg -range 0x08000000 -offset 0xA8000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM10] SEG_hbm_0_HBM_MEM1032
+  create_bd_addr_seg -range 0x08000000 -offset 0xB8000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM11] SEG_hbm_0_HBM_MEM1135
+  create_bd_addr_seg -range 0x08000000 -offset 0xC8000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM12] SEG_hbm_0_HBM_MEM1238
+  create_bd_addr_seg -range 0x08000000 -offset 0xD8000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM13] SEG_hbm_0_HBM_MEM1341
+  create_bd_addr_seg -range 0x08000000 -offset 0xE8000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM14] SEG_hbm_0_HBM_MEM1444
+  create_bd_addr_seg -range 0x08000000 -offset 0xF8000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM15] SEG_hbm_0_HBM_MEM1547
+  create_bd_addr_seg -range 0x08000000 -offset 0x000108000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM16] SEG_hbm_0_HBM_MEM1650
+  create_bd_addr_seg -range 0x08000000 -offset 0x000118000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM17] SEG_hbm_0_HBM_MEM1753
+  create_bd_addr_seg -range 0x08000000 -offset 0x000128000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM18] SEG_hbm_0_HBM_MEM1856
+  create_bd_addr_seg -range 0x08000000 -offset 0x000138000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM19] SEG_hbm_0_HBM_MEM1959
+  create_bd_addr_seg -range 0x08000000 -offset 0x000148000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM20] SEG_hbm_0_HBM_MEM2062
+  create_bd_addr_seg -range 0x08000000 -offset 0x000158000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM21] SEG_hbm_0_HBM_MEM2165
+  create_bd_addr_seg -range 0x08000000 -offset 0x000168000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM22] SEG_hbm_0_HBM_MEM2268
+  create_bd_addr_seg -range 0x08000000 -offset 0x000178000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM23] SEG_hbm_0_HBM_MEM2371
+  create_bd_addr_seg -range 0x08000000 -offset 0x000188000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM24] SEG_hbm_0_HBM_MEM2474
+  create_bd_addr_seg -range 0x08000000 -offset 0x000198000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM25] SEG_hbm_0_HBM_MEM2577
+  create_bd_addr_seg -range 0x08000000 -offset 0x0001A8000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM26] SEG_hbm_0_HBM_MEM2680
+  create_bd_addr_seg -range 0x08000000 -offset 0x0001B8000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM27] SEG_hbm_0_HBM_MEM2783
+  create_bd_addr_seg -range 0x08000000 -offset 0x0001C8000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM28] SEG_hbm_0_HBM_MEM2886
+  create_bd_addr_seg -range 0x08000000 -offset 0x0001D8000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM29] SEG_hbm_0_HBM_MEM2989
+  create_bd_addr_seg -range 0x08000000 -offset 0x0001E8000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM30] SEG_hbm_0_HBM_MEM3092
+  create_bd_addr_seg -range 0x08000000 -offset 0x0001F8000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM31] SEG_hbm_0_HBM_MEM3195
+  create_bd_addr_seg -range 0x00400000 -offset 0x00000000 [get_bd_addr_spaces s_apb] [get_bd_addr_segs hbm_0/SAPB_0/Reg] SEG_hbm_0_Reg
+  create_bd_addr_seg -range 0x00400000 -offset 0x00000000 [get_bd_addr_spaces s_apb_1] [get_bd_addr_segs hbm_0/SAPB_1/Reg] SEG_hbm_0_Reg
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+
+  validate_bd_design
+  save_bd_design
+  close_bd_design $design_name
+}
+# End of cr_bd_design_1()
+cr_bd_design_1 ""
+set_property REGISTERED_WITH_MANAGER "1" [get_files design_1.bd ]
+set_property SYNTH_CHECKPOINT_MODE "Hierarchical" [get_files design_1.bd ]
+

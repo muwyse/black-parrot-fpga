@@ -18,3 +18,11 @@ export BLACKPARROT_SUB_DIR := $(abspath $(TOP)/../black-parrot-subsystems)
 export BLACKPARROT_SDK_DIR := $(abspath $(TOP)/../black-parrot-sdk)
 export ZYNQPARROT_DIR := $(abspath $(TOP)/../zynq-parrot)
 
+export BASEJUMP_STL_DIR := $(BLACKPARROT_DIR)/external/basejump_stl
+export HARDFLOAT_DIR := $(BLACKPARROT_DIR)/external/HardFloat
+export BP_COMMON_DIR := $(BLACKPARROT_DIR)/bp_common
+export BP_TOP_DIR := $(BLACKPARROT_DIR)/bp_top
+export BP_FE_DIR := $(BLACKPARROT_DIR)/bp_fe
+export BP_BE_DIR := $(BLACKPARROT_DIR)/bp_be
+export BP_ME_DIR := $(BLACKPARROT_DIR)/bp_me
+

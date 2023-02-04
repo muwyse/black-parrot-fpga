@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# base.flist
+#
+# BlackParrot VCU128 project base flist
+#
+
+$BASEJUMP_STL_DIR/bsg_cache/bsg_cache_to_axi_rx.v
+$BASEJUMP_STL_DIR/bsg_cache/bsg_cache_to_axi_tx.v
+$BASEJUMP_STL_DIR/bsg_cache/bsg_cache_to_axi.v
+$BP_PROJECT_SRC_DIR/bp_stream_host.v
+$BP_PROJECT_SRC_DIR/bp_stream_mmio.v
+$BP_PROJECT_SRC_DIR/bp_stream_nbf_loader.v
+$BP_PROJECT_SRC_DIR/bsg_m_axi_lit_to_fifo_sync.v
+$BP_PROJECT_SRC_DIR/design_1_wrapper.v
+
