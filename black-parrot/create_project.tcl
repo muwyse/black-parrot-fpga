@@ -1,250 +1,58 @@
-# Set the reference directory for source file relative paths (by default the value is script directory path)
-set origin_dir "."
-set blackparrot_dir "$origin_dir/rtl"
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# create_project.cl
+#
+# Build VCU128 project
+#
 
-# Set the project name
-set _xil_proj_name_ "vcu128_bp"
+# project properties
+set project_dir      $::env(PROJECT_DIR)
+set project_name     $::env(PROJECT_NAME)
+set project_top      $::env(PROJECT_TOP)
+set project_flist    $::env(PROJECT_FLIST)
+set project_xdc      $::env(PROJECT_XDC)
+set part             $::env(PART)
+set parse_flist_tcl  $::env(PARSE_FLIST_TCL)
 
-set script_file "bp_fpga.tcl"
+# parse IP flist
+source ${parse_flist_tcl}
+set vlist [parse_flist ${project_flist}]
+set vsources_list  [lindex $vlist 0]
+set vincludes_list [lindex $vlist 1]
+set vdefines_list  [lindex $vlist 2]
 
-# Help information for this script
-proc print_help {} {
-  variable script_file
-  puts "\nDescription:"
-  puts "Recreate a Vivado project from this script. The created project will be"
-  puts "functionally equivalent to the original project for which this script was"
-  puts "generated. The script contains commands for creating a project, filesets,"
-  puts "runs, adding/importing sources and setting properties on various objects.\n"
-  puts "Syntax:"
-  puts "$script_file"
-  puts "$script_file -tclargs \[--origin_dir <path>\]"
-  puts "$script_file -tclargs \[--project_name <name>\]"
-  puts "$script_file -tclargs \[--help\]\n"
-  puts "Usage:"
-  puts "Name                   Description"
-  puts "-------------------------------------------------------------------------"
-  puts "\[--origin_dir <path>\]  Determine source file paths wrt this path. Default"
-  puts "                       origin_dir path value is \".\", otherwise, the value"
-  puts "                       that was set with the \"-paths_relative_to\" switch"
-  puts "                       when this script was generated.\n"
-  puts "\[--project_name <name>\] Create project with the specified name. Default"
-  puts "                       name is the name of the project from where this"
-  puts "                       script was generated.\n"
-  puts "\[--help\]               Print help information for this script"
-  puts "-------------------------------------------------------------------------\n"
-  exit 0
-}
+# create project
+create_project -force -part ${part} ${project_name} ${project_dir}
 
-if { $::argc > 0 } {
-  for {set i 0} {$i < $::argc} {incr i} {
-    set option [string trim [lindex $::argv $i]]
-    switch -regexp -- $option {
-      "--origin_dir"   { incr i; set origin_dir [lindex $::argv $i] }
-      "--project_name" { incr i; set _xil_proj_name_ [lindex $::argv $i] }
-      "--help"         { print_help }
-      default {
-        if { [regexp {^-} $option] } {
-          puts "ERROR: Unknown option '$option' specified, please type '$script_file -tclargs --help' for usage info.\n"
-          return 1
-        }
-      }
-    }
-  }
-}
-
-# Create project
-create_project ${_xil_proj_name_} ./${_xil_proj_name_} -part xcvu37p-fsvh2892-2L-e-es1
-
-# Set the directory path for the new project
-set proj_dir [get_property directory [current_project]]
-
-# Set project properties
-set obj [current_project]
-set_property -name "default_lib" -value "xil_defaultlib" -objects $obj
-set_property -name "ip_cache_permissions" -value "read write" -objects $obj
-set_property -name "ip_output_repo" -value "$proj_dir/${_xil_proj_name_}.cache/ip" -objects $obj
-set_property -name "part" -value "xcvu37p-fsvh2892-2L-e-es1" -objects $obj
-
-# Create 'sources_1' fileset (if not found)
 if {[string equal [get_filesets -quiet sources_1] ""]} {
   create_fileset -srcset sources_1
 }
 
-## Automatically discover BlackParrot source files
-# reads the top-level flist and returns a 2-element list: [list $include_dirs $source_files]
-proc load_bp_sources_from_flist { blackparrot_dir origin_dir } {
-  # Set include vars used in flists
-  set BP_TOP_DIR "$blackparrot_dir/bp_top/"
-  set BP_COMMON_DIR "$blackparrot_dir/bp_common/"
-  set BP_BE_DIR "$blackparrot_dir/bp_be/"
-  set BP_FE_DIR "$blackparrot_dir/bp_fe/"
-  set BP_ME_DIR "$blackparrot_dir/bp_me/"
-  set BASEJUMP_STL_DIR "$blackparrot_dir/external/basejump_stl/"
-  set HARDFLOAT_DIR "$blackparrot_dir/external/HardFloat/"
-
-  set flist_path "${blackparrot_dir}/bp_top/syn/flist.vcs"
-
-  set f [split [string trim [read [open $flist_path r]]] "\n"]
-  set source_files [list ]
-  set include_dirs [list ]
-  foreach x $f {
-    if {![string match "" $x] && ![string match "#" [string index $x 0]]} {
-      # If the item starts with +incdir+, directory files need to be added
-      if {[string match "+" [string index $x 0]]} {
-        set trimchars "+incdir+"
-        set temp [string trimleft $x $trimchars]
-        set expanded [subst $temp]
-        lappend include_dirs $expanded
-      } elseif {[string match "*bsg_mem_1rw_sync_mask_write_bit.v" $x]} {
-        # bitmasked memories are incorrectly inferred in Kintex 7 and Ultrascale+ FPGAs, this version maps into lutram correctly
-        set replace_hard "$BASEJUMP_STL_DIR/hard/ultrascale_plus/bsg_mem/bsg_mem_1rw_sync_mask_write_bit.v"
-        set expanded [subst $replace_hard]
-        set normalized [file normalize $expanded]
-        lappend source_files $normalized
-      } elseif {[string match "*bsg_mem_1rw_sync_mask_write_bit_synth.v" $x]} {
-        # omit this file, it's unused now that we've replaced the bsg_mem_1rw_sync_mask_write_bit module above
-      } elseif {[string match "*bsg_mem_1rw_sync_mask_write_byte.v" $x]} {
-        # bitmasked memories are incorrectly inferred in Kintex 7 and Ultrascale+ FPGAs, this version maps into lutram correctly
-        set replace_hard "$origin_dir/v/bsg_mem_1rw_sync_mask_write_byte.v"
-        set expanded [subst $replace_hard]
-        set normalized [file normalize $expanded]
-        lappend source_files $normalized
-        set bytewrite_bram "$origin_dir/v/bytewrite_bram.v"
-        set expanded [subst $bytewrite_bram]
-        set normalized [file normalize $expanded]
-        lappend source_files $normalized
-      } elseif {[string match "*bsg_mem_1rw_sync_mask_write_byte_synth.v" $x]} {
-        # omit this file, it's unused now
-      } else {
-        set expanded [subst $x]
-        set normalized [file normalize $expanded]
-        lappend source_files $normalized
-      }
-    }
-  }
-
-  list $include_dirs $source_files
-}
-
-lassign [load_bp_sources_from_flist $blackparrot_dir $origin_dir] flist_include_dirs flist_source_files
-
-add_files -norecurse -scan_for_includes -fileset sources_1 $flist_source_files
-
-foreach source_file $flist_source_files {
-  set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$source_file"]]
-  set_property -name "file_type" -value "SystemVerilog" -objects $file_obj
-}
-
-# Include directories
-set_property include_dirs $flist_include_dirs [current_fileset]
-
-# Additional source files
-set obj [get_filesets sources_1]
-set files [list \
- [file normalize "${origin_dir}/../common/v/bp_stream_host.v"] \
- [file normalize "${origin_dir}/../common/v/bp_stream_mmio.v"] \
- [file normalize "${origin_dir}/../common/v/bp_stream_nbf_loader.v"] \
- [file normalize "${origin_dir}/v/bsg_m_axi_lite_to_fifo_sync.v"] \
- [file normalize "${blackparrot_dir}/external/basejump_stl/bsg_cache/bsg_cache_to_axi_rx.v"] \
- [file normalize "${blackparrot_dir}/external/basejump_stl/bsg_cache/bsg_cache_to_axi_tx.v"] \
- [file normalize "${blackparrot_dir}/external/basejump_stl/bsg_cache/bsg_cache_to_axi.v"] \
- [file normalize "${proj_dir}/design_1_wrapper.v"] \
-]
-add_files -norecurse -fileset $obj $files
-
-set file "$origin_dir/../common/v/bp_stream_host.v"
-set file [file normalize $file]
-set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$file"]]
-set_property -name "file_type" -value "SystemVerilog" -objects $file_obj
-
-set file "$origin_dir/../common/v/bp_stream_mmio.v"
-set file [file normalize $file]
-set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$file"]]
-set_property -name "file_type" -value "SystemVerilog" -objects $file_obj
-
-set file "$origin_dir/../common/v/bp_stream_nbf_loader.v"
-set file [file normalize $file]
-set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$file"]]
-set_property -name "file_type" -value "SystemVerilog" -objects $file_obj
-
-set file "$origin_dir/v/bsg_m_axi_lite_to_fifo_sync.v"
-set file [file normalize $file]
-set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$file"]]
-set_property -name "file_type" -value "SystemVerilog" -objects $file_obj
-
-set file "$blackparrot_dir/external/basejump_stl/bsg_cache/bsg_cache_to_axi_rx.v"
-set file [file normalize $file]
-set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$file"]]
-set_property -name "file_type" -value "SystemVerilog" -objects $file_obj
-
-set file "$blackparrot_dir/external/basejump_stl/bsg_cache/bsg_cache_to_axi_tx.v"
-set file [file normalize $file]
-set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$file"]]
-set_property -name "file_type" -value "SystemVerilog" -objects $file_obj
-
-set file "$blackparrot_dir/external/basejump_stl/bsg_cache/bsg_cache_to_axi.v"
-set file [file normalize $file]
-set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$file"]]
-set_property -name "file_type" -value "SystemVerilog" -objects $file_obj
-
-set file "$proj_dir/design_1_wrapper.v"
-set file [file normalize $file]
-set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$file"]]
-set_property -name "file_type" -value "SystemVerilog" -objects $file_obj
-
-# Set 'sources_1' fileset file properties for local files
-# None
-
-# Set 'sources_1' fileset properties
-set obj [get_filesets sources_1]
-set_property -name "top" -value "design_1_wrapper" -objects $obj
-set_property -name "top_auto_set" -value "0" -objects $obj
-
-# Create 'constrs_1' fileset (if not found)
 if {[string equal [get_filesets -quiet constrs_1] ""]} {
   create_fileset -constrset constrs_1
 }
+
+# add files
+add_files -norecurse ${vsources_list}
+set_property file_type SystemVerilog [get_files ${vsources_list}]
+set_property include_dirs ${vincludes_list} [current_fileset]
+set_property verilog_define ${vdefines_list} [current_fileset]
+set_property top ${project_top} [current_fileset]
+update_compile_order -fileset sources_1
 
 # Set 'constrs_1' fileset object
 set obj [get_filesets constrs_1]
 
 # Add/Import constrs file and set constrs file properties
-set file "[file normalize "$origin_dir/xdc/design_1.xdc"]"
-set file_added [add_files -norecurse -fileset $obj [list $file]]
-set file "$origin_dir/xdc/design_1.xdc"
+set file "[file normalize ${project_xdc}]"
+set file_added [add_files -norecurse -fileset [get_filesets constrs_1] [list $file]]
+set file ${project_xdc}
 set file [file normalize $file]
 set file_obj [get_files -of_objects [get_filesets constrs_1] [list "*$file"]]
-set_property -name "file_type" -value "XDC" -objects $file_obj
+set_property file_type XDC $file_obj
 
 # Set 'constrs_1' fileset properties
-set obj [get_filesets constrs_1]
-set_property -name "target_part" -value "xcvu37p-fsvh2892-2L-e-es1" -objects $obj
-
-# Create 'sim_1' fileset (if not found)
-if {[string equal [get_filesets -quiet sim_1] ""]} {
-  create_fileset -simset sim_1
-}
-
-# Set 'sim_1' fileset object
-set obj [get_filesets sim_1]
-# Empty (no sources present)
-
-# Set 'sim_1' fileset properties
-set obj [get_filesets sim_1]
-set_property -name "top" -value "design_1_wrapper" -objects $obj
-set_property -name "top_auto_set" -value "0" -objects $obj
-set_property -name "top_lib" -value "xil_defaultlib" -objects $obj
-
-# Set 'utils_1' fileset object
-set obj [get_filesets utils_1]
-# Empty (no sources present)
-
-# Set 'utils_1' fileset properties
-set obj [get_filesets utils_1]
-
-
-# Adding sources referenced in BDs, if not already added
-
+set_property target_part ${part} [get_filesets constrs_1]
 
 # Proc to create BD design_1
 proc cr_bd_design_1 { parentCell } {

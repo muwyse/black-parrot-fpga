@@ -9,28 +9,35 @@ TOP ?= $(shell git rev-parse --show-toplevel)
 
 include $(TOP)/Makefile.common
 
-export BP_PROJECT_DIR     := $(abspath $(TOP)/black-parrot)
-export BP_PROJECT_SRC_DIR := $(BP_PROJECT_DIR)/src
+export BASE_DIR           := $(abspath $(TOP)/black-parrot)
+export PROJECT_SRC_DIR    := $(BASE_DIR)/src
+export XDC_DIR            := $(BASE_DIR)/xdc
 export IP_NAME             = blackparrot
-export IP_DIR              = $(BP_PROJECT_DIR)/$(IP_NAME)_ip
+export IP_PROJECT_NAME     = $(IP_NAME)_ip_proj
+export IP_PROJECT_DIR      = $(BASE_DIR)/$(IP_PROJECT_NAME)
 export IP_TOP              = $(IP_NAME)
-export IP_FLIST            = $(BP_PROJECT_DIR)/ip.flist
-export IP_PROPERTY_TCL     = $(BP_PROJECT_DIR)/bp_ip.tcl
+export IP_FLIST            = $(BASE_DIR)/ip.flist
+export IP_PROPERTY_TCL     = $(BASE_DIR)/bp_ip.tcl
 export IP_VENDOR           = BlackParrot
 export IP_VENDOR_NAME      = $(IP_VENDOR)
 export IP_LIBRARY          = ip
 export IP_VERSION          = 1.0
 export IP_TAXONOMY         = {/Embedded_Processing/Processor}
-export PART               ?= NONE
-export PROJECT_NAME        = $(IP_NAME)_ip_proj
-export PROJECT_DIR         = $(BP_PROJECT_DIR)/$(PROJECT_NAME)
+export IP_DIR              = $(BASE_DIR)/$(IP_NAME)_ip
+export PART               ?= xcvu37p-fsvh2892-2L-e-es1
+export PROJECT_NAME        = vcu128_bp
+export PROJECT_DIR         = $(BASE_DIR)/$(PROJECT_NAME)
+export PROJECT_TOP         = design_1_wrapper
+export PROJECT_FLIST       = $(BASE_DIR)/project.flist
+export PROJECT_XDC         = $(XDC_DIR)/design_1.xdc
 
-BASE_FLIST                 = $(BP_PROJECT_DIR)/base.flist
+BASE_FLIST                 = $(BASE_DIR)/base.flist
 BP_FLIST                   = $(BP_TOP_DIR)/syn/flist.vcs
 IP_TAR_GZ                  = $(IP_NAME)_ip.tar.gz
+PROJECT_TCL                = $(BASE_DIR)/create_project.tcl
 
-flist: $(IP_FLIST)
-$(IP_FLIST): $(BASE_FLIST) $(BP_FLIST)
+project_flist: $(PROJECT_FLIST)
+$(PROJECT_FLIST): $(BASE_FLIST) $(BP_FLIST)
 	echo "creating flist"
 	# substitute paths in BP flist
 	cat $^ | envsubst >> $@
@@ -40,10 +47,17 @@ $(IP_FLIST): $(BASE_FLIST) $(BP_FLIST)
 	sed -i "/bsg_mem_1rw_sync_mask_write_byte.v/d" $@
 	sed -i "/bsg_mem_1rw_sync_mask_write_byte_synth.v/d" $@
 	echo "$(BASEJUMP_STL_DIR)/hard/ultrascale_plus/bsg_mem/bsg_mem_1rw_sync_mask_write_bit.v" >> $@
-	echo "$(BP_PROJECT_SRC_DIR)/bsg_mem_1rw_sync_mask_write_byte.v" >> $@
-	echo "$(BP_PROJECT_SRC_DIR)/bytewrite_ram.v" >> $@
+	echo "$(PROJECT_SRC_DIR)/bsg_mem_1rw_sync_mask_write_byte.v" >> $@
+	echo "$(PROJECT_SRC_DIR)/bytewrite_bram.v" >> $@
 
-build_ip: clean | $(IP_FLIST)
+project: clean_project | $(PROJECT_FLIST)
+	vivado -source $(PROJECT_TCL) -mode batch
+
+clean_project:
+	rm -f $(PROJECT_FLIST)
+	rm -rf $(PROJECT_DIR)
+
+build_ip: clean_ip | $(IP_FLIST)
 	vivado -source $(BUILD_IP_TCL) -mode batch
 
 pack_ip:
@@ -53,5 +67,5 @@ clean_ip:
 	rm -rf $(IP_DIR)
 	rm -f $(IP_TAR_GZ)
 
-clean: clean_ip
-
+clean: clean_project clean_ip
+	rm -f vivado*

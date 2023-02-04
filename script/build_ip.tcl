@@ -32,7 +32,7 @@ set vincludes_list [lindex $vlist 1]
 set vdefines_list  [lindex $vlist 2]
 
 # create project
-create_project -force ${project_name} -part ${part} ${project_name} ${project_dir}
+create_project -force -part ${part} ${project_name} ${project_dir}
 
 if {[string equal [get_filesets -quiet sources_1] ""]} {
   create_fileset -srcset sources_1
