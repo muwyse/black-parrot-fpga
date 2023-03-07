@@ -32,15 +32,23 @@ module bp_stream_nbf_loader
   ,input                                    reset_i
   ,output logic                             done_o
 
-  ,output logic [mem_header_width_lp-1:0]   io_cmd_header_o
-  ,output logic [cce_block_width_p-1:0]     io_cmd_data_o
-  ,output logic                             io_cmd_v_o
-  ,input                                    io_cmd_yumi_i
+  ,output logic [mem_header_width_lp-1:0]   mem_fwd_header_o
+  ,output logic                             mem_fwd_header_v_o
+  ,input                                    mem_fwd_header_ready_and_i
+  ,output logic                             mem_fwd_has_data_o
+  ,output [io_data_width_p-1:0]             mem_fwd_data_o
+  ,output logic                             mem_fwd_data_v_o
+  ,input                                    mem_fwd_data_ready_and_i
+  ,output logic                             mem_fwd_last_o
 
-  ,input  [mem_header_width_lp-1:0]         io_resp_header_i
-  ,input [cce_block_width_p-1:0]            io_resp_data_i
-  ,input                                    io_resp_v_i
-  ,output logic                             io_resp_ready_o
+  ,input  [mem_header_width_lp-1:0]         mem_rev_header_i
+  ,input                                    mem_rev_header_v_i
+  ,output logic                             mem_rev_header_ready_o
+  ,input                                    mem_rev_has_data_i
+  ,input [io_data_width_p-1:0]              mem_rev_data_i
+  ,input                                    mem_rev_data_v_i
+  ,output logic                             mem_rev_data_ready_o
+  ,input                                    mem_rev_last_i
 
   ,input                                    stream_v_i
   ,input  [stream_data_width_p-1:0]         stream_data_i

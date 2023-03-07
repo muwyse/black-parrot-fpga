@@ -24,25 +24,41 @@ module bp_stream_host
   ,input                                        reset_i
   ,output logic                                 prog_done_o
 
-  ,input  [mem_header_width_lp-1:0]             io_cmd_header_i
-  ,input [cce_block_width_p-1:0]                io_cmd_data_i
-  ,input                                        io_cmd_v_i
-  ,output logic                                 io_cmd_ready_o
+  ,input  [mem_header_width_lp-1:0]             mem_fwd_header_i
+  ,input                                        mem_fwd_header_v_i
+  ,output logic                                 mem_fwd_header_ready_o
+  ,input                                        mem_fwd_has_data_i
+  ,input [io_data_width_p-1:0]                  mem_fwd_data_i
+  ,input                                        mem_fwd_data_v_i
+  ,output logic                                 mem_fwd_data_ready_o
+  ,input                                        mem_fwd_last_i
 
-  ,output logic [mem_header_width_lp-1:0]       io_resp_header_o
-  ,output [cce_block_width_p-1:0]               io_resp_data_o
-  ,output logic                                 io_resp_v_o
-  ,input                                        io_resp_yumi_i
+  ,output logic [mem_header_width_lp-1:0]       mem_rev_header_o
+  ,output logic                                 mem_rev_header_v_o
+  ,input                                        mem_rev_header_ready_and_i
+  ,output logic                                 mem_rev_has_data_o
+  ,output [io_data_width_p-1:0]                 mem_rev_data_o
+  ,output logic                                 mem_rev_data_v_o
+  ,input                                        mem_rev_data_ready_and_i
+  ,output logic                                 mem_rev_last_o
 
-  ,output logic [mem_header_width_lp-1:0]       io_cmd_header_o
-  ,output [cce_block_width_p-1:0]               io_cmd_data_o
-  ,output logic                                 io_cmd_v_o
-  ,input                                        io_cmd_yumi_i
+  ,output logic [mem_header_width_lp-1:0]       mem_fwd_header_o
+  ,output logic                                 mem_fwd_header_v_o
+  ,input                                        mem_fwd_header_ready_and_i
+  ,output logic                                 mem_fwd_has_data_o
+  ,output [io_data_width_p-1:0]                 mem_fwd_data_o
+  ,output logic                                 mem_fwd_data_v_o
+  ,input                                        mem_fwd_data_ready_and_i
+  ,output logic                                 mem_fwd_last_o
 
-  ,input  [mem_header_width_lp-1:0]             io_resp_header_i
-  ,input [cce_block_width_p-1:0]                io_resp_data_i
-  ,input                                        io_resp_v_i
-  ,output logic                                 io_resp_ready_o
+  ,input  [mem_header_width_lp-1:0]             mem_rev_header_i
+  ,input                                        mem_rev_header_v_i
+  ,output logic                                 mem_rev_header_ready_o
+  ,input                                        mem_rev_has_data_i
+  ,input [io_data_width_p-1:0]                  mem_rev_data_i
+  ,input                                        mem_rev_data_v_i
+  ,output logic                                 mem_rev_data_ready_o
+  ,input                                        mem_rev_last_i
 
   ,input                                        stream_v_i
   ,input  [stream_addr_width_p-1:0]             stream_addr_i
@@ -71,55 +87,41 @@ module bp_stream_host
 
   // nbf loader
   bp_stream_nbf_loader
- #(.bp_params_p(bp_params_p)
-  ,.stream_data_width_p(stream_data_width_p)
-  ,.clear_freeze_p(clear_freeze_p)
-  ) nbf_loader
-  (.clk_i          (clk_i)
-  ,.reset_i        (reset_i)
-  ,.done_o         (prog_done_o)
+    #(.bp_params_p(bp_params_p)
+     ,.stream_data_width_p(stream_data_width_p)
+     ,.clear_freeze_p(clear_freeze_p)
+     )
+    nbf_loader
+    (.clk_i          (clk_i)
+    ,.reset_i        (reset_i)
+    ,.done_o         (prog_done_o)
 
-  ,.io_cmd_header_o(io_cmd_header_o)
-  ,.io_cmd_data_o  (io_cmd_data_o)
-  ,.io_cmd_v_o     (io_cmd_v_o)
-  ,.io_cmd_yumi_i  (io_cmd_yumi_i)
+    ,.stream_v_i     (nbf_v_li)
+    ,.stream_data_i  (stream_data_i)
+    ,.stream_ready_o (nbf_ready_lo)
 
-  ,.io_resp_header_i(io_resp_header_i)
-  ,.io_resp_data_i (io_resp_data_i)
-  ,.io_resp_v_i    (io_resp_v_i)
-  ,.io_resp_ready_o(io_resp_ready_o)
-
-  ,.stream_v_i     (nbf_v_li)
-  ,.stream_data_i  (stream_data_i)
-  ,.stream_ready_o (nbf_ready_lo)
-  );
+    ,.*
+    );
 
   // mmio
   bp_stream_mmio
- #(.bp_params_p(bp_params_p)
-  ,.stream_data_width_p(stream_data_width_p)
-  ) mmio
-  (.clk_i           (clk_i)
-  ,.reset_i         (reset_i)
+    #(.bp_params_p(bp_params_p)
+     ,.stream_data_width_p(stream_data_width_p)
+     )
+    mmio
+    (.clk_i           (clk_i)
+    ,.reset_i         (reset_i)
 
-  ,.io_cmd_header_i (io_cmd_header_i)
-  ,.io_cmd_data_i   (io_cmd_data_i)
-  ,.io_cmd_v_i      (io_cmd_v_i)
-  ,.io_cmd_ready_o  (io_cmd_ready_o)
+    ,.stream_v_i      (mmio_v_li)
+    ,.stream_data_i   (stream_data_i)
+    ,.stream_ready_o  (mmio_ready_lo)
 
-  ,.io_resp_header_o(io_resp_header_o)
-  ,.io_resp_data_o  (io_resp_data_o)
-  ,.io_resp_v_o     (io_resp_v_o)
-  ,.io_resp_yumi_i  (io_resp_yumi_i)
+    ,.stream_v_o      (stream_v_o)
+    ,.stream_data_o   (stream_data_o)
+    ,.stream_yumi_i   (stream_v_o & stream_ready_i)
 
-  ,.stream_v_i      (mmio_v_li)
-  ,.stream_data_i   (stream_data_i)
-  ,.stream_ready_o  (mmio_ready_lo)
-
-  ,.stream_v_o      (stream_v_o)
-  ,.stream_data_o   (stream_data_o)
-  ,.stream_yumi_i   (stream_v_o & stream_ready_i)
-  );
+    ,.*
+    );
 
 endmodule
 

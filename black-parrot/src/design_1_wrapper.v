@@ -230,186 +230,323 @@ module design_1_wrapper
   `declare_bsg_ready_and_link_sif_s(mem_noc_flit_width_p, bp_mem_noc_ral_link_s);
   `declare_bp_bedrock_mem_if(paddr_width_p, did_width_p, lce_id_width_p, lce_assoc_p)
 
-  bp_io_noc_ral_link_s proc_cmd_link_li, proc_cmd_link_lo;
-  bp_io_noc_ral_link_s proc_resp_link_li, proc_resp_link_lo;
-  bp_mem_noc_ral_link_s [mc_x_dim_p-1:0] dram_cmd_link_lo, dram_resp_link_li;
+  bp_io_noc_ral_link_s proc_fwd_link_li, proc_fwd_link_lo;
+  bp_io_noc_ral_link_s proc_rev_link_li, proc_rev_link_lo;
+  bp_io_noc_ral_link_s stub_fwd_link_li, stub_rev_link_li;
+  bp_io_noc_ral_link_s stub_fwd_link_lo, stub_rev_link_lo;
+  bp_mem_noc_ral_link_s [mc_x_dim_p-1:0] mem_dma_link_lo, mem_dma_link_li;
 
-  bp_bedrock_mem_header_s host_cmd_header_li;
-  logic [cce_block_width_p-1:0] host_cmd_data_li;
-  logic host_cmd_v_li, host_cmd_ready_lo;
-  bp_bedrock_mem_header_s host_resp_header_lo;
-  logic [cce_block_width_p-1:0] host_resp_data_lo;
-  logic host_resp_v_lo, host_resp_ready_li;
+  assign stub_fwd_link_li  = '0;
+  assign stub_rev_link_li = '0;
 
-  bp_bedrock_mem_header_s nbf_cmd_header_lo;
-  logic [cce_block_width_p-1:0] nbf_cmd_data_lo;
-  logic nbf_cmd_v_lo, nbf_cmd_ready_li;
-  bp_bedrock_mem_header_s nbf_resp_header_li;
-  logic [cce_block_width_p-1:0] nbf_resp_data_li;
-  logic nbf_resp_v_li, nbf_resp_ready_lo;
+  wire [did_width_p-1:0] did_li = 1;
+  wire [did_width_p-1:0] host_did_li = '1;
 
-  wire [io_noc_did_width_p-1:0] dram_did_li = '1;
-  wire [io_noc_did_width_p-1:0] proc_did_li = 1;
-
-  bp_io_noc_ral_link_s stub_cmd_link, stub_resp_link;
-  bp_io_noc_ral_link_s send_cmd_link_lo, send_resp_link_li;
-  bp_io_noc_ral_link_s recv_cmd_link_li, recv_resp_link_lo;
-
-  // Chip
   bp_multicore
    #(.bp_params_p(bp_params_p))
-   proc
-    (.core_clk_i(bp_clk)
-     ,.rt_clk_i('0)
-     ,.core_reset_i(bp_reset)
+   multicore
+    (.core_clk_i(clk_i)
+     ,.rt_clk_i(rt_clk_i)
+     ,.core_reset_i(reset_i)
 
-     ,.coh_clk_i(bp_clk)
-     ,.coh_reset_i(bp_reset)
+     ,.coh_clk_i(clk_i)
+     ,.coh_reset_i(reset_i)
 
-     ,.io_clk_i(bp_clk)
-     ,.io_reset_i(bp_reset)
+     ,.io_clk_i(clk_i)
+     ,.io_reset_i(reset_i)
 
-     ,.mem_clk_i(bp_clk)
-     ,.mem_reset_i(bp_reset)
+     ,.mem_clk_i(clk_i)
+     ,.mem_reset_i(reset_i)
 
-     ,.my_did_i(proc_did_li)
-     ,.host_did_i(dram_did_li)
+     ,.my_did_i(did_li)
+     ,.host_did_i(host_did_li)
 
-     ,.io_cmd_link_i({proc_cmd_link_li, stub_cmd_link})
-     ,.io_cmd_link_o({proc_cmd_link_lo, stub_cmd_link})
+     ,.io_fwd_link_i({proc_fwd_link_li, stub_fwd_link_li})
+     ,.io_fwd_link_o({proc_fwd_link_lo, stub_fwd_link_lo})
 
-     ,.io_resp_link_i({proc_resp_link_li, stub_resp_link})
-     ,.io_resp_link_o({proc_resp_link_lo, stub_resp_link})
+     ,.io_rev_link_i({proc_rev_link_li, stub_rev_link_li})
+     ,.io_rev_link_o({proc_rev_link_lo, stub_rev_link_lo})
 
-     ,.dram_cmd_link_o(dram_cmd_link_lo)
-     ,.dram_resp_link_i(dram_resp_link_li)
+     ,.mem_dma_link_o(mem_dma_link_lo)
+     ,.mem_dma_link_i(mem_dma_link_li)
      );
 
-  assign recv_cmd_link_li = '{data          : proc_cmd_link_lo.data
-                              ,v            : proc_cmd_link_lo.v
-                              ,ready_and_rev: proc_resp_link_lo.ready_and_rev
-                              };
+  wire [io_noc_cord_width_p-1:0] dst_cord_lo = 1;
 
-  assign proc_cmd_link_li = '{data           : send_cmd_link_lo.data
-                              ,v             : send_cmd_link_lo.v
-                              ,ready_and_rev : recv_resp_link_lo.ready_and_rev
-                              };
+  bp_io_noc_ral_link_s send_cmd_link_lo, send_resp_link_li;
+  bp_io_noc_ral_link_s recv_cmd_link_li, recv_resp_link_lo;
+  assign recv_cmd_link_li   = '{data          : proc_fwd_link_lo.data
+                                ,v            : proc_fwd_link_lo.v
+                                ,ready_and_rev: proc_rev_link_lo.ready_and_rev
+                                };
+  assign proc_fwd_link_li   = '{data          : send_cmd_link_lo.data
+                                ,v            : send_cmd_link_lo.v
+                                ,ready_and_rev: recv_resp_link_lo.ready_and_rev
+                                };
 
-  assign send_resp_link_li = '{data          : proc_resp_link_lo.data
-                               ,v            : proc_resp_link_lo.v
-                               ,ready_and_rev: proc_cmd_link_lo.ready_and_rev
-                               };
+  assign send_resp_link_li  = '{data          : proc_rev_link_lo.data
+                                ,v            : proc_rev_link_lo.v
+                                ,ready_and_rev: proc_fwd_link_lo.ready_and_rev
+                                };
+  assign proc_rev_link_li  = '{data           : recv_resp_link_lo.data
+                                ,v            : recv_resp_link_lo.v
+                                ,ready_and_rev: send_cmd_link_lo.ready_and_rev
+                                };
 
-  assign proc_resp_link_li = '{data           : recv_resp_link_lo.data
-                               ,v             : recv_resp_link_lo.v
-                               ,ready_and_rev : send_cmd_link_lo.ready_and_rev
-                               };
+  bp_bedrock_mem_fwd_header_s mem_fwd_header_li;
+  logic [io_data_width_p-1:0] mem_fwd_data_li;
+  logic mem_fwd_header_v_li, mem_fwd_header_ready_and_lo;
+  logic mem_fwd_data_v_li, mem_fwd_data_ready_and_lo;
+  logic mem_fwd_last_li, mem_fwd_has_data_li;
 
-  bp_me_cce_to_mem_link_send
+  bp_bedrock_mem_rev_header_s mem_rev_header_lo;
+  logic [io_data_width_p-1:0] mem_rev_data_lo;
+  logic mem_rev_header_v_lo, mem_rev_header_ready_and_li;
+  logic mem_rev_data_v_lo, mem_rev_data_ready_and_li;
+  logic mem_rev_last_lo, mem_rev_has_data_lo;
+
+  bp_bedrock_mem_fwd_header_s mem_fwd_header_lo;
+  logic [io_data_width_p-1:0] mem_fwd_data_lo;
+  logic mem_fwd_header_v_lo, mem_fwd_header_ready_and_li;
+  logic mem_fwd_data_v_lo, mem_fwd_data_ready_and_li;
+  logic mem_fwd_last_lo, mem_fwd_has_data_lo;
+
+  bp_bedrock_mem_rev_header_s mem_rev_header_li;
+  logic [io_data_width_p-1:0] mem_rev_data_li;
+  logic mem_rev_header_v_li, mem_rev_header_ready_and_lo;
+  logic mem_rev_data_v_li, mem_rev_data_ready_and_lo;
+  logic mem_rev_last_li, mem_rev_has_data_li;
+
+  // TODO: this file was deleted from BP repo in 5de8f838be
+  // replaced with wh-burst module (one for each link)
+  bp_me_bedrock_mem_to_link
    #(.bp_params_p(bp_params_p)
      ,.flit_width_p(io_noc_flit_width_p)
      ,.cord_width_p(io_noc_cord_width_p)
      ,.cid_width_p(io_noc_cid_width_p)
      ,.len_width_p(io_noc_len_width_p)
+     ,.payload_mask_p(mem_fwd_payload_mask_gp)
      )
-   host_link_send
-    (.clk_i(bp_clk)
-     ,.reset_i(bp_reset)
+   send_link
+    (.clk_i(clk_i)
+     ,.reset_i(reset_i)
 
-     ,.mem_cmd_header_i(nbf_cmd_header_lo)
-     ,.mem_cmd_data_i(nbf_cmd_data_lo)
-     ,.mem_cmd_v_i(nbf_cmd_v_lo)
-     ,.mem_cmd_last_i(nbf_cmd_v_lo)
-     ,.mem_cmd_ready_and_o(nbf_cmd_ready_li)
-
-     ,.mem_resp_header_o(nbf_resp_header_li)
-     ,.mem_resp_data_o(nbf_resp_data_li)
-     ,.mem_resp_v_o(nbf_resp_v_li)
-     ,.mem_resp_last_o()
-     ,.mem_resp_yumi_i(nbf_resp_ready_lo & nbf_resp_v_li)
-
-     ,.dst_cord_i(proc_did_li)
+     ,.dst_cord_i(dst_cord_lo)
      ,.dst_cid_i('0)
 
-     ,.cmd_link_o(send_cmd_link_lo)
-     ,.resp_link_i(send_resp_link_li)
+     ,.mem_header_i(mem_fwd_header_li)
+     ,.mem_header_v_i(mem_fwd_header_v_li)
+     ,.mem_header_ready_and_o(mem_fwd_header_ready_and_lo)
+     ,.mem_has_data_i(mem_fwd_has_data_li)
+     ,.mem_data_i(mem_fwd_data_li)
+     ,.mem_data_v_i(mem_fwd_data_v_li)
+     ,.mem_data_ready_and_o(mem_fwd_data_ready_and_lo)
+     ,.mem_last_i(mem_fwd_last_li)
+
+     ,.mem_header_o(mem_rev_header_lo)
+     ,.mem_header_v_o(mem_rev_header_v_lo)
+     ,.mem_header_ready_and_i(mem_rev_header_ready_and_li)
+     ,.mem_has_data_o(mem_rev_has_data_lo)
+     ,.mem_data_o(mem_rev_data_lo)
+     ,.mem_data_v_o(mem_rev_data_v_lo)
+     ,.mem_data_ready_and_i(mem_rev_data_ready_and_li)
+     ,.mem_last_o(mem_rev_last_lo)
+
+     ,.link_o(send_cmd_link_lo)
+     ,.link_i(send_resp_link_li)
      );
 
-  bp_me_cce_to_mem_link_recv
+  bp_me_bedrock_mem_to_link
    #(.bp_params_p(bp_params_p)
      ,.flit_width_p(io_noc_flit_width_p)
      ,.cord_width_p(io_noc_cord_width_p)
      ,.cid_width_p(io_noc_cid_width_p)
      ,.len_width_p(io_noc_len_width_p)
+     ,.payload_mask_p(mem_rev_payload_mask_gp)
      )
-   host_link_recv
-    (.clk_i(bp_clk)
-     ,.reset_i(bp_reset)
+   recv_link
+    (.clk_i(clk_i)
+     ,.reset_i(reset_i)
 
-     ,.dst_cord_i(host_resp_header_lo.payload.did)
+     ,.dst_cord_i(mem_rev_header_li.payload.did)
      ,.dst_cid_i('0)
 
-     ,.mem_cmd_header_o(host_cmd_header_li)
-     ,.mem_cmd_data_o(host_cmd_data_li)
-     ,.mem_cmd_v_o(host_cmd_v_li)
-     ,.mem_cmd_last_o()
-     ,.mem_cmd_yumi_i(host_cmd_ready_lo & host_cmd_v_li)
+     ,.mem_header_o(mem_fwd_header_lo)
+     ,.mem_header_v_o(mem_fwd_header_v_lo)
+     ,.mem_header_ready_and_i(mem_fwd_header_ready_and_li)
+     ,.mem_has_data_o(mem_fwd_has_data_lo)
+     ,.mem_data_o(mem_fwd_data_lo)
+     ,.mem_data_v_o(mem_fwd_data_v_lo)
+     ,.mem_data_ready_and_i(mem_fwd_data_ready_and_li)
+     ,.mem_last_o(mem_fwd_last_lo)
 
-     ,.mem_resp_header_i(host_resp_header_lo)
-     ,.mem_resp_data_i(host_resp_data_lo)
-     ,.mem_resp_v_i(host_resp_v_lo)
-     ,.mem_resp_last_i(host_resp_v_lo)
-     ,.mem_resp_ready_and_o(host_resp_ready_li)
+     ,.mem_header_i(mem_rev_header_li)
+     ,.mem_header_v_i(mem_rev_header_v_li)
+     ,.mem_header_ready_and_o(mem_rev_header_ready_and_lo)
+     ,.mem_has_data_i(mem_rev_has_data_li)
+     ,.mem_data_i(mem_rev_data_li)
+     ,.mem_data_v_i(mem_rev_data_v_li)
+     ,.mem_data_ready_and_o(mem_rev_data_ready_and_lo)
+     ,.mem_last_i(mem_rev_last_li)
 
-     ,.cmd_link_i(recv_cmd_link_li)
-     ,.resp_link_o(recv_resp_link_lo)
+     ,.link_i(recv_cmd_link_li)
+     ,.link_o(recv_resp_link_lo)
      );
 
   `declare_bsg_cache_wh_header_flit_s(mem_noc_flit_width_p, mem_noc_cord_width_p, mem_noc_len_width_p, mem_noc_cid_width_p);
-  `declare_bsg_cache_dma_pkt_s(daddr_width_p);
-  bsg_cache_dma_pkt_s [num_cce_p-1:0] dma_pkt_lo;
-  logic [num_cce_p-1:0] dma_pkt_v_lo, dma_pkt_yumi_li;
-  logic [num_cce_p-1:0][l2_fill_width_p-1:0] dma_data_lo;
-  logic [num_cce_p-1:0] dma_data_v_lo, dma_data_yumi_li;
-  logic [num_cce_p-1:0][l2_fill_width_p-1:0] dma_data_li;
-  logic [num_cce_p-1:0] dma_data_v_li, dma_data_ready_and_lo;
-  localparam cce_per_col_lp = num_cce_p/mc_x_dim_p;
+  localparam dma_per_col_lp = num_cce_p/mc_x_dim_p*l2_banks_p;
+  bsg_cache_dma_pkt_s [mc_x_dim_p-1:0][dma_per_col_lp-1:0] dma_pkt_lo;
+  logic [mc_x_dim_p-1:0][dma_per_col_lp-1:0] dma_pkt_v_lo, dma_pkt_yumi_li;
+  logic [mc_x_dim_p-1:0][dma_per_col_lp-1:0][l2_fill_width_p-1:0] dma_data_lo;
+  logic [mc_x_dim_p-1:0][dma_per_col_lp-1:0] dma_data_v_lo, dma_data_yumi_li;
+  logic [mc_x_dim_p-1:0][dma_per_col_lp-1:0][l2_fill_width_p-1:0] dma_data_li;
+  logic [mc_x_dim_p-1:0][dma_per_col_lp-1:0] dma_data_v_li, dma_data_ready_and_lo;
   for (genvar i = 0; i < mc_x_dim_p; i++)
     begin : column
       bsg_cache_wh_header_flit_s header_flit;
-      assign header_flit = dram_cmd_link_lo[i];
-      wire [`BSG_SAFE_CLOG2(cce_per_col_lp)-1:0] dma_id_li = header_flit.src_cord-1'b1;
+      assign header_flit = mem_dma_link_lo[i].data;
+      wire [`BSG_SAFE_CLOG2(dma_per_col_lp)-1:0] dma_id_li =
+        l2_banks_p*(header_flit.src_cord-1)+header_flit.src_cid;
       bsg_wormhole_to_cache_dma_fanout
        #(.wh_flit_width_p(mem_noc_flit_width_p)
          ,.wh_cid_width_p(mem_noc_cid_width_p)
          ,.wh_len_width_p(mem_noc_len_width_p)
          ,.wh_cord_width_p(mem_noc_cord_width_p)
 
-         ,.num_dma_p(cce_per_col_lp)
+         ,.num_dma_p(dma_per_col_lp)
          ,.dma_addr_width_p(daddr_width_p)
          ,.dma_burst_len_p(l2_block_size_in_fill_p)
          )
        wh_to_cache_dma
-        (.clk_i(bp_clk)
-         ,.reset_i(bp_reset)
+        (.clk_i(clk_i)
+         ,.reset_i(reset_i)
 
-         ,.wh_link_sif_i(dram_cmd_link_lo[i])
+         ,.wh_link_sif_i(mem_dma_link_lo[i])
          ,.wh_dma_id_i(dma_id_li)
-         ,.wh_link_sif_o(dram_resp_link_li[i])
+         ,.wh_link_sif_o(mem_dma_link_li[i])
 
-         ,.dma_pkt_o(dma_pkt_lo[i*cce_per_col_lp+:cce_per_col_lp])
-         ,.dma_pkt_v_o(dma_pkt_v_lo[i*cce_per_col_lp+:cce_per_col_lp])
-         ,.dma_pkt_yumi_i(dma_pkt_yumi_li[i*cce_per_col_lp+:cce_per_col_lp])
+         ,.dma_pkt_o(dma_pkt_lo[i])
+         ,.dma_pkt_v_o(dma_pkt_v_lo[i])
+         ,.dma_pkt_yumi_i(dma_pkt_yumi_li[i])
 
-         ,.dma_data_i(dma_data_li[i*cce_per_col_lp+:cce_per_col_lp])
-         ,.dma_data_v_i(dma_data_v_li[i*cce_per_col_lp+:cce_per_col_lp])
-         ,.dma_data_ready_and_o(dma_data_ready_and_lo[i*cce_per_col_lp+:cce_per_col_lp])
+         ,.dma_data_i(dma_data_li[i])
+         ,.dma_data_v_i(dma_data_v_li[i])
+         ,.dma_data_ready_and_o(dma_data_ready_and_lo[i])
 
-         ,.dma_data_o(dma_data_lo[i*cce_per_col_lp+:cce_per_col_lp])
-         ,.dma_data_v_o(dma_data_v_lo[i*cce_per_col_lp+:cce_per_col_lp])
-         ,.dma_data_yumi_i(dma_data_yumi_li[i*cce_per_col_lp+:cce_per_col_lp])
+         ,.dma_data_o(dma_data_lo[i])
+         ,.dma_data_v_o(dma_data_v_lo[i])
+         ,.dma_data_yumi_i(dma_data_yumi_li[i])
          );
     end
+  // Transpose the DMA IDs
+  for (genvar i = 0; i < num_cce_p; i++)
+    begin : rof1
+      for (genvar j = 0; j < l2_banks_p; j++)
+        begin : rof2
+          localparam col_lp     = i%mc_x_dim_p;
+          localparam col_pos_lp = (i/mc_x_dim_p)*l2_banks_p+j;
+
+          assign c2a_dma_pkt_lo[i][j] = dma_pkt_lo[col_lp][col_pos_lp];
+          assign c2a_dma_pkt_v_lo[i][j] = dma_pkt_v_lo[col_lp][col_pos_lp];
+          assign dma_pkt_yumi_li[col_lp][col_pos_lp] = c2a_dma_pkt_ready_and_li[i][j] & c2a_dma_pkt_v_lo[i][j];
+
+          assign c2a_dma_data_lo[i][j] = dma_data_lo[col_lp][col_pos_lp];
+          assign c2a_dma_data_v_lo[i][j] = dma_data_v_lo[col_lp][col_pos_lp];
+          assign dma_data_yumi_li[col_lp][col_pos_lp] = c2a_dma_data_ready_and_li[i][j] & c2a_dma_data_v_lo[i][j];
+
+          assign dma_data_li[col_lp][col_pos_lp] = c2a_dma_data_li[i][j];
+          assign dma_data_v_li[col_lp][col_pos_lp] = c2a_dma_data_v_li[i][j];
+          assign c2a_dma_data_ready_and_lo[i][j] = dma_data_ready_and_lo[col_lp][col_pos_lp];
+        end
+    end
+
+  // Unswizzle the dram
+  bsg_cache_dma_pkt_s [num_cce_p-1:0][l2_banks_p-1:0] c2a_dma_pkt;
+  for (genvar i = 0; i < num_cce_p; i++)
+    begin : rof3
+      for (genvar j = 0; j < l2_banks_p; j++)
+        begin : address_hash
+          logic [daddr_width_p-1:0] daddr_lo;
+          bp_me_dram_hash_decode
+           #(.bp_params_p(bp_params_p))
+            dma_addr_hash
+            (.daddr_i(c2a_dma_pkt_lo[i][j].addr)
+             ,.daddr_o(c2a_dma_pkt[i][j].addr)
+             );
+          assign c2a_dma_pkt[i][j].write_not_read = c2a_dma_pkt_lo[i][j].write_not_read;
+          assign c2a_dma_pkt[i][j].mask = c2a_dma_pkt_lo[i][j].mask;
+        end
+    end
+
+   bsg_cache_to_axi
+    #(.addr_width_p(daddr_width_p)
+      ,.data_width_p(l2_fill_width_p)
+      ,.mask_width_p(l2_block_size_in_words_p)
+      ,.block_size_in_words_p(l2_block_size_in_fill_p)
+      ,.num_cache_p(num_cce_p*l2_banks_p)
+      ,.axi_data_width_p(axi_data_width_p)
+      ,.axi_id_width_p(axi_id_width_p)
+      ,.axi_burst_len_p(l2_block_width_p/axi_data_width_p)
+      ,.axi_burst_type_p(e_axi_burst_incr)
+      )
+    cache2axi
+     (.clk_i(bp_clk)
+      ,.reset_i(bp_reset)
+
+      ,.dma_pkt_i(c2a_dma_pkt)
+      ,.dma_pkt_v_i(c2a_dma_pkt_v_lo)
+      ,.dma_pkt_yumi_o(c2a_dma_pkt_ready_and_li)
+
+      ,.dma_data_o(c2a_dma_data_li)
+      ,.dma_data_v_o(c2a_dma_data_v_li)
+      ,.dma_data_ready_i(c2a_dma_data_ready_and_lo)
+
+      ,.dma_data_i(c2a_dma_data_lo)
+      ,.dma_data_v_i(c2a_dma_data_v_lo)
+      ,.dma_data_yumi_o(c2a_dma_data_ready_and_li)
+
+      ,.axi_awid_o      (s_axi_awid)
+      ,.axi_awaddr_addr_o    (s_axi_awaddr_addr)
+      ,.axi_awaddr_cache_id_o(s_axi_awaddr_cache_id)
+      ,.axi_awlen_o     (s_axi_awlen)
+      ,.axi_awsize_o    (s_axi_awsize)
+      ,.axi_awburst_o   (s_axi_awburst)
+      ,.axi_awcache_o   (s_axi_awcache)
+      ,.axi_awprot_o    (s_axi_awprot)
+      ,.axi_awlock_o    (s_axi_awlock)
+      ,.axi_awvalid_o   (s_axi_awvalid)
+      ,.axi_awready_i   (s_axi_awready)
+
+      ,.axi_wdata_o     (s_axi_wdata)
+      ,.axi_wstrb_o     (s_axi_wstrb)
+      ,.axi_wlast_o     (s_axi_wlast)
+      ,.axi_wvalid_o    (s_axi_wvalid)
+      ,.axi_wready_i    (s_axi_wready)
+
+      ,.axi_bid_i       (s_axi_bid)
+      ,.axi_bresp_i     (s_axi_bresp)
+      ,.axi_bvalid_i    (s_axi_bvalid)
+      ,.axi_bready_o    (s_axi_bready)
+
+      ,.axi_arid_o      (s_axi_arid)
+      ,.axi_araddr_addr_o    (s_axi_araddr_addr)
+      ,.axi_araddr_cache_id_o(s_axi_araddr_cache_id)
+      ,.axi_arlen_o     (s_axi_arlen)
+      ,.axi_arsize_o    (s_axi_arsize)
+      ,.axi_arburst_o   (s_axi_arburst)
+      ,.axi_arcache_o   (s_axi_arcache)
+      ,.axi_arprot_o    (s_axi_arprot)
+      ,.axi_arlock_o    (s_axi_arlock)
+      ,.axi_arvalid_o   (s_axi_arvalid)
+      ,.axi_arready_i   (s_axi_arready)
+
+      ,.axi_rid_i       (s_axi_rid)
+      ,.axi_rdata_i     (s_axi_rdata)
+      ,.axi_rresp_i     (s_axi_rresp)
+      ,.axi_rlast_i     (s_axi_rlast)
+      ,.axi_rvalid_i    (s_axi_rvalid)
+      ,.axi_rready_o    (s_axi_rready)
+      );
 
   logic nbf_done_lo;
   bp_stream_host
@@ -422,27 +559,43 @@ module design_1_wrapper
      ,.reset_i(bp_reset)
      ,.prog_done_o(nbf_done_lo)
 
-     // IO from BP
-     ,.io_cmd_header_i(host_cmd_header_li)
-     ,.io_cmd_data_i  (host_cmd_data_li)
-     ,.io_cmd_v_i     (host_cmd_v_li)
-     ,.io_cmd_ready_o (host_cmd_ready_lo)
+     // IO from BP (recv_link)
+     ,.mem_fwd_header_i(mem_fwd_header_lo)
+     ,.mem_fwd_header_v_i(mem_fwd_header_v_lo)
+     ,.mem_fwd_header_ready_and_o(mem_fwd_header_ready_and_li)
+     ,.mem_fwd_has_data_i(mem_fwd_has_data_lo)
+     ,.mem_fwd_data_i(mem_fwd_data_lo)
+     ,.mem_fwd_data_v_i(mem_fwd_data_v_lo)
+     ,.mem_fwd_data_ready_and_o(mem_fwd_data_ready_and_li)
+     ,.mem_fwd_last_i(mem_fwd_last_lo)
 
-     ,.io_resp_header_o(host_resp_header_lo)
-     ,.io_resp_data_o (host_resp_data_lo)
-     ,.io_resp_v_o    (host_resp_v_lo)
-     ,.io_resp_yumi_i (host_resp_ready_li & host_resp_v_lo)
+     ,.mem_rev_header_o(mem_rev_header_li)
+     ,.mem_rev_header_v_o(mem_rev_header_v_li)
+     ,.mem_rev_header_ready_and_i(mem_rev_header_ready_and_lo)
+     ,.mem_rev_has_data_o(mem_rev_has_data_li)
+     ,.mem_rev_data_o(mem_rev_data_li)
+     ,.mem_rev_data_v_o(mem_rev_data_v_li)
+     ,.mem_rev_data_ready_and_i(mem_rev_data_ready_and_lo)
+     ,.mem_rev_last_o(mem_rev_last_li)
 
-     // IO to BP
-     ,.io_cmd_header_o(nbf_cmd_header_lo)
-     ,.io_cmd_data_o  (nbf_cmd_data_lo)
-     ,.io_cmd_v_o     (nbf_cmd_v_lo)
-     ,.io_cmd_yumi_i  (nbf_cmd_ready_li & nbf_cmd_v_lo)
+     // IO to BP (send_link)
+     ,.mem_fwd_header_o(mem_fwd_header_li)
+     ,.mem_fwd_header_v_o(mem_fwd_header_v_li)
+     ,.mem_fwd_header_ready_and_i(mem_fwd_header_ready_and_lo)
+     ,.mem_fwd_has_data_o(mem_fwd_has_data_li)
+     ,.mem_fwd_data_o(mem_fwd_data_li)
+     ,.mem_fwd_data_v_o(mem_fwd_data_v_li)
+     ,.mem_fwd_data_ready_and_i(mem_fwd_data_ready_and_lo)
+     ,.mem_fwd_last_o(mem_fwd_last_li)
 
-     ,.io_resp_header_i(nbf_resp_header_li)
-     ,.io_resp_data_i(nbf_resp_data_li)
-     ,.io_resp_v_i    (nbf_resp_v_li)
-     ,.io_resp_ready_o(nbf_resp_ready_lo)
+     ,.mem_rev_header_i(mem_rev_header_lo)
+     ,.mem_rev_header_v_i(mem_rev_header_v_lo)
+     ,.mem_rev_header_ready_and_o(mem_rev_header_ready_and_li)
+     ,.mem_rev_has_data_i(mem_rev_has_data_lo)
+     ,.mem_rev_data_i(mem_rev_data_lo)
+     ,.mem_rev_data_v_i(mem_rev_data_v_lo)
+     ,.mem_rev_data_ready_and_o(mem_rev_data_ready_and_li)
+     ,.mem_rev_last_i(mem_rev_last_lo)
 
      ,.stream_v_i(m_axi_lite_v_lo)
      ,.stream_addr_i(m_axi_lite_addr_lo)
@@ -454,102 +607,17 @@ module design_1_wrapper
      ,.stream_ready_i(m_axi_lite_ready_lo)
      );
 
+  // subtract dram_base_addr_gp from axi addresses
+  // S_AXI memory is at address 0x0, but BP issues address to DRAM at 0x8000_0000
+  assign s_axi_awaddr = s_axi_awaddr_addr[0+:s_axi_addr_width_p] ^ dram_base_addr_gp;
+  assign s_axi_araddr = s_axi_araddr_addr[0+:s_axi_addr_width_p] ^ dram_base_addr_gp;
+
   // s_axi port
   // not supported
   assign s_axi_arqos    = '0;
   assign s_axi_arregion = '0;
   assign s_axi_awqos    = '0;
   assign s_axi_awregion = '0;
-
-  bsg_cache_to_axi
-   #(.addr_width_p          (daddr_width_p)
-     ,.block_size_in_words_p(l2_block_size_in_fill_p)
-     ,.data_width_p         (l2_fill_width_p)
-     ,.num_cache_p          (num_cce_p)
-     ,.axi_id_width_p       (s_axi_id_width_p)
-     ,.axi_data_width_p     (s_axi_data_width_p)
-     ,.axi_burst_len_p      (s_axi_burst_len_p)
-     )
-    cache_to_axi
-    (.clk_i            (bp_clk)
-     ,.reset_i         (bp_reset)
-
-     ,.dma_pkt_i       (dma_pkt_lo)
-     ,.dma_pkt_v_i     (dma_pkt_v_lo)
-     ,.dma_pkt_yumi_o  (dma_pkt_yumi_li)
-
-     ,.dma_data_o      (dma_data_li)
-     ,.dma_data_v_o    (dma_data_v_li)
-     ,.dma_data_ready_i(dma_data_ready_and_lo)
-
-     ,.dma_data_i      (dma_data_lo)
-     ,.dma_data_v_i    (dma_data_v_lo)
-     ,.dma_data_yumi_o (dma_data_yumi_li)
-
-     ,.axi_awid_o      (s_axi_awid)
-     ,.axi_awaddr_addr_o    (s_axi_awaddr_addr)
-     ,.axi_awaddr_cache_id_o(s_axi_awaddr_cache_id)
-     ,.axi_awlen_o     (s_axi_awlen)
-     ,.axi_awsize_o    (s_axi_awsize)
-     ,.axi_awburst_o   (s_axi_awburst)
-     ,.axi_awcache_o   (s_axi_awcache)
-     ,.axi_awprot_o    (s_axi_awprot)
-     ,.axi_awlock_o    (s_axi_awlock)
-     ,.axi_awvalid_o   (s_axi_awvalid)
-     ,.axi_awready_i   (s_axi_awready)
-
-     ,.axi_wdata_o     (s_axi_wdata)
-     ,.axi_wstrb_o     (s_axi_wstrb)
-     ,.axi_wlast_o     (s_axi_wlast)
-     ,.axi_wvalid_o    (s_axi_wvalid)
-     ,.axi_wready_i    (s_axi_wready)
-
-     ,.axi_bid_i       (s_axi_bid)
-     ,.axi_bresp_i     (s_axi_bresp)
-     ,.axi_bvalid_i    (s_axi_bvalid)
-     ,.axi_bready_o    (s_axi_bready)
-
-     ,.axi_arid_o      (s_axi_arid)
-     ,.axi_araddr_addr_o    (s_axi_araddr_addr)
-     ,.axi_araddr_cache_id_o(s_axi_araddr_cache_id)
-     ,.axi_arlen_o     (s_axi_arlen)
-     ,.axi_arsize_o    (s_axi_arsize)
-     ,.axi_arburst_o   (s_axi_arburst)
-     ,.axi_arcache_o   (s_axi_arcache)
-     ,.axi_arprot_o    (s_axi_arprot)
-     ,.axi_arlock_o    (s_axi_arlock)
-     ,.axi_arvalid_o   (s_axi_arvalid)
-     ,.axi_arready_i   (s_axi_arready)
-
-     ,.axi_rid_i       (s_axi_rid)
-     ,.axi_rdata_i     (s_axi_rdata)
-     ,.axi_rresp_i     (s_axi_rresp)
-     ,.axi_rlast_i     (s_axi_rlast)
-     ,.axi_rvalid_i    (s_axi_rvalid)
-     ,.axi_rready_o    (s_axi_rready)
-     );
-
-  // Revert memory address hash applied by bp_me/src/v/dev/bp_me_cce_to_cache.
-  logic [daddr_width_p-1:0] s_axi_awaddr_lo;
-  bp_me_dram_hash_decode
-    #(.bp_params_p(bp_params_p))
-    s_axi_awaddr_hash
-    (.daddr_i(s_axi_awaddr_addr[0+:daddr_width_p])
-     ,.daddr_o(s_axi_awaddr_lo)
-     );
-
-  logic [daddr_width_p-1:0] s_axi_araddr_lo;
-  bp_me_dram_hash_decode
-    #(.bp_params_p(bp_params_p))
-    s_axi_araddr_hash
-    (.daddr_i(s_axi_araddr_addr[0+:daddr_width_p])
-     ,.daddr_o(s_axi_araddr_lo)
-     );
-
-  // subtract dram_base_addr_gp from axi addresses
-  // S_AXI memory is at address 0x0, but BP issues address to DRAM at 0x8000_0000
-  assign s_axi_awaddr = s_axi_awaddr_lo[0+:s_axi_addr_width_p] ^ dram_base_addr_gp;
-  assign s_axi_araddr = s_axi_araddr_lo[0+:s_axi_addr_width_p] ^ dram_base_addr_gp;
 
   design_1 design_1_i
     (
