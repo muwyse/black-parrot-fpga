@@ -15,7 +15,6 @@ module bp_stream_nbf_loader
 
  #(parameter bp_params_e bp_params_p = e_bp_default_cfg
   `declare_bp_proc_params(bp_params_p)
-  `declare_bp_bedrock_mem_if_widths(paddr_width_p, did_width_p, lce_id_width_p, lce_assoc_p)
 
   ,parameter stream_data_width_p = 32
   ,parameter clear_freeze_p = 0
@@ -32,27 +31,34 @@ module bp_stream_nbf_loader
   ,input                                    reset_i
   ,output logic                             done_o
 
-  ,output logic [mem_header_width_lp-1:0]   mem_fwd_header_o
-  ,output logic                             mem_fwd_header_v_o
-  ,input                                    mem_fwd_header_ready_and_i
-  ,output logic                             mem_fwd_has_data_o
-  ,output [io_data_width_p-1:0]             mem_fwd_data_o
-  ,output logic                             mem_fwd_data_v_o
-  ,input                                    mem_fwd_data_ready_and_i
-  ,output logic                             mem_fwd_last_o
+  // I/O to BP
+  ,output logic [m_axil_addr_width_p-1:0]       m_axil_awaddr_o
+  ,output [2:0]                                 m_axil_awprot_o
+  ,output logic                                 m_axil_awvalid_o
+  ,input                                        m_axil_awready_i
 
-  ,input  [mem_header_width_lp-1:0]         mem_rev_header_i
-  ,input                                    mem_rev_header_v_i
-  ,output logic                             mem_rev_header_ready_o
-  ,input                                    mem_rev_has_data_i
-  ,input [io_data_width_p-1:0]              mem_rev_data_i
-  ,input                                    mem_rev_data_v_i
-  ,output logic                             mem_rev_data_ready_o
-  ,input                                    mem_rev_last_i
+  ,output logic [m_axil_data_width_p-1:0]       m_axil_wdata_o
+  ,output logic [m_axil_mask_width_lp-1:0]      m_axil_wstrb_o
+  ,output logic                                 m_axil_wvalid_o
+  ,input                                        m_axil_wready_i
 
-  ,input                                    stream_v_i
-  ,input  [stream_data_width_p-1:0]         stream_data_i
-  ,output logic                             stream_ready_o
+  ,input [1:0]                                  m_axil_bresp_i
+  ,input                                        m_axil_bvalid_i
+  ,output logic                                 m_axil_bready_o
+
+  ,output logic [m_axil_addr_width_p-1:0]       m_axil_araddr_o
+  ,output [2:0]                                 m_axil_arprot_o
+  ,output logic                                 m_axil_arvalid_o
+  ,input                                        m_axil_arready_i
+
+  ,input [m_axil_data_width_p-1:0]              m_axil_rdata_i
+  ,input [1:0]                                  m_axil_rresp_i
+  ,input                                        m_axil_rvalid_i
+  ,output logic                                 m_axil_rready_o
+
+  ,input                                        stream_v_i
+  ,input  [stream_data_width_p-1:0]             stream_data_i
+  ,output logic                                 stream_ready_o
   );
 
   // response network not used
@@ -65,15 +71,15 @@ module bp_stream_nbf_loader
   wire credits_empty_lo = (credit_count_lo == '0);
 
   bsg_flow_counter
- #(.els_p  (io_noc_max_credits_p)
-  ) nbf_counter
-  (.clk_i  (clk_i)
-  ,.reset_i(reset_i)
-  ,.v_i    (io_cmd_yumi_i)
-  ,.ready_i(1'b1)
-  ,.yumi_i (io_resp_v_i)
-  ,.count_o(credit_count_lo)
-  );
+    #(.els_p(io_noc_max_credits_p))
+    nbf_counter
+    (.clk_i  (clk_i)
+    ,.reset_i(reset_i)
+    ,.v_i    (io_cmd_yumi_i)
+    ,.ready_i(1'b1)
+    ,.yumi_i (io_resp_v_i)
+    ,.count_o(credit_count_lo)
+    );
 
   // bp_nbf packet
   typedef struct packed {
@@ -91,18 +97,19 @@ module bp_stream_nbf_loader
   logic [nbf_num_flits_lp-1:0][stream_data_width_p-1:0] incoming_nbf;
 
   bsg_serial_in_parallel_out_full
- #(.width_p(stream_data_width_p)
-  ,.els_p  (nbf_num_flits_lp)
-  ) sipo
-  (.clk_i  (clk_i)
-  ,.reset_i(reset_i)
-  ,.v_i    (stream_v_i)
-  ,.ready_o(stream_ready_o)
-  ,.data_i (stream_data_i)
-  ,.data_o (incoming_nbf)
-  ,.v_o    (incoming_nbf_v_lo)
-  ,.yumi_i (incoming_nbf_yumi_li)
-  );
+    #(.width_p(stream_data_width_p)
+     ,.els_p  (nbf_num_flits_lp)
+     )
+    sipo
+    (.clk_i  (clk_i)
+    ,.reset_i(reset_i)
+    ,.v_i    (stream_v_i)
+    ,.ready_o(stream_ready_o)
+    ,.data_i (stream_data_i)
+    ,.data_o (incoming_nbf)
+    ,.v_o    (incoming_nbf_v_lo)
+    ,.yumi_i (incoming_nbf_yumi_li)
+    );
 
   bp_nbf_s curr_nbf;
   assign curr_nbf = nbf_width_lp'(incoming_nbf);

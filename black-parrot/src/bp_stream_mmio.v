@@ -24,31 +24,38 @@ module bp_stream_mmio
   (input  clk_i
   ,input  reset_i
 
-  ,input  [mem_header_width_lp-1:0]         mem_fwd_header_i
-  ,input                                    mem_fwd_header_v_i
-  ,output logic                             mem_fwd_header_ready_o
-  ,input                                    mem_fwd_has_data_i
-  ,input [io_data_width_p-1:0]              mem_fwd_data_i
-  ,input                                    mem_fwd_data_v_i
-  ,output logic                             mem_fwd_data_ready_o
-  ,input                                    mem_fwd_last_i
+  // I/O from BP
+  ,input [s_axil_addr_width_p-1:0]              s_axil_awaddr_i
+  ,input [2:0]                                  s_axil_awprot_i
+  ,input                                        s_axil_awvalid_i
+  ,output logic                                 s_axil_awready_o
 
-  ,output logic [mem_header_width_lp-1:0]   mem_rev_header_o
-  ,output logic                             mem_rev_header_v_o
-  ,input                                    mem_rev_header_ready_and_i
-  ,output logic                             mem_rev_has_data_o
-  ,output [io_data_width_p-1:0]             mem_rev_data_o
-  ,output logic                             mem_rev_data_v_o
-  ,input                                    mem_rev_data_ready_and_i
-  ,output logic                             mem_rev_last_o
+  ,input [s_axil_data_width_p-1:0]              s_axil_wdata_i
+  ,input [s_axil_mask_width_lp-1:0]             s_axil_wstrb_i
+  ,input                                        s_axil_wvalid_i
+  ,output logic                                 s_axil_wready_o
 
-  ,input                                    stream_v_i
-  ,input  [stream_data_width_p-1:0]         stream_data_i
-  ,output logic                             stream_ready_o
+  ,output [1:0]                                 s_axil_bresp_o
+  ,output logic                                 s_axil_bvalid_o
+  ,input                                        s_axil_bready_i
 
-  ,output logic                             stream_v_o
-  ,output logic [stream_data_width_p-1:0]   stream_data_o
-  ,input                                    stream_yumi_i
+  ,input [s_axil_addr_width_p-1:0]              s_axil_araddr_i
+  ,input [2:0]                                  s_axil_arprot_i
+  ,input                                        s_axil_arvalid_i
+  ,output logic                                 s_axil_arready_o
+
+  ,output logic [s_axil_data_width_p-1:0]       s_axil_rdata_o
+  ,output [1:0]                                 s_axil_rresp_o
+  ,output logic                                 s_axil_rvalid_o
+  ,input                                        s_axil_rready_i
+
+  ,input                                        stream_v_i
+  ,input  [stream_data_width_p-1:0]             stream_data_i
+  ,output logic                                 stream_ready_o
+
+  ,output logic                                 stream_v_o
+  ,output logic [stream_data_width_p-1:0]       stream_data_o
+  ,input                                        stream_yumi_i
   );
 
   `declare_bp_bedrock_mem_if(paddr_width_p, did_width_p, lce_id_width_p, lce_assoc_p);

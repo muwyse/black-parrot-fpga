@@ -24,41 +24,55 @@ module bp_stream_host
   ,input                                        reset_i
   ,output logic                                 prog_done_o
 
-  ,input  [mem_header_width_lp-1:0]             mem_fwd_header_i
-  ,input                                        mem_fwd_header_v_i
-  ,output logic                                 mem_fwd_header_ready_o
-  ,input                                        mem_fwd_has_data_i
-  ,input [io_data_width_p-1:0]                  mem_fwd_data_i
-  ,input                                        mem_fwd_data_v_i
-  ,output logic                                 mem_fwd_data_ready_o
-  ,input                                        mem_fwd_last_i
+  // I/O to BP
+  ,output logic [m_axil_addr_width_p-1:0]       m_axil_awaddr_o
+  ,output [2:0]                                 m_axil_awprot_o
+  ,output logic                                 m_axil_awvalid_o
+  ,input                                        m_axil_awready_i
 
-  ,output logic [mem_header_width_lp-1:0]       mem_rev_header_o
-  ,output logic                                 mem_rev_header_v_o
-  ,input                                        mem_rev_header_ready_and_i
-  ,output logic                                 mem_rev_has_data_o
-  ,output [io_data_width_p-1:0]                 mem_rev_data_o
-  ,output logic                                 mem_rev_data_v_o
-  ,input                                        mem_rev_data_ready_and_i
-  ,output logic                                 mem_rev_last_o
+  ,output logic [m_axil_data_width_p-1:0]       m_axil_wdata_o
+  ,output logic [m_axil_mask_width_lp-1:0]      m_axil_wstrb_o
+  ,output logic                                 m_axil_wvalid_o
+  ,input                                        m_axil_wready_i
 
-  ,output logic [mem_header_width_lp-1:0]       mem_fwd_header_o
-  ,output logic                                 mem_fwd_header_v_o
-  ,input                                        mem_fwd_header_ready_and_i
-  ,output logic                                 mem_fwd_has_data_o
-  ,output [io_data_width_p-1:0]                 mem_fwd_data_o
-  ,output logic                                 mem_fwd_data_v_o
-  ,input                                        mem_fwd_data_ready_and_i
-  ,output logic                                 mem_fwd_last_o
+  ,input [1:0]                                  m_axil_bresp_i
+  ,input                                        m_axil_bvalid_i
+  ,output logic                                 m_axil_bready_o
 
-  ,input  [mem_header_width_lp-1:0]             mem_rev_header_i
-  ,input                                        mem_rev_header_v_i
-  ,output logic                                 mem_rev_header_ready_o
-  ,input                                        mem_rev_has_data_i
-  ,input [io_data_width_p-1:0]                  mem_rev_data_i
-  ,input                                        mem_rev_data_v_i
-  ,output logic                                 mem_rev_data_ready_o
-  ,input                                        mem_rev_last_i
+  ,output logic [m_axil_addr_width_p-1:0]       m_axil_araddr_o
+  ,output [2:0]                                 m_axil_arprot_o
+  ,output logic                                 m_axil_arvalid_o
+  ,input                                        m_axil_arready_i
+
+  ,input [m_axil_data_width_p-1:0]              m_axil_rdata_i
+  ,input [1:0]                                  m_axil_rresp_i
+  ,input                                        m_axil_rvalid_i
+  ,output logic                                 m_axil_rready_o
+
+  // I/O from BP
+  ,input [s_axil_addr_width_p-1:0]              s_axil_awaddr_i
+  ,input [2:0]                                  s_axil_awprot_i
+  ,input                                        s_axil_awvalid_i
+  ,output logic                                 s_axil_awready_o
+
+  ,input [s_axil_data_width_p-1:0]              s_axil_wdata_i
+  ,input [s_axil_mask_width_lp-1:0]             s_axil_wstrb_i
+  ,input                                        s_axil_wvalid_i
+  ,output logic                                 s_axil_wready_o
+
+  ,output [1:0]                                 s_axil_bresp_o
+  ,output logic                                 s_axil_bvalid_o
+  ,input                                        s_axil_bready_i
+
+  ,input [s_axil_addr_width_p-1:0]              s_axil_araddr_i
+  ,input [2:0]                                  s_axil_arprot_i
+  ,input                                        s_axil_arvalid_i
+  ,output logic                                 s_axil_arready_o
+
+  ,output logic [s_axil_data_width_p-1:0]       s_axil_rdata_o
+  ,output [1:0]                                 s_axil_rresp_o
+  ,output logic                                 s_axil_rvalid_o
+  ,input                                        s_axil_rready_i
 
   ,input                                        stream_v_i
   ,input  [stream_addr_width_p-1:0]             stream_addr_i
