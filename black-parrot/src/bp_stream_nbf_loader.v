@@ -16,8 +16,12 @@ module bp_stream_nbf_loader
  #(parameter bp_params_e bp_params_p = e_bp_default_cfg
   `declare_bp_proc_params(bp_params_p)
 
+  ,parameter stream_addr_width_p = 32
+  // must be 32
   ,parameter stream_data_width_p = 32
-  ,parameter clear_freeze_p = 0
+  ,localparam m_axil_addr_width_p = stream_addr_width_p
+  ,localparam m_axil_data_width_p = stream_data_width_p
+  ,localparam m_axil_mask_width_lp = (m_axil_addr_width_p/8)
 
   ,parameter nbf_opcode_width_p = 8
   ,parameter nbf_addr_width_p = paddr_width_p
@@ -61,9 +65,12 @@ module bp_stream_nbf_loader
   ,output logic                                 stream_ready_o
   );
 
-  // response network not used
-  wire unused_resp = &{io_resp_header_i, io_resp_data_i, io_resp_v_i};
-  assign io_resp_ready_o = 1'b1;
+  // sink bresp as they arrive, but don't couple bvalid and bready
+  always_ff @(posedge clk_i) begin
+    m_axil_bready_o <= m_axil_bvalid_i;
+  end
+
+  wire unused = &{m_axil_bresp_i, m_axil_arready_i, m_axil_rdata_i, m_axil_rresp_i, m_axil_rvalid_i};
 
   // nbf credit counter
   logic [`BSG_WIDTH(io_noc_max_credits_p)-1:0] credit_count_lo;
@@ -75,9 +82,9 @@ module bp_stream_nbf_loader
     nbf_counter
     (.clk_i  (clk_i)
     ,.reset_i(reset_i)
-    ,.v_i    (io_cmd_yumi_i)
+    ,.v_i    (m_axil_wvalid_o & m_axil_wready_i)
     ,.ready_i(1'b1)
-    ,.yumi_i (io_resp_v_i)
+    ,.yumi_i (m_axil_bvalid_i)
     ,.count_o(credit_count_lo)
     );
 
@@ -88,14 +95,13 @@ module bp_stream_nbf_loader
     logic [nbf_data_width_p-1:0]   data;
   } bp_nbf_s;
 
-  // bp_cce packet
-  `declare_bp_bedrock_mem_if(paddr_width_p, did_width_p, lce_id_width_p, lce_assoc_p);
-  `bp_cast_o(bp_bedrock_mem_header_s, io_cmd_header);
-
-  // read nbf file
+  // NBF from SIPO
   logic incoming_nbf_v_lo, incoming_nbf_yumi_li;
   logic [nbf_num_flits_lp-1:0][stream_data_width_p-1:0] incoming_nbf;
+  bp_nbf_s curr_nbf;
+  assign curr_nbf = nbf_width_lp'(incoming_nbf);
 
+  // SIPO that consumes stream interface and produces NBF for loader FSM
   bsg_serial_in_parallel_out_full
     #(.width_p(stream_data_width_p)
      ,.els_p  (nbf_num_flits_lp)
@@ -111,128 +117,120 @@ module bp_stream_nbf_loader
     ,.yumi_i (incoming_nbf_yumi_li)
     );
 
-  bp_nbf_s curr_nbf;
-  assign curr_nbf = nbf_width_lp'(incoming_nbf);
+  // NBF commands: read (not supported), write, fence (wait for credit drain), finish
+  typedef enum logic [1:0] {
+    e_nbf_ready
+    ,e_nbf_hi
+    ,e_finish
+  } state_e;
+  state_e state_r, state_n;
 
-  logic [paddr_width_p-1:0] counter_r, counter_n;
-  logic [1:0] state_r, state_n;
+  assign done_o = (state_r == e_done) & credits_empty_lo;
 
-  assign done_o = (state_r == 3) & credits_empty_lo;
+  logic addr_set, addr_clear, addr_sent;
+  bsg_dff_reset_set_clear
+    #(.width_p(1), .clear_over_set_p(1))
+    addr_sent_reg
+    (.clk_i(clk_i)
+    ,.reset_i(reset_i)
+    ,.set_i(addr_set)
+    ,.clear_i(addr_clear)
+    ,.data_o(addr_sent)
+    );
+  assign addr_set = m_axil_awvalid_o & m_axil_awready_i;
 
-  `declare_bp_memory_map(paddr_width_p, caddr_width_p);
-  bp_local_addr_s freeze_addr;
+  logic data_set, data_clear, data_sent;
+  bsg_dff_reset_set_clear
+    #(.width_p(1), .clear_over_set_p(1))
+    data_sent_reg
+    (.clk_i(clk_i)
+    ,.reset_i(reset_i)
+    ,.set_i(data_set)
+    ,.clear_i(data_clear)
+    ,.data_o(data_sent)
+    );
+  assign data_set = m_axil_wvalid_o & m_axil_wready_i;
 
-  localparam sel_width_lp = `BSG_SAFE_CLOG2(nbf_data_width_p>>3);
-  localparam size_width_lp = `BSG_SAFE_CLOG2(sel_width_lp);
-  bsg_bus_pack
-   #(.in_width_p(nbf_data_width_p), .out_width_p(cce_block_width_p))
-   cmd_bus_pack
-    (.data_i(curr_nbf.data)
-     ,.sel_i('0) // We are aligned
-     ,.size_i(io_cmd_header_cast_o.size[0+:size_width_lp])
-     ,.data_o(io_cmd_data_o)
-     );
-
- // combinational
-  always_comb
-  begin
-
-    // TODO: This is probably why unicore wasn't working
-    io_cmd_header_cast_o.payload = '0;
-    io_cmd_header_cast_o.payload.did = '1;
-    io_cmd_header_cast_o.addr = curr_nbf.addr;
-    io_cmd_header_cast_o.msg_type = e_bedrock_mem_uc_wr;
-    io_cmd_header_cast_o.subop = e_bedrock_store;
-
-    freeze_addr.nonlocal = '0;
-    freeze_addr.tile     = counter_r;
-    freeze_addr.dev      = cfg_dev_gp;
-    freeze_addr.addr     = cfg_reg_freeze_gp;
-
-    case (curr_nbf.opcode)
-      2: io_cmd_header_cast_o.size = e_bedrock_msg_size_4;
-      3: io_cmd_header_cast_o.size = e_bedrock_msg_size_8;
-      default: io_cmd_header_cast_o.size = e_bedrock_msg_size_4;
-    endcase
+  // combinational
+  always_comb begin
 
     state_n = state_r;
-    counter_n = counter_r;
-    io_cmd_v_o = 1'b0;
+
+    addr_clear = '0;
+    data_clear = '0;
+
+    // stub AR and R channels
+    m_axil_araddr_o = '0;
+    m_axil_arprot_0 = '0;
+    m_axil_arvalid_o = '0;
+    m_axil_rready_o = '0;
+
+    m_axil_awvalid_o = '0;
+    m_axil_awprot_o = '0;
+    m_axil_awaddr_o = curr_nbf.addr;
+
+    m_axil_wvalid_o = '0;
+    m_axil_wstrb_o = '1; // only 32b or 64b writes, but 32b channel so all lanes active
+    m_axil_wdata_o = curr_nbf.data[0+:stream_data_width_p];
+
     incoming_nbf_yumi_li = 1'b0;
 
-    if (state_r == 0)
-      begin
-        if (~reset_i)
-          begin
-            io_cmd_v_o = ~credits_full_lo;
-            io_cmd_header_cast_o.addr = counter_r;
-            io_cmd_header_cast_o.size = e_bedrock_msg_size_8;
-            if (io_cmd_yumi_i)
-              begin
-                counter_n = counter_r + 'h8;
-                if (counter_r == 'h84000000)
-                  begin
-                    counter_n = '0;
-                    state_n = 1;
-                  end
-              end
+    case (state_r)
+      e_nbf_ready: begin
+        case (curr_nbf.opcode)
+          8'h2: begin // 32b write
+            m_axil_awvalid_o = incoming_nbf_v_lo & ~addr_sent;
+            m_axil_wvalid_o = incoming_nbf_v_lo & ~data_sent & ~credits_full_lo;
+            incoming_nbf_yumi_li = incoming_nbf_v_lo & (addr_sent & data_sent);
+            addr_clear = incoming_nbf_yumi_li;
+            data_clear = incoming_nbf_yumi_li;
           end
-      end
-    else if (state_r == 1)
-      begin
-        if (incoming_nbf_v_lo)
-          begin
-            io_cmd_v_o = ~credits_full_lo;
-            incoming_nbf_yumi_li = io_cmd_yumi_i;
-            if (curr_nbf.opcode == 8'hFF)
-              begin
-                if (clear_freeze_p == 0)
-                  begin
-                    io_cmd_header_cast_o.addr = '0;
-                    io_cmd_header_cast_o.size = e_bedrock_msg_size_8;
-                    if (io_cmd_yumi_i)
-                      begin
-                        state_n = 3;
-                      end
-                  end
-                else
-                  begin
-                    io_cmd_v_o = 1'b0;
-                    incoming_nbf_yumi_li = 1'b0;
-                    state_n = 2;
-                  end
-              end
+          8'h3: begin // 64b write, do low 32b write here
+            m_axil_awvalid_o = incoming_nbf_v_lo & ~addr_sent;
+            m_axil_wvalid_o = incoming_nbf_v_lo & ~data_sent & ~credits_full_lo;
+            addr_clear = addr_sent & data_sent;
+            data_clear = addr_sent & data_sent;
+            state_n = (addr_sent & data_sent) ? e_nbf_hi : state_r;
           end
-      end
-    else if (state_r == 2)
-      begin
-        io_cmd_v_o = ~credits_full_lo;
-        io_cmd_header_cast_o.addr = freeze_addr;
-        io_cmd_header_cast_o.size = e_bedrock_msg_size_8;
-        if (io_cmd_yumi_i)
-          begin
-            counter_n = counter_r + 'd1;
-            if (counter_r == num_core_p-1)
-              begin
-                counter_n = '0;
-                state_n = 3;
-              end
+          8'hFE: begin
+            incoming_nbf_yumi_li = incoming_nbf_v_lo & credits_empty_lo;
           end
+          8'hFF: begin
+            incoming_nbf_yumi_li = incoming_nbf_v_lo & credits_empty_lo;
+            state_n = incoming_nbf_yumi_li ? e_done : state_r;
+          end
+          default: begin
+            state_n = state_r;
+          end
+        endcase
       end
-
-  end
+      // for 64b writes, write the high 32b
+      e_nbf_hi: begin
+        m_axil_awvalid_o = incoming_nbf_v_lo & ~addr_sent;
+        m_axil_awaddr_o = curr_nbf.addr + 'h4;
+        m_axil_wvalid_o = incoming_nbf_v_lo & ~data_sent & ~credits_full_lo;
+        m_axil_wdata_o = curr_nbf.data[stream_data_width_p+:stream_data_width_p];
+        state_n = (addr_sent & data_sent) ? e_nbf_ready : state_r;
+        incoming_nbf_yumi_li = incoming_nbf_v_lo & (addr_sent & data_sent);
+        addr_clear = incoming_nbf_yumi_li;
+        data_clear = incoming_nbf_yumi_li;
+      end
+      e_done: begin
+        state_n = state_r;
+        incoming_nbf_yumi_li = incoming_nbf_v_lo;
+      end
+      default: begin
+        state_n = state_r;
+      end
+    endcase
 
   // sequential
-  always_ff @(posedge clk_i)
-    if (reset_i)
-      begin
-        state_r <= '0;
-        counter_r <= 'h080000000;
-      end
-    else
-      begin
-        state_r <= state_n;
-        counter_r <= counter_n;
-      end
+  always_ff @(posedge clk_i) begin
+    if (reset_i) begin
+      state_r <= e_nbf_ready;
+    end else begin
+      state_r <= state_n;
+    end
+  end
 
 endmodule
