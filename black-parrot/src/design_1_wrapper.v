@@ -487,10 +487,10 @@ module design_1_wrapper
     );
 
   // AXIL M to FIFO
-  wire m_axi_lite_v_lo, m_axi_lite_yumi_li;
-  wire [m_axil_addr_width_p-1:0] m_axi_lite_addr_lo;
-  wire m_axi_lite_v_li, m_axi_lite_ready_lo;
-  wire [m_axil_data_width_p-1:0] m_axi_lite_data_li, m_axi_lite_data_lo;
+  wire stream_v_lo, stream_yumi_li;
+  wire [m_axil_addr_width_p-1:0] stream_addr_lo;
+  wire stream_v_li, stream_ready_lo;
+  wire [m_axil_data_width_p-1:0] stream_data_li, stream_data_lo;
 
   // m_axi_lite adapter
   bsg_m_axi_lite_to_fifo_sync
@@ -526,14 +526,14 @@ module design_1_wrapper
      ,.bresp_o  (m_axi_lite_bresp)
      ,.bvalid_o (m_axi_lite_bvalid)
      // fifo output
-     ,.v_o      (m_axi_lite_v_lo)
-     ,.addr_o   (m_axi_lite_addr_lo)
-     ,.data_o   (m_axi_lite_data_lo)
-     ,.yumi_i   (m_axi_lite_yumi_li)
+     ,.v_o      (stream_v_lo)
+     ,.addr_o   (stream_addr_lo)
+     ,.data_o   (stream_data_lo)
+     ,.yumi_i   (stream_yumi_li)
      // fifo input
-     ,.v_i      (m_axi_lite_v_li)
-     ,.data_i   (m_axi_lite_data_li)
-     ,.ready_o  (m_axi_lite_ready_lo)
+     ,.v_i      (stream_v_li)
+     ,.data_i   (stream_data_li)
+     ,.ready_o  (stream_ready_lo)
      );
 
   bp_stream_host
@@ -597,14 +597,14 @@ module design_1_wrapper
      ,.m_axil_rready_o(bp_s_axil_rready_li)
 
      // interface to AXIL FIFO
-     ,.stream_v_i(m_axi_lite_v_lo)
-     ,.stream_addr_i(m_axi_lite_addr_lo)
-     ,.stream_data_i(m_axi_lite_data_lo)
-     ,.stream_yumi_o(m_axi_lite_yumi_li)
+     ,.stream_v_i(stream_v_lo)
+     ,.stream_addr_i(stream_addr_lo)
+     ,.stream_data_i(stream_data_lo)
+     ,.stream_yumi_o(stream_yumi_li)
 
-     ,.stream_v_o(m_axi_lite_v_li)
-     ,.stream_data_o(m_axi_lite_data_li)
-     ,.stream_ready_i(m_axi_lite_ready_lo)
+     ,.stream_v_o(stream_v_li)
+     ,.stream_data_o(stream_data_li)
+     ,.stream_ready_i(stream_ready_lo)
      );
 
 endmodule

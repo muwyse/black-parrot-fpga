@@ -8,9 +8,14 @@
 $BASEJUMP_STL_DIR/bsg_cache/bsg_cache_to_axi_rx.v
 $BASEJUMP_STL_DIR/bsg_cache/bsg_cache_to_axi_tx.v
 $BASEJUMP_STL_DIR/bsg_cache/bsg_cache_to_axi.v
+$BASEJUMP_STL_DIR/bsg_misc/bsg_array_reverse.v
 $PROJECT_SRC_DIR/bp_stream_host.v
 $PROJECT_SRC_DIR/bp_stream_mmio.v
 $PROJECT_SRC_DIR/bp_stream_nbf_loader.v
 $PROJECT_SRC_DIR/bsg_m_axi_lite_to_fifo_sync.v
 $PROJECT_SRC_DIR/design_1_wrapper.v
-
+$BLACKPARROT_SUB_DIR/axi/v/bp_axi_top.sv
+$BLACKPARROT_SUB_DIR/axi/v/bp_me_axil_client.sv
+$BLACKPARROT_SUB_DIR/axi/v/bsg_axil_fifo_client.sv
+$BLACKPARROT_SUB_DIR/axi/v/bp_me_axil_master.sv
+$BLACKPARROT_SUB_DIR/axi/v/bsg_axil_fifo_master.sv

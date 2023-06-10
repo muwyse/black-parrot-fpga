@@ -20,17 +20,16 @@ module bp_stream_host
   ,localparam s_axil_addr_width_p = stream_addr_width_p
   ,localparam s_axil_data_width_p = stream_data_width_p
   ,localparam s_axil_mask_width_lp = (s_axil_addr_width_p/8)
-
-  ,localparam bsg_ready_and_link_sif_width_lp = `bsg_ready_and_link_sif_width(io_noc_flit_width_p)
   )
 
   (input                                        clk_i
   ,input                                        reset_i
   ,output logic                                 prog_done_o
 
-  // I/O to BP
+  // I/O to BP from NBF loader
+  // write-only
   ,output logic [m_axil_addr_width_p-1:0]       m_axil_awaddr_o
-  ,output [2:0]                                 m_axil_awprot_o
+  ,output logic [2:0]                           m_axil_awprot_o
   ,output logic                                 m_axil_awvalid_o
   ,input                                        m_axil_awready_i
 
@@ -44,7 +43,7 @@ module bp_stream_host
   ,output logic                                 m_axil_bready_o
 
   ,output logic [m_axil_addr_width_p-1:0]       m_axil_araddr_o
-  ,output [2:0]                                 m_axil_arprot_o
+  ,output logic [2:0]                           m_axil_arprot_o
   ,output logic                                 m_axil_arvalid_o
   ,input                                        m_axil_arready_i
 
@@ -53,7 +52,12 @@ module bp_stream_host
   ,input                                        m_axil_rvalid_i
   ,output logic                                 m_axil_rready_o
 
-  // I/O from BP
+  // I/O from BP to MMIO
+  // every transaction is two stream words: address then data
+  // address determines if PC host treats as read or write
+  // (every address is read-only or write-only)
+  // BP Host addresses used are putchar, getchar, finish
+  // reads from BP to host always return 64b in two 32b stream data from PC host
   ,input [s_axil_addr_width_p-1:0]              s_axil_awaddr_i
   ,input [2:0]                                  s_axil_awprot_i
   ,input                                        s_axil_awvalid_i
@@ -64,7 +68,7 @@ module bp_stream_host
   ,input                                        s_axil_wvalid_i
   ,output logic                                 s_axil_wready_o
 
-  ,output [1:0]                                 s_axil_bresp_o
+  ,output logic [1:0]                           s_axil_bresp_o
   ,output logic                                 s_axil_bvalid_o
   ,input                                        s_axil_bready_i
 
@@ -74,15 +78,21 @@ module bp_stream_host
   ,output logic                                 s_axil_arready_o
 
   ,output logic [s_axil_data_width_p-1:0]       s_axil_rdata_o
-  ,output [1:0]                                 s_axil_rresp_o
+  ,output logic [1:0]                           s_axil_rresp_o
   ,output logic                                 s_axil_rvalid_o
   ,input                                        s_axil_rready_i
 
+  // writes from PC host
+  // routed depending on address to either NBF loader or MMIO
   ,input                                        stream_v_i
   ,input  [stream_addr_width_p-1:0]             stream_addr_i
   ,input  [stream_data_width_p-1:0]             stream_data_i
   ,output logic                                 stream_yumi_o
 
+  // to PC host
+  // MMIO from BP that are consumed by reads from PC host
+  // every transaction is two beats: address then data
+  // writes from BP provide valid data, reads provide invalid data
   ,output logic                                 stream_v_o
   ,output logic [stream_data_width_p-1:0]       stream_data_o
   ,input                                        stream_ready_i
@@ -135,7 +145,7 @@ module bp_stream_host
 
     ,.stream_v_o      (stream_v_o)
     ,.stream_data_o   (stream_data_o)
-    ,.stream_yumi_i   (stream_v_o & stream_ready_i)
+    ,.stream_ready_i  (stream_ready_i)
 
     ,.*
     );

@@ -37,7 +37,7 @@ module bp_stream_nbf_loader
 
   // I/O to BP
   ,output logic [m_axil_addr_width_p-1:0]       m_axil_awaddr_o
-  ,output [2:0]                                 m_axil_awprot_o
+  ,output logic [2:0]                           m_axil_awprot_o
   ,output logic                                 m_axil_awvalid_o
   ,input                                        m_axil_awready_i
 
@@ -51,7 +51,7 @@ module bp_stream_nbf_loader
   ,output logic                                 m_axil_bready_o
 
   ,output logic [m_axil_addr_width_p-1:0]       m_axil_araddr_o
-  ,output [2:0]                                 m_axil_arprot_o
+  ,output logic [2:0]                           m_axil_arprot_o
   ,output logic                                 m_axil_arvalid_o
   ,input                                        m_axil_arready_i
 
@@ -73,12 +73,12 @@ module bp_stream_nbf_loader
   wire unused = &{m_axil_bresp_i, m_axil_arready_i, m_axil_rdata_i, m_axil_rresp_i, m_axil_rvalid_i};
 
   // nbf credit counter
-  logic [`BSG_WIDTH(io_noc_max_credits_p)-1:0] credit_count_lo;
-  wire credits_full_lo  = (credit_count_lo == io_noc_max_credits_p);
+  logic [`BSG_WIDTH(mem_noc_max_credits_p)-1:0] credit_count_lo;
+  wire credits_full_lo  = (credit_count_lo == mem_noc_max_credits_p);
   wire credits_empty_lo = (credit_count_lo == '0);
 
   bsg_flow_counter
-    #(.els_p(io_noc_max_credits_p))
+    #(.els_p(mem_noc_max_credits_p))
     nbf_counter
     (.clk_i  (clk_i)
     ,.reset_i(reset_i)
@@ -121,7 +121,7 @@ module bp_stream_nbf_loader
   typedef enum logic [1:0] {
     e_nbf_ready
     ,e_nbf_hi
-    ,e_finish
+    ,e_done
   } state_e;
   state_e state_r, state_n;
 
@@ -161,7 +161,7 @@ module bp_stream_nbf_loader
 
     // stub AR and R channels
     m_axil_araddr_o = '0;
-    m_axil_arprot_0 = '0;
+    m_axil_arprot_o = '0;
     m_axil_arvalid_o = '0;
     m_axil_rready_o = '0;
 
@@ -223,6 +223,7 @@ module bp_stream_nbf_loader
         state_n = state_r;
       end
     endcase
+  end
 
   // sequential
   always_ff @(posedge clk_i) begin
