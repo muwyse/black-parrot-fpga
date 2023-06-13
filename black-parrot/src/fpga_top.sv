@@ -1,6 +1,6 @@
 /*
  *  Name:
- *    design_1_wrapper.sv
+ *    fpga_top.sv
  *
  *  Description:
  *    Top-level wrapper for multicore BP on FPGA.
@@ -27,7 +27,7 @@
 `include "bp_me_defines.svh"
 `include "bp_top_defines.svh"
 
-module design_1_wrapper
+module fpga_top
 
  import bp_common_pkg::*;
  import bp_be_pkg::*;
@@ -44,7 +44,7 @@ module design_1_wrapper
    , localparam s_axi_id_width_p     = 6
    , localparam s_axi_len_width_p    = 8
    , localparam s_axi_size_width_p   = 3
-   , localparam s_axi_data_width_p   = 256
+   , localparam s_axi_data_width_p   = 128
    , localparam s_axi_strb_width_p   = (s_axi_data_width_p/8)
    , localparam s_axi_burst_len_p    = 2
 
@@ -455,6 +455,7 @@ module design_1_wrapper
 
     ,.m_axi_wvalid_o(s_axi_wvalid)
     ,.m_axi_wready_i(s_axi_wready)
+    ,.m_axi_wid_o() // unused
     ,.m_axi_wdata_o(s_axi_wdata)
     ,.m_axi_wlast_o(s_axi_wlast)
     ,.m_axi_wstrb_o(s_axi_wstrb)

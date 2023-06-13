@@ -36,7 +36,7 @@ module lint_top
  import bsg_wormhole_router_pkg::*;
  import bsg_cache_pkg::*;
 
- #(parameter bp_params_e bp_params_p = e_bp_multicore_4_cfg
+ #(parameter bp_params_e bp_params_p = e_bp_multicore_8_cfg
    `declare_bp_proc_params(bp_params_p)
    `declare_bp_bedrock_mem_if_widths(paddr_width_p, did_width_p, lce_id_width_p, lce_assoc_p)
 
@@ -44,7 +44,7 @@ module lint_top
    , localparam s_axi_id_width_p     = 6
    , localparam s_axi_len_width_p    = 8
    , localparam s_axi_size_width_p   = 3
-   , localparam s_axi_data_width_p   = 256
+   , localparam s_axi_data_width_p   = 128
    , localparam s_axi_strb_width_p   = (s_axi_data_width_p/8)
    , localparam s_axi_burst_len_p    = 2
 
@@ -293,6 +293,7 @@ module lint_top
 
     ,.m_axi_wvalid_o(s_axi_wvalid)
     ,.m_axi_wready_i(s_axi_wready)
+    ,.m_axi_wid_o() // unused in AXI4
     ,.m_axi_wdata_o(s_axi_wdata)
     ,.m_axi_wlast_o(s_axi_wlast)
     ,.m_axi_wstrb_o(s_axi_wstrb)

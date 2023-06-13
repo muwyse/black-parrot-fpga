@@ -28,7 +28,7 @@ export IP_DIR              = $(BASE_DIR)/$(IP_NAME)_ip
 export PART               ?= xcvu37p-fsvh2892-2L-e-es1
 export PROJECT_NAME        = vcu128_bp
 export PROJECT_DIR         = $(BASE_DIR)/$(PROJECT_NAME)
-export PROJECT_TOP         = design_1_wrapper
+export PROJECT_TOP         = fpga_top
 export PROJECT_FLIST       = $(BASE_DIR)/project.flist
 export PROJECT_XDC         = $(XDC_DIR)/design_1.xdc
 
@@ -85,7 +85,7 @@ $(LINT_FLIST): $(BP_FLIST) $(BASE_FLIST)
 	sed -i "/bsg_mem_1rw_sync_mask_write_bit_synth.v/d" $@
 	sed -i "/bsg_mem_1rw_sync_mask_write_byte.v/d" $@
 	sed -i "/bsg_mem_1rw_sync_mask_write_byte_synth.v/d" $@
-	sed -i "/design_1_wrapper.v/d" $@
+	sed -i "/fpga_top.sv/d" $@
 	echo "$(BASEJUMP_STL_DIR)/hard/ultrascale_plus/bsg_mem/bsg_mem_1rw_sync_mask_write_bit.v" >> $@
 	echo "$(PROJECT_SRC_DIR)/bsg_mem_1rw_sync_mask_write_byte.v" >> $@
 	echo "$(PROJECT_SRC_DIR)/bytewrite_bram.v" >> $@

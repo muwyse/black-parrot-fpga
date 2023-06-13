@@ -157,7 +157,7 @@ proc cr_bd_design_1 { parentCell } {
    CONFIG.ARUSER_WIDTH {0} \
    CONFIG.AWUSER_WIDTH {0} \
    CONFIG.BUSER_WIDTH {0} \
-   CONFIG.DATA_WIDTH {256} \
+   CONFIG.DATA_WIDTH {128} \
    CONFIG.FREQ_HZ {50000000} \
    CONFIG.HAS_BRESP {1} \
    CONFIG.HAS_BURST {1} \
@@ -223,7 +223,7 @@ proc cr_bd_design_1 { parentCell } {
   set_property -dict [ list \
    CONFIG.ACLK_ASYNC {1} \
    CONFIG.ADDR_WIDTH {33} \
-   CONFIG.DATA_WIDTH {256} \
+   CONFIG.DATA_WIDTH {128} \
    CONFIG.ID_WIDTH {6} \
    CONFIG.PROTOCOL {AXI3} \
  ] $axi_clock_converter_1
@@ -232,7 +232,7 @@ proc cr_bd_design_1 { parentCell } {
   set axi_protocol_convert_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_protocol_converter:2.1 axi_protocol_convert_0 ]
   set_property -dict [ list \
    CONFIG.ADDR_WIDTH {33} \
-   CONFIG.DATA_WIDTH {256} \
+   CONFIG.DATA_WIDTH {128} \
    CONFIG.ID_WIDTH {6} \
    CONFIG.MI_PROTOCOL {AXI3} \
    CONFIG.SI_PROTOCOL {AXI4} \
