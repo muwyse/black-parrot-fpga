@@ -2,3 +2,6 @@ project.flist
 vcu128_bp/
 blackparrot_ip/
 vivado*
+config.vlt
+lint.log
+lint.flist

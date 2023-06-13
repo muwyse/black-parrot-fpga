@@ -8,6 +8,7 @@
 TOP ?= $(shell git rev-parse --show-toplevel)
 
 include $(TOP)/Makefile.common
+include $(BLACKPARROT_TOOLS_DIR)/Makefile.common
 
 export BASE_DIR           := $(abspath $(TOP)/black-parrot)
 export PROJECT_SRC_DIR    := $(BASE_DIR)/src
@@ -36,8 +37,15 @@ BP_FLIST                   = $(BP_TOP_DIR)/syn/flist.vcs
 IP_TAR_GZ                  = $(IP_NAME)_ip.tar.gz
 PROJECT_TCL                = $(BASE_DIR)/create_project.tcl
 
+LINT_TOP                   = lint_top
+LINT_FLIST                 = $(BASE_DIR)/lint.flist
+LINT_LOG                   = $(BASE_DIR)/lint.log
+LINT_CONFIG_BASE           = $(BASE_DIR)/lint_settings.verilator
+LINT_CONFIG                = $(BASE_DIR)/config.vlt
+LINT_OPTS = --lint-only -Wall -Wno-unoptflat --top-module $(LINT_TOP) -f $(LINT_FLIST) $(LINT_CONFIG)
+
 project_flist: $(PROJECT_FLIST)
-$(PROJECT_FLIST): $(BASE_FLIST) $(BP_FLIST)
+$(PROJECT_FLIST): $(BP_FLIST) $(BASE_FLIST)
 	echo "creating flist"
 	# substitute paths in BP flist
 	cat $^ | envsubst >> $@
@@ -67,5 +75,31 @@ clean_ip:
 	rm -rf $(IP_DIR)
 	rm -f $(IP_TAR_GZ)
 
-clean: clean_project clean_ip
+lint_flist: $(LINT_FLIST)
+$(LINT_FLIST): $(BP_FLIST) $(BASE_FLIST)
+	echo "creating flist"
+	# substitute paths in BP flist
+	cat $^ | envsubst >> $@
+	# swap in memories that infer incorrectly in FPGA
+	sed -i "/bsg_mem_1rw_sync_mask_write_bit.v/d" $@
+	sed -i "/bsg_mem_1rw_sync_mask_write_bit_synth.v/d" $@
+	sed -i "/bsg_mem_1rw_sync_mask_write_byte.v/d" $@
+	sed -i "/bsg_mem_1rw_sync_mask_write_byte_synth.v/d" $@
+	sed -i "/design_1_wrapper.v/d" $@
+	echo "$(BASEJUMP_STL_DIR)/hard/ultrascale_plus/bsg_mem/bsg_mem_1rw_sync_mask_write_bit.v" >> $@
+	echo "$(PROJECT_SRC_DIR)/bsg_mem_1rw_sync_mask_write_byte.v" >> $@
+	echo "$(PROJECT_SRC_DIR)/bytewrite_bram.v" >> $@
+	echo "$(PROJECT_SRC_DIR)/$(LINT_TOP).sv" >> $@
+
+$(LINT_CONFIG):
+	cat $(LINT_CONFIG_BASE) | envsubst > $@
+
+lint: $(LINT_FLIST) $(LINT_CONFIG)
+	$(VERILATOR) $(LINT_OPTS) 2>&1 | tee -i $(LINT_LOG)
+
+clean_lint:
+	rm -f $(LINT_FLIST)
+	rm -f $(LINT_LOG)
+
+clean: clean_project clean_ip clean_lint
 	rm -f vivado*

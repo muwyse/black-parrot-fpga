@@ -16,6 +16,7 @@ export PROGRAM_FPGA_TCL := $(SCRIPT_DIR)/program_fpga.tcl
 export BLACKPARROT_DIR := $(abspath $(TOP)/../black-parrot)
 export BLACKPARROT_SUB_DIR := $(abspath $(TOP)/../black-parrot-subsystems)
 export BLACKPARROT_SDK_DIR := $(abspath $(TOP)/../black-parrot-sdk)
+export BLACKPARROT_TOOLS_DIR := $(abspath $(TOP)/../black-parrot-tools)
 export ZYNQPARROT_DIR := $(abspath $(TOP)/../zynq-parrot)
 
 export BASEJUMP_STL_DIR := $(BLACKPARROT_DIR)/external/basejump_stl

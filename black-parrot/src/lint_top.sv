@@ -27,7 +27,7 @@
 `include "bp_me_defines.svh"
 `include "bp_top_defines.svh"
 
-module design_1_wrapper
+module lint_top
 
  import bp_common_pkg::*;
  import bp_be_pkg::*;
@@ -53,37 +53,16 @@ module design_1_wrapper
    , localparam m_axil_strb_width_p   = (m_axil_data_width_p/8)
    , localparam m_axil_buffer_els_p   = 16
    )
-   (pci_express_x4_rxn
-    , pci_express_x4_rxp
-    , pci_express_x4_txn
-    , pci_express_x4_txp
-    , pcie_perstn
-    , pcie_refclk_clk_n
-    , pcie_refclk_clk_p
-    , rstn
-    , led
+   (rstn
+    , bp_clk
     );
 
   // FPGA device I/O signals
-  input wire [3:0] pci_express_x4_rxn;
-  input wire [3:0] pci_express_x4_rxp;
-  output wire [3:0] pci_express_x4_txn;
-  output wire [3:0] pci_express_x4_txp;
-  input wire pcie_perstn;
-  input wire [0:0] pcie_refclk_clk_n;
-  input wire [0:0] pcie_refclk_clk_p;
   input wire rstn;
-  output wire [7:0] led;
-
-  // TODO: unused here, remove BD outputs?
-  // PCIe signals from block design
-  wire pcie_clk;
-  wire pcie_lnk_up;
-  wire [0:0]pcie_rstn;
+  input wire bp_clk;
 
   // Clock and Reset for BP domain
   // AXIL M and AXI S are in this domain
-  wire bp_clk;
   wire [0:0]bp_rstn;
 
   // AXIL M from PC Host for BP I/O
@@ -156,147 +135,6 @@ module design_1_wrapper
   wire [s_axi_strb_width_p-1:0]s_axi_wstrb;
   wire s_axi_wvalid;
 
-  // HBM S_APB
-  // mostly unused, except for apb_complete
-  wire apb_complete;
-  wire [21:0]s_apb_paddr = '0;
-  wire s_apb_penable = 1'b0;
-  wire [31:0]s_apb_prdata;
-  wire s_apb_pready;
-  wire s_apb_psel = 1'b0;
-  wire s_apb_pslverr;
-  wire [31:0]s_apb_pwdata = '0;
-  wire s_apb_pwrite = 1'b0;
-
-  // FPGA block design
-  // contains HBM, XDMA, clocking
-  design_1 design_1_i
-    (
-     // external reset pin
-     .reset(~rstn),
-
-     // PCIe to/from PC Host
-     .pcie_refclk_clk_n(pcie_refclk_clk_n),
-     .pcie_refclk_clk_p(pcie_refclk_clk_p),
-     .pcie_perstn(pcie_perstn),
-     .pci_express_x4_rxn(pci_express_x4_rxn),
-     .pci_express_x4_rxp(pci_express_x4_rxp),
-     .pci_express_x4_txn(pci_express_x4_txn),
-     .pci_express_x4_txp(pci_express_x4_txp),
-     // PCIe to design
-     .pcie_clk(pcie_clk),
-     .pcie_rstn(pcie_rstn),
-     .pcie_lnk_up(pcie_lnk_up),
-
-     // Clock and Reset for BP domain
-     // AXIL M and AXI S are in this domain
-     .mig_clk(bp_clk),
-     .mig_rstn(bp_rstn),
-
-     // AXIL M from PC Host for BP I/O
-     .m_axi_lite_araddr(m_axi_lite_araddr),
-     .m_axi_lite_arprot(m_axi_lite_arprot),
-     .m_axi_lite_arready(m_axi_lite_arready),
-     .m_axi_lite_arvalid(m_axi_lite_arvalid),
-     .m_axi_lite_awaddr(m_axi_lite_awaddr),
-     .m_axi_lite_awprot(m_axi_lite_awprot),
-     .m_axi_lite_awready(m_axi_lite_awready),
-     .m_axi_lite_awvalid(m_axi_lite_awvalid),
-     .m_axi_lite_bready(m_axi_lite_bready),
-     .m_axi_lite_bresp(m_axi_lite_bresp),
-     .m_axi_lite_bvalid(m_axi_lite_bvalid),
-     .m_axi_lite_rdata(m_axi_lite_rdata),
-     .m_axi_lite_rready(m_axi_lite_rready),
-     .m_axi_lite_rresp(m_axi_lite_rresp),
-     .m_axi_lite_rvalid(m_axi_lite_rvalid),
-     .m_axi_lite_wdata(m_axi_lite_wdata),
-     .m_axi_lite_wready(m_axi_lite_wready),
-     .m_axi_lite_wstrb(m_axi_lite_wstrb),
-     .m_axi_lite_wvalid(m_axi_lite_wvalid),
-
-     // AXI S from BP to HBM
-     .s_axi_araddr(s_axi_araddr),
-     .s_axi_arburst(s_axi_arburst),
-     .s_axi_arcache(s_axi_arcache),
-     .s_axi_arid(s_axi_arid),
-     .s_axi_arlen(s_axi_arlen),
-     .s_axi_arlock(s_axi_arlock),
-     .s_axi_arprot(s_axi_arprot),
-     .s_axi_arqos(s_axi_arqos),
-     .s_axi_arready(s_axi_arready),
-     .s_axi_arregion(s_axi_arregion),
-     .s_axi_arsize(s_axi_arsize),
-     .s_axi_arvalid(s_axi_arvalid),
-     .s_axi_awaddr(s_axi_awaddr),
-     .s_axi_awburst(s_axi_awburst),
-     .s_axi_awcache(s_axi_awcache),
-     .s_axi_awid(s_axi_awid),
-     .s_axi_awlen(s_axi_awlen),
-     .s_axi_awlock(s_axi_awlock),
-     .s_axi_awprot(s_axi_awprot),
-     .s_axi_awqos(s_axi_awqos),
-     .s_axi_awready(s_axi_awready),
-     .s_axi_awregion(s_axi_awregion),
-     .s_axi_awsize(s_axi_awsize),
-     .s_axi_awvalid(s_axi_awvalid),
-     .s_axi_bid(s_axi_bid),
-     .s_axi_bready(s_axi_bready),
-     .s_axi_bresp(s_axi_bresp),
-     .s_axi_bvalid(s_axi_bvalid),
-     .s_axi_rdata(s_axi_rdata),
-     .s_axi_rid(s_axi_rid),
-     .s_axi_rlast(s_axi_rlast),
-     .s_axi_rready(s_axi_rready),
-     .s_axi_rresp(s_axi_rresp),
-     .s_axi_rvalid(s_axi_rvalid),
-     .s_axi_wdata(s_axi_wdata),
-     .s_axi_wlast(s_axi_wlast),
-     .s_axi_wready(s_axi_wready),
-     .s_axi_wstrb(s_axi_wstrb),
-     .s_axi_wvalid(s_axi_wvalid),
-
-     // HBM S_APB
-     // mostly unused, except for apb_complete
-     .apb_complete(apb_complete),
-     .s_apb_paddr(s_apb_paddr),
-     .s_apb_penable(s_apb_penable),
-     .s_apb_prdata(s_apb_prdata),
-     .s_apb_pready(s_apb_pready),
-     .s_apb_psel(s_apb_psel),
-     .s_apb_pslverr(s_apb_pslverr),
-     .s_apb_pwdata(s_apb_pwdata),
-     .s_apb_pwrite(s_apb_pwrite)
-     );
-
-  // LEDs
-  assign led[0] = pcie_lnk_up;
-  assign led[1] = apb_complete;
-
-  // breathing
-  logic led_breath;
-  logic [31:0] led_counter_r;
-  assign led[2] = led_breath;
-  always_ff @(posedge bp_clk)
-    if (bp_reset)
-      begin
-        led_counter_r <= '0;
-        led_breath <= 1'b0;
-      end
-    else
-      begin
-        led_counter_r <= (led_counter_r == 32'd12500000)? '0 : led_counter_r + 1;
-        led_breath <= (led_counter_r == 32'd12500000)? ~led_breath : led_breath;
-      end
-  // pcie stream host (NBF and MMIO)
-  logic nbf_done_lo;
-  assign led[3] = nbf_done_lo;
-
-  // reset pin
-  assign led[4] = ~rstn;
-  assign led[5] = ~rstn;
-  assign led[6] = rstn;
-  assign led[7] = rstn;
-
   // BlackParrot instantiation
   // BP memory connects to BD s_axi
   // BP I/O are managed by BD m_axi_lite (host issues read/write commands)
@@ -308,7 +146,7 @@ module design_1_wrapper
    #(.width_p(1))
     mig_dff
     (.clk_i (bp_clk)
-     ,.data_i(~bp_rstn | ~apb_complete)
+     ,.data_i(~bp_rstn)
      ,.data_o(bp_reset)
      );
 
