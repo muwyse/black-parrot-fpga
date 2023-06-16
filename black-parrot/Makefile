@@ -37,6 +37,11 @@ BP_FLIST                   = $(BP_TOP_DIR)/syn/flist.vcs
 IP_TAR_GZ                  = $(IP_NAME)_ip.tar.gz
 PROJECT_TCL                = $(BASE_DIR)/create_project.tcl
 
+script_dir := $(abspath $(TOP)/script)
+generate_tcl := $(script_dir)/generate_bitstream.tcl
+program_tcl := $(script_dir)/program_fpga.tcl
+bit_dir := $(BASE_DIR)/bit
+
 LINT_TOP                   = lint_top
 LINT_FLIST                 = $(BASE_DIR)/lint.flist
 LINT_LOG                   = $(BASE_DIR)/lint.log
@@ -65,15 +70,19 @@ clean_project:
 	rm -f $(PROJECT_FLIST)
 	rm -rf $(PROJECT_DIR)
 
-build_ip: clean_ip | $(IP_FLIST)
-	vivado -source $(BUILD_IP_TCL) -mode batch
+DATE:=$(shell date +"%c")
+BITFILE ?= $(bit_dir)/design_1_wrapper.bit
+program_fpga:
+	sudo vivado -mode batch -source $(program_tcl) -tclargs $(BITFILE)
+	@echo "$(DATE): $(shell readlink -f $(BITFILE))" > last_programmed.txt
+	@echo "$(shell md5sum $(BITFILE))" >> last_programmed.txt
 
-pack_ip:
-	tar -czvf $(IP_TAR_GZ) $(IP_NAME)_ip
+check_device:
+	@lspci -vvv | grep -qE "Xilinx" && echo "FPGA found!" || "FPGA not found...try rebooting"
 
-clean_ip:
-	rm -rf $(IP_DIR)
-	rm -f $(IP_TAR_GZ)
+JOBS ?= 8
+generate_bitstream:
+	$(vivado_bin) -mode batch -source $(generate_tcl) -tclargs --project_name $(PROJECT_NAME) --jobs $(JOBS)
 
 lint_flist: $(LINT_FLIST)
 $(LINT_FLIST): $(BP_FLIST) $(BASE_FLIST)
@@ -101,5 +110,15 @@ clean_lint:
 	rm -f $(LINT_FLIST)
 	rm -f $(LINT_LOG)
 
-clean: clean_project clean_ip clean_lint
+build_ip: clean_ip | $(IP_FLIST)
+	vivado -source $(BUILD_IP_TCL) -mode batch
+
+pack_ip:
+	tar -czvf $(IP_TAR_GZ) $(IP_NAME)_ip
+
+clean_ip:
+	rm -rf $(IP_DIR)
+	rm -f $(IP_TAR_GZ)
+
+clean: clean_project clean_lint
 	rm -f vivado*
