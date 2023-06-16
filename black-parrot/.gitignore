@@ -6,3 +6,4 @@ config.vlt
 lint.log
 lint.flist
 last_programmed.txt
+*.bit

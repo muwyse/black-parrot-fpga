@@ -42,6 +42,10 @@ generate_tcl := $(script_dir)/generate_bitstream.tcl
 program_tcl := $(script_dir)/program_fpga.tcl
 bit_dir := $(BASE_DIR)/bit
 
+# set this variable to point to correct vivado binary
+# the vcu128 design assumes version 2019.1
+vivado_bin := $(XILINX_VIVADO)/bin/vivado
+
 LINT_TOP                   = lint_top
 LINT_FLIST                 = $(BASE_DIR)/lint.flist
 LINT_LOG                   = $(BASE_DIR)/lint.log
@@ -64,7 +68,7 @@ $(PROJECT_FLIST): $(BP_FLIST) $(BASE_FLIST)
 	echo "$(PROJECT_SRC_DIR)/bytewrite_bram.v" >> $@
 
 project: clean_project | $(PROJECT_FLIST)
-	vivado -source $(PROJECT_TCL) -mode batch
+	$(vivado_bin) -source $(PROJECT_TCL) -mode batch
 
 clean_project:
 	rm -f $(PROJECT_FLIST)
@@ -73,7 +77,7 @@ clean_project:
 DATE:=$(shell date +"%c")
 BITFILE ?= $(bit_dir)/design_1_wrapper.bit
 program_fpga:
-	sudo vivado -mode batch -source $(program_tcl) -tclargs $(BITFILE)
+	sudo $(vivado_bin) -mode batch -source $(program_tcl) -tclargs --bitfile $(BITFILE)
 	@echo "$(DATE): $(shell readlink -f $(BITFILE))" > last_programmed.txt
 	@echo "$(shell md5sum $(BITFILE))" >> last_programmed.txt
 
