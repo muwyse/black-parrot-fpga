@@ -46,12 +46,12 @@ bit_dir := $(BASE_DIR)/bit
 # the vcu128 design assumes version 2019.1
 vivado_bin := $(XILINX_VIVADO)/bin/vivado
 
-LINT_TOP                   = lint_top
+LINT_TOP                   = lint_top_test
 LINT_FLIST                 = $(BASE_DIR)/lint.flist
 LINT_LOG                   = $(BASE_DIR)/lint.log
 LINT_CONFIG_BASE           = $(BASE_DIR)/lint_settings.verilator
 LINT_CONFIG                = $(BASE_DIR)/config.vlt
-LINT_OPTS = --lint-only -Wall -Wno-unoptflat --top-module $(LINT_TOP) -f $(LINT_FLIST) $(LINT_CONFIG)
+LINT_OPTS = --lint-only -Wall -Wno-unoptflat -Wno-timescalemod --top-module $(LINT_TOP) -f $(LINT_FLIST) $(LINT_CONFIG)
 
 project_flist: $(PROJECT_FLIST)
 $(PROJECT_FLIST): $(BP_FLIST) $(BASE_FLIST)
