@@ -55,7 +55,7 @@ module lint_top_test
    // Memory
    , localparam m01_axi_addr_width_p   = 33
    , localparam m01_axi_id_width_p     = 6
-   , localparam m01_axi_data_width_p   = 128
+   , localparam m01_axi_data_width_p   = 64
    , localparam m01_axi_strb_width_p   = (m01_axi_data_width_p/8)
    )
    (rstn
