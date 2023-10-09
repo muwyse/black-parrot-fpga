@@ -38,7 +38,7 @@ module fpga_top
 
  #(parameter bp_params_e bp_params_p = e_bp_multicore_4_cfg
    `declare_bp_proc_params(bp_params_p)
-   `declare_bp_bedrock_mem_if_widths(paddr_width_p, did_width_p, lce_id_width_p, lce_assoc_p)
+   `declare_bp_bedrock_if_widths(paddr_width_p, lce_id_width_p, cce_id_width_p, did_width_p, lce_assoc_p)
 
    , localparam s_axi_addr_width_p   = 33
    , localparam s_axi_id_width_p     = 6

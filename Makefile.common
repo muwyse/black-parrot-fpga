@@ -13,6 +13,9 @@ export GENERATE_BITSTREAM_TCL := $(SCRIPT_DIR)/generate_bitstream.tcl
 export PARSE_FLIST_TCL := $(SCRIPT_DIR)/parse_flist.tcl
 export PROGRAM_FPGA_TCL := $(SCRIPT_DIR)/program_fpga.tcl
 
+export VIVADO_VERSION ?= 2019.1
+export VIVADO_BOARD_DIR := $(abspath $(TOP)/../XilinxBoardStore)
+
 export BLACKPARROT_DIR := $(abspath $(TOP)/../black-parrot)
 export BLACKPARROT_SUB_DIR := $(abspath $(TOP)/../black-parrot-subsystems)
 export BLACKPARROT_SDK_DIR := $(abspath $(TOP)/../black-parrot-sdk)

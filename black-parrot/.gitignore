@@ -5,5 +5,8 @@ vivado*
 config.vlt
 lint.log
 lint.flist
+bp_ip.flist
 last_programmed.txt
 *.bit
+.Xil/
+blackparrot_ip_proj/

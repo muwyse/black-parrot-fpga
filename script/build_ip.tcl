@@ -20,8 +20,9 @@ set ip_taxonomy     $::env(IP_TAXONOMY)
 set ip_version      $::env(IP_VERSION)
 
 set part            $::env(PART)
-set project_dir     $::env(PROJECT_DIR)
-set project_name    $::env(PROJECT_NAME)
+set board_part      $::env(BOARD_PART)
+set project_dir     $::env(IP_PROJECT_DIR)
+set project_name    $::env(IP_PROJECT_NAME)
 set parse_flist_tcl $::env(PARSE_FLIST_TCL)
 
 # parse IP flist

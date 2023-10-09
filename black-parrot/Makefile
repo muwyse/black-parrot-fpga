@@ -17,7 +17,7 @@ export IP_NAME             = blackparrot
 export IP_PROJECT_NAME     = $(IP_NAME)_ip_proj
 export IP_PROJECT_DIR      = $(BASE_DIR)/$(IP_PROJECT_NAME)
 export IP_TOP              = $(IP_NAME)
-export IP_FLIST            = $(BASE_DIR)/ip.flist
+export IP_FLIST            = $(BASE_DIR)/bp_ip.flist
 export IP_PROPERTY_TCL     = $(BASE_DIR)/bp_ip.tcl
 export IP_VENDOR           = BlackParrot
 export IP_VENDOR_NAME      = $(IP_VENDOR)
@@ -26,6 +26,7 @@ export IP_VERSION          = 1.0
 export IP_TAXONOMY         = {/Embedded_Processing/Processor}
 export IP_DIR              = $(BASE_DIR)/$(IP_NAME)_ip
 export PART               ?= xcvu37p-fsvh2892-2L-e-es1
+export BOARD_PART         ?= xilinx.com:vcu128_es:part0:1.1
 export PROJECT_NAME        = vcu128_bp
 export PROJECT_DIR         = $(BASE_DIR)/$(PROJECT_NAME)
 export PROJECT_TOP         = fpga_top
@@ -35,6 +36,7 @@ export PROJECT_XDC         = $(XDC_DIR)/design_1.xdc
 BASE_FLIST                 = $(BASE_DIR)/base.flist
 BP_FLIST                   = $(BP_TOP_DIR)/syn/flist.vcs
 IP_TAR_GZ                  = $(IP_NAME)_ip.tar.gz
+IP_BASE_FLIST              = $(BASE_DIR)/ip.flist
 PROJECT_TCL                = $(BASE_DIR)/create_project.tcl
 
 script_dir := $(abspath $(TOP)/script)
@@ -46,7 +48,7 @@ bit_dir := $(BASE_DIR)/bit
 # the vcu128 design assumes version 2019.1
 vivado_bin := $(XILINX_VIVADO)/bin/vivado
 
-LINT_TOP                   = lint_top_test
+LINT_TOP                   = axi4_top
 LINT_FLIST                 = $(BASE_DIR)/lint.flist
 LINT_LOG                   = $(BASE_DIR)/lint.log
 LINT_CONFIG_BASE           = $(BASE_DIR)/lint_settings.verilator
@@ -114,6 +116,10 @@ clean_lint:
 	rm -f $(LINT_FLIST)
 	rm -f $(LINT_LOG)
 
+ip_flist: $(IP_FLIST)
+$(IP_FLIST): $(BP_FLIST) $(IP_BASE_FLIST)
+	cat $^ | envsubst >> $@
+
 build_ip: clean_ip | $(IP_FLIST)
 	vivado -source $(BUILD_IP_TCL) -mode batch
 
@@ -122,7 +128,9 @@ pack_ip:
 
 clean_ip:
 	rm -rf $(IP_DIR)
+	rm -rf $(IP_PROJECT_DIR)
 	rm -f $(IP_TAR_GZ)
+	rm -f $(IP_FLIST)
 
-clean: clean_project clean_lint
+clean: clean_project clean_lint clean_ip
 	rm -f vivado*
