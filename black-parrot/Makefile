@@ -48,7 +48,7 @@ bit_dir := $(BASE_DIR)/bit
 # the vcu128 design assumes version 2019.1
 vivado_bin := $(XILINX_VIVADO)/bin/vivado
 
-LINT_TOP                   = axi4_top
+LINT_TOP                   ?= axi4_top
 LINT_FLIST                 = $(BASE_DIR)/lint.flist
 LINT_LOG                   = $(BASE_DIR)/lint.log
 LINT_CONFIG_BASE           = $(BASE_DIR)/lint_settings.verilator
