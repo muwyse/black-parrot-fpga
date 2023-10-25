@@ -7,6 +7,8 @@
  *  generates AXI read and write transactions to BP.
  *
  * Constraints:
+ *  - only supports NBF writes of 4 or 8 bytes, Fence, and Finish
+ *  - NBF address and data width must both be 64b
  *
  */
 
@@ -25,8 +27,8 @@ module blackparrot_fpga_host_nbf
    , parameter fifo_data_width_p = 32 // must be 32 or 64
 
    , parameter nbf_opcode_width_p = 8
-   , parameter nbf_addr_width_p = 64 // must be 32 or 64
-   , parameter nbf_data_width_p = 64 // must be 32 or 64
+   , parameter nbf_addr_width_p = M_AXI_ADDR_WIDTH // must be 64
+   , parameter nbf_data_width_p = M_AXI_DATA_WIDTH // must be 64
    )
   (//======================== Host to BlackParrot I/O In ========================
    input                                       m_axi_aclk
@@ -77,9 +79,9 @@ module blackparrot_fpga_host_nbf
    , input [1:0]                               m_axi_rresp
 
    //======================== NBF via FIFO from Host ========================
-   , input                                     fifo_v_i
-   , input [fifo_data_width_p-1:0]             fifo_data_i
-   , output logic                              fifo_ready_and_o
+   , input                                     nbf_v_i
+   , input [fifo_data_width_p-1:0]             nbf_data_i
+   , output logic                              nbf_ready_and_o
    );
 
   wire reset = ~m_axi_aresetn;
@@ -201,62 +203,42 @@ module blackparrot_fpga_host_nbf
       ,.m_axi_rresp_i(m_axi_rresp)
       );
 
-  // NBF FSM
-  typedef enum logic [1:0] {
-    e_nbf_ready
-  } nbf_state_e;
-  nbf_state_e nbf_state_r, nbf_state_n;
-
-  always_ff @(posedge clk) begin
-    if (reset) begin
-      nbf_state_r <= e_nbf_ready;
-    end else begin
-      nbf_state_r <= nbf_state_n;
-    end
-  end
-
-  // TODO: use address to pick word
-  wire nbf_data_idx = '0;
+  wire [7:0] nbf_data_idx = {5'b0, nbf.addr[0+:3]} << 3;
 
   always_comb begin
     m_axi_v = 1'b0;
     m_axi_w = 1'b1;
     m_axi_wmask = '1; // unused by bp_me_fifo_to_axi
     m_axi_data = nbf.data;
-    m_axi_addr = nbf.opcode;
+    m_axi_addr = nbf.addr;
     m_axi_size = 3'b011;
 
     nbf_yumi_li = 1'b0;
 
-    case (nbf_state_r)
-      e_nbf_ready: begin
-        case (nbf.opcode)
-          // 32b write
-          8'h2: begin
-            m_axi_v = nbf_v_lo;
-            m_axi_size = 3'b010;
-            // TODO: pack 32b data
-            m_axi_data = {nbf.data[nbf_data_idx+:32], nbf.data[nbf_data_idx+:32]};
-          end
-          // 64b write
-          8'h3: begin
-            m_axi_v = nbf_v_lo;
-          end
-          // Fence
-          8'hFE: begin
-            nbf_yumi_li = nbf_v_lo & m_axi_credits_empty;
-          end
-          // sink Finish
-          8'hFF: begin
-            nbf_yumi_li = nbf_v_lo;
-          end
-          // sink anything else
-          default: begin
-            nbf_yumi_li = nbf_v_lo;
-          end
-        endcase
+    case (nbf.opcode)
+      // 32b write
+      8'h2: begin
+        m_axi_v = nbf_v_lo;
+        nbf_yumi_li = m_axi_v & m_axi_ready_and;
+        m_axi_size = 3'b010;
+        m_axi_data = (nbf.addr[0+:3] == 3'b0)
+                     ? {nbf.data[0+:32], nbf.data[0+:32]}
+                     : {nbf.data[32+:32], nbf.data[32+:32]};
       end
+      // 64b write
+      8'h3: begin
+        m_axi_v = nbf_v_lo;
+        nbf_yumi_li = m_axi_v & m_axi_ready_and;
+      end
+      // Fence and Finish
+      // sink after all write responses received
+      8'hFE
+      ,8'hFF: begin
+        nbf_yumi_li = nbf_v_lo & m_axi_credits_empty;
+      end
+      // sink anything else
       default: begin
+        nbf_yumi_li = nbf_v_lo;
       end
     endcase
   end

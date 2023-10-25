@@ -7,16 +7,15 @@
  *   BlackParrot's I/O out port and provides FIFO in and out interfaces for MMIO.
  *
  * Constraints:
- *   Incoming I/O (s_axi_*) transactions must be no larger than 64-bits in a single
- *   transfer and the address must be naturally aligned to the request size. The I/O
- *   converters do not check or enforce this condition, the sender must guarantee it.
+ *   - FIFO data width must be 32b
+ *   - BP I/O requests must be at most 32b in size
  *
  */
 
 `include "bp_common_defines.svh"
 `include "bp_me_defines.svh"
 
-module blackparrot_fpga_host
+module blackparrot_fpga_host_mmio
  import bp_common_pkg::*;
  import bp_me_pkg::*;
  import bsg_cache_pkg::*;
@@ -25,7 +24,7 @@ module blackparrot_fpga_host
    , parameter S_AXI_DATA_WIDTH = 64 // must be 64
    , parameter S_AXI_ID_WIDTH = 4
 
-   , parameter fifo_data_width_p = 32 // must be 32 or 64
+   , parameter fifo_data_width_p = 32 // must be 32
 
    , parameter BP_MMIO_ELS = 64
    )
@@ -83,7 +82,9 @@ module blackparrot_fpga_host
    , output logic [fifo_data_width_p-1:0]      mmio_data_o
    , input                                     mmio_yumi_i
    // MMIO Request Count
+   , output logic                              mmio_data_count_v_o
    , output logic [fifo_data_width_p-1:0]      mmio_data_count_o
+   , input                                     mmio_data_count_yumi_i
    // MMIO Response from Host to BP
    // Requests to read-only addresses return data on this interface
    // 32b data returned per read request
@@ -95,56 +96,15 @@ module blackparrot_fpga_host
   wire reset = ~s_axi_aresetn;
   wire clk = s_axi_aclk;
 
-  // BP MMIO Response Buffer
-  // Host software enqueues
-  logic mmio_resp_v_lo, mmio_resp_yumi_li;
-  logic [fifo_data_width_p-1:0] mmio_resp_data_lo;
-  bsg_fifo_1r1w_small
-    #(.width_p(fifo_data_width_p), .els_p(BP_MMIO_ELS))
-    mmio_response_buffer
-     (.clk_i(clk)
-      ,.reset_i(reset)
-      ,.v_i(mmio_v_i)
-      ,.data_i(mmio_data_i)
-      ,.ready_o(mmio_ready_and_o)
-      ,.v_o(mmio_resp_v_lo)
-      ,.data_o(mmio_resp_data_lo)
-      ,.yumi_i(mmio_resp_yumi_li)
-      );
-
-  // BP MMIO Request Buffer
-  // FSM enqueues address then data to this FIFO, which is read by Host software
-  logic mmio_req_v_li, mmio_req_ready_and_lo;
-  logic [fifo_data_width_p-1:0] mmio_req_data_li;
-  bsg_fifo_1r1w_small
-    #(.width_p(fifo_data_width_p), .els_p(BP_MMIO_ELS))
-    mmio_request_buffer
-     (.clk_i(clk)
-      ,.reset_i(reset)
-      ,.v_i(mmio_req_v_li)
-      ,.data_i(mmio_req_data_li)
-      ,.ready_o(mmio_req_ready_and_lo)
-      ,.v_o(mmio_v_o)
-      ,.data_o(mmio_data_o)
-      ,.yumi_i(mmio_yumi_i)
-      );
-
-  // BP I/O Out Buffer Counter
-  logic [`BSG_WIDTH(BP_MMIO_ELS)-1:0] mmio_data_count_lo;
-  assign mmio_data_count_o = fifo_data_width_p'(mmio_data_count_lo);
-  bsg_counter_up_down
-    #(.max_val_p(BP_MMIO_ELS)
-      ,.init_val_p(0)
-      ,.max_step_p(1)
-      )
-    mmio_request_counter
-     (.clk_i(clk)
-      ,.reset_i(reset)
-      ,.up_i(mmio_req_v_li & mmio_req_ready_and_lo)
-      ,.down_i(mmio_yumi_i)
-      ,.count_o(mmio_data_count_lo);
-
   // BlackParrot I/O Out AXI to FIFO (BP MMIO Requests)
+  logic [S_AXI_DATA_WIDTH-1:0] axi_data;
+  logic [S_AXI_ADDR_WIDTH-1:0] axi_addr;
+  logic axi_v, axi_w, axi_ready_and;
+  logic [(S_AXI_DATA_WIDTH/8)-1:0] axi_wmask;
+  logic [2:0] axi_size;
+  logic resp_v, resp_w, resp_ready_and;
+  logic [S_AXI_DATA_WIDTH-1:0] resp_data;
+
   bp_me_axi_to_fifo
     #(.s_axi_data_width_p(S_AXI_DATA_WIDTH)
       ,.s_axi_addr_width_p(S_AXI_ADDR_WIDTH)
@@ -153,17 +113,20 @@ module blackparrot_fpga_host
     bp_to_fifo
      (.clk_i(clk)
       ,.reset_i(reset)
-      ,.data_o
-      ,.addr_o
-      ,.v_o
-      ,.w_o
-      ,.wmask_o
-      ,.size_o
-      ,.ready_and_i
-      ,.data_i
-      ,.v_i
-      ,.w_i
-      ,.ready_and_o
+      // to FSM
+      ,.data_o(axi_data)
+      ,.addr_o(axi_addr)
+      ,.v_o(axi_v)
+      ,.w_o(axi_w)
+      ,.wmask_o(axi_wmask)
+      ,.size_o(axi_size)
+      ,.ready_and_i(axi_ready_and)
+      // response from FSM
+      ,.data_i(resp_data)
+      ,.v_i(resp_v)
+      ,.w_i(resp_w)
+      ,.ready_and_o(resp_ready_and)
+      // from S_AXI
       ,.s_axi_awaddr_i(s_axi_awaddr)
       ,.s_axi_awvalid_i(s_axi_awvalid)
       ,.s_axi_awready_o(s_axi_awready)
@@ -205,14 +168,132 @@ module blackparrot_fpga_host
       ,.s_axi_rresp_o(s_axi_rresp)
       );
 
+  // BP MMIO Request Buffer
+  // FSM enqueues address then data to this FIFO, which is read by Host software
+  logic mmio_req_v_li, mmio_req_ready_and_lo;
+  logic [fifo_data_width_p-1:0] mmio_req_data_li;
+  bsg_fifo_1r1w_small
+    #(.width_p(fifo_data_width_p), .els_p(BP_MMIO_ELS))
+    mmio_request_buffer
+     (.clk_i(clk)
+      ,.reset_i(reset)
+      ,.v_i(mmio_req_v_li)
+      ,.data_i(mmio_req_data_li)
+      ,.ready_o(mmio_req_ready_and_lo)
+      ,.v_o(mmio_v_o)
+      ,.data_o(mmio_data_o)
+      ,.yumi_i(mmio_yumi_i)
+      );
+
+  // BP I/O Out Buffer Counter
+  logic [`BSG_WIDTH(BP_MMIO_ELS)-1:0] mmio_data_count_lo;
+  bsg_counter_up_down
+    #(.max_val_p(BP_MMIO_ELS)
+      ,.init_val_p(0)
+      ,.max_step_p(1)
+      )
+    mmio_request_counter
+     (.clk_i(clk)
+      ,.reset_i(reset)
+      ,.up_i(mmio_req_v_li & mmio_req_ready_and_lo)
+      ,.down_i(mmio_yumi_i)
+      ,.count_o(mmio_data_count_lo);
+  // MMIO data count is a simple register - always valid
+  wire unused = &{mmio_data_count_yumi_i};
+  assign mmio_data_count_v_o = 1'b1;
+  assign mmio_data_count_o = fifo_data_width_p'(mmio_data_count_lo);
+
+  // BP MMIO Response Buffer
+  // Host software enqueues
+  logic mmio_resp_v_lo, mmio_resp_yumi_li;
+  logic [fifo_data_width_p-1:0] mmio_resp_data_lo;
+  bsg_fifo_1r1w_small
+    #(.width_p(fifo_data_width_p), .els_p(BP_MMIO_ELS))
+    mmio_response_buffer
+     (.clk_i(clk)
+      ,.reset_i(reset)
+      ,.v_i(mmio_v_i)
+      ,.data_i(mmio_data_i)
+      ,.ready_o(mmio_ready_and_o)
+      ,.v_o(mmio_resp_v_lo)
+      ,.data_o(mmio_resp_data_lo)
+      ,.yumi_i(mmio_resp_yumi_li)
+      );
+
   // MMIO FSM
+  typedef enum logic [1:0] {
+    e_addr
+    ,e_data
+    ,e_read_resp
+    ,e_write_resp
+  } state_e;
+  state_e state_r, state_n;
+
   always_ff @(posedge clk) begin
     if (reset) begin
+      state_r <= e_addr;
     end else begin
+      state_r <= state_n;
     end
   end
 
+  wire [7:0] axi_byte_offset = axi_addr[0+:3];
+  logic [fifo_width_p-1:0] selected_data;
+  localparam size_width_lp = `BSG_WIDTH((`BSG_SAFE_CLOG2(S_AXI_DATA_WIDTH/8)));
+  bsg_bus_pack
+    #(.in_width_p(S_AXI_DATA_WIDTH)
+      ,.out_width_p(fifo_width_p)
+      )
+    mmio_req_data_picker
+     (.data_i(axi_data)
+      ,.sel_i(axi_byte_offset)
+      ,.size_i(axi_size[0+:size_width_lp])
+      ,.data_o(selected_data)
+      );
+
   always_comb begin
+    state_n = state_r;
+    mmio_req_v_li = 1'b0;
+    mmio_req_data_li = '0;
+    mmio_resp_yumi_li = 1'b0;
+    axi_ready_and = 1'b0;
+    resp_v = 1'b0;
+    resp_w = 1'b0;
+    resp_data = mmio_resp_data_lo;
+
+    case (state_r)
+      // send 32b address to BP MMIO Request Buffer
+      e_addr: begin
+        mmio_req_v_li = axi_v;
+        mmio_req_data_li = axi_addr[0+:fifo_data_width_p];
+        state_n = (mmio_req_v_li & mmio_req_ready_and_lo) ? e_data : state_r;
+      end
+      // send 32b data to BP MMIO Request Buffer
+      e_data: begin
+        mmio_req_v_li = axi_v;
+        mmio_req_data_li = selected_data;
+        state_n = (mmio_req_v_li & mmio_req_ready_and_lo)
+                  ? axi_w
+                    ? e_write_resp
+                    : e_read_resp
+                  : state_r;
+      end
+      // for reads, wait for BP MMIO Response Buffer
+      e_read_resp: begin
+        resp_v = mmio_resp_v_lo;
+        mmio_resp_yumi_li = resp_v & resp_ready_and;
+        state_n = mmio_resp_yumi_li ? e_addr : state_r;
+      end
+      // for writes, enqueue a null response
+      e_write_resp: begin
+        resp_v = 1'b1;
+        resp_w = 1'b1;
+        resp_data = '0;
+        state_n = (resp_v & resp_ready_and) ? e_addr : state_r;
+      end
+      default: begin
+      end
+    endcase
   end
 
 endmodule
