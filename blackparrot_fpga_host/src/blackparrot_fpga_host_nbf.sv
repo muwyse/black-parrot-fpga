@@ -12,14 +12,9 @@
  *
  */
 
-`include "bp_common_defines.svh"
-`include "bp_me_defines.svh"
+`include "bsg_defines.v"
 
 module blackparrot_fpga_host_nbf
- import bp_common_pkg::*;
- import bp_me_pkg::*;
- import bsg_cache_pkg::*;
- import bsg_axi_pkg::*;
  #(parameter M_AXI_ADDR_WIDTH = 64 // must be 64
    , parameter M_AXI_DATA_WIDTH = 64 // must be 64
    , parameter M_AXI_ID_WIDTH = 4
@@ -29,6 +24,8 @@ module blackparrot_fpga_host_nbf
    , parameter nbf_opcode_width_p = 8
    , parameter nbf_addr_width_p = M_AXI_ADDR_WIDTH // must be 64
    , parameter nbf_data_width_p = M_AXI_DATA_WIDTH // must be 64
+
+   , parameter nbf_credits_p = 64
    )
   (//======================== Host to BlackParrot I/O In ========================
    input                                       m_axi_aclk
@@ -88,10 +85,10 @@ module blackparrot_fpga_host_nbf
   wire clk = m_axi_aclk;
 
   // M AXI Write credit counter
-  logic [`BSG_WIDTH(NBF_MAX_WRITES)-1:0] m_axi_write_count;
+  logic [`BSG_WIDTH(nbf_credits_p)-1:0] m_axi_write_count;
   wire m_axi_credits_empty = (m_axi_write_count == '0);
   bsg_flow_counter
-    #(.els_p(NBF_MAX_WRITES))
+    #(.els_p(nbf_credits_p))
     m_axi_write_counter
      (.clk_i(clk)
       ,.reset_i(reset)
@@ -104,8 +101,6 @@ module blackparrot_fpga_host_nbf
   // NBF SIPO
   localparam nbf_width_lp = nbf_opcode_width_p + nbf_addr_width_p + nbf_data_width_p;
   localparam nbf_flits_lp = `BSG_CDIV(nbf_width_lp, fifo_data_width_p);
-  logic nbf_v_li, nbf_ready_lo;
-  logic [fifo_data_width_p-1:0] nbf_data_li;
   logic nbf_v_lo, nbf_yumi_li;
   logic [(nbf_flits_lp*fifo_data_width_p)-1:0] nbf_lo;
 
@@ -125,9 +120,9 @@ module blackparrot_fpga_host_nbf
      (.clk_i(clk)
       ,.reset_i(reset)
       // from AXIL write channel
-      ,.v_i(nbf_v_li)
-      ,.ready_o(nbf_ready_lo)
-      ,.data_i(nbf_data_li)
+      ,.v_i(nbf_v_i)
+      ,.ready_o(nbf_ready_and_o)
+      ,.data_i(nbf_data_i)
       // to NBF FSM
       ,.data_o(nbf_lo)
       ,.v_o(nbf_v_lo)
@@ -159,7 +154,7 @@ module blackparrot_fpga_host_nbf
       ,.ready_and_o(m_axi_ready_and)
       // FIFO read responses - unused because host only issues writes to BP
       ,.data_o(/* unused */)
-      ,.v_o*/* unused */)
+      ,.v_o(/* unused */)
       ,.ready_and_i(1'b1)
       // M AXI
       ,.m_axi_awaddr_o(m_axi_awaddr)

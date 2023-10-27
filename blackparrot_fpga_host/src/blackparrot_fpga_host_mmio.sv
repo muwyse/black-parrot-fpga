@@ -12,14 +12,9 @@
  *
  */
 
-`include "bp_common_defines.svh"
-`include "bp_me_defines.svh"
+`include "bsg_defines.v"
 
 module blackparrot_fpga_host_mmio
- import bp_common_pkg::*;
- import bp_me_pkg::*;
- import bsg_cache_pkg::*;
- import bsg_axi_pkg::*;
  #(parameter S_AXI_ADDR_WIDTH = 64 // must be 64
    , parameter S_AXI_DATA_WIDTH = 64 // must be 64
    , parameter S_AXI_ID_WIDTH = 4
@@ -197,7 +192,8 @@ module blackparrot_fpga_host_mmio
       ,.reset_i(reset)
       ,.up_i(mmio_req_v_li & mmio_req_ready_and_lo)
       ,.down_i(mmio_yumi_i)
-      ,.count_o(mmio_data_count_lo);
+      ,.count_o(mmio_data_count_lo)
+      );
   // MMIO data count is a simple register - always valid
   wire unused = &{mmio_data_count_yumi_i};
   assign mmio_data_count_v_o = 1'b1;
@@ -237,12 +233,12 @@ module blackparrot_fpga_host_mmio
     end
   end
 
-  wire [7:0] axi_byte_offset = axi_addr[0+:3];
-  logic [fifo_width_p-1:0] selected_data;
+  wire [2:0] axi_byte_offset = axi_addr[0+:3];
+  logic [fifo_data_width_p-1:0] selected_data;
   localparam size_width_lp = `BSG_WIDTH((`BSG_SAFE_CLOG2(S_AXI_DATA_WIDTH/8)));
   bsg_bus_pack
     #(.in_width_p(S_AXI_DATA_WIDTH)
-      ,.out_width_p(fifo_width_p)
+      ,.out_width_p(fifo_data_width_p)
       )
     mmio_req_data_picker
      (.data_i(axi_data)
@@ -259,7 +255,7 @@ module blackparrot_fpga_host_mmio
     axi_ready_and = 1'b0;
     resp_v = 1'b0;
     resp_w = 1'b0;
-    resp_data = mmio_resp_data_lo;
+    resp_data = {2{mmio_resp_data_lo}};
 
     case (state_r)
       // send 32b address to BP MMIO Request Buffer

@@ -29,20 +29,9 @@
  *
  */
 
-`include "bp_common_defines.svh"
-`include "bp_me_defines.svh"
-
-// host writes
-`define CSR_NBF 'h0
-`define CSR_HOST_TO_BP 'h4
-// host reads
-`define CSR_BP_TO_HOST_CNT 'h8
-`define CSR_BP_TO_HOST 'hC
+`include "bsg_defines.v"
 
 module blackparrot_fpga_host
- import bp_common_pkg::*;
- import bp_me_pkg::*;
- import bsg_cache_pkg::*;
  import bsg_axi_pkg::*;
  #(parameter M_AXI_ADDR_WIDTH = 64 // must be 64
    , parameter M_AXI_DATA_WIDTH = 64 // must be 64
@@ -193,15 +182,16 @@ module blackparrot_fpga_host
   // connects host to BP MMIO out buffer
   // 'h8: BP MMIO out buffer count
   // 'hC: BP MMIO out buffer data
-  localparam mmio_req_cnt_addr_lp = S_AXIL_ADDR_WIDTH'h8;
-  localparam mmio_req_addr_lp = S_AXIL_ADDR_WIDTH'hC;
+  localparam [S_AXIL_ADDR_WIDTH-1:0] mmio_req_cnt_addr_lp = S_AXIL_ADDR_WIDTH'('h8);
+  localparam [S_AXIL_ADDR_WIDTH-1:0] mmio_req_addr_lp = S_AXIL_ADDR_WIDTH'('hC);
+  localparam [S_AXIL_ADDR_WIDTH-1:0] axil_read_csr_lp [1:0] = '{mmio_req_addr_lp, mmio_req_cnt_addr_lp};
   logic mmio_req_v_lo, mmio_req_count_v_lo, mmio_req_yumi_li, mmio_req_count_yumi_li;
   logic [S_AXIL_DATA_WIDTH-1:0] mmio_req_data_lo, mmio_req_count_lo;
   blackparrot_fpga_host_read_to_fifo
     #(.S_AXIL_ADDR_WIDTH(S_AXIL_ADDR_WIDTH)
       ,.S_AXIL_DATA_WIDTH(S_AXIL_DATA_WIDTH)
       ,.CSR_ELS_P(2)
-      ,.csr_addr_p({mmio_req_addr_lp, mmio_req_cnt_addr_lp})
+      ,.csr_addr_p(axil_read_csr_lp)
       )
     axil_read
      (.fifo_v_i({mmio_req_v_lo, mmio_req_count_v_lo})
@@ -213,22 +203,25 @@ module blackparrot_fpga_host
   // connects host writes to BP
   // 'h0: NBF SIPO
   // 'h4: BP MMIO in buffer
-  localparam nbf_addr_lp = S_AXIL_ADDR_WIDTH'h0;
-  localparam mmio_resp_addr_lp = S_AXIL_ADDR_WIDTH'h4;
-  logic mmio_resp_v_li, mmio_resp_ready_and_lo, nbv_v_li, nbf_ready_and_lo;
-  logic [S_AXIL_DATA_WIDTH-1:0] mmio_resp_data_li, nbf_data_li;
+  localparam [S_AXIL_ADDR_WIDTH-1:0] nbf_addr_lp = S_AXIL_ADDR_WIDTH'('h0);
+  localparam [S_AXIL_ADDR_WIDTH-1:0] mmio_resp_addr_lp = S_AXIL_ADDR_WIDTH'('h4);
+  localparam [S_AXIL_ADDR_WIDTH-1:0] axil_write_csr_lp [1:0] = '{mmio_resp_addr_lp, nbf_addr_lp};
+  logic mmio_resp_v_li, mmio_resp_ready_and_lo, nbf_v_li, nbf_ready_and_lo;
+  logic [S_AXIL_DATA_WIDTH-1:0] fifo_data_li, mmio_resp_data_li, nbf_data_li;
   blackparrot_fpga_host_write_to_fifo
     #(.S_AXIL_ADDR_WIDTH(S_AXIL_ADDR_WIDTH)
       ,.S_AXIL_DATA_WIDTH(S_AXIL_DATA_WIDTH)
       ,.CSR_ELS_P(2)
-      ,.csr_addr_p({mmio_resp_addr_lp, nbf_addr_lp})
+      ,.csr_addr_p(axil_write_csr_lp)
       )
     axil_write
      (.fifo_v_o({mmio_resp_v_li, nbf_v_li})
       ,.fifo_ready_and_i({mmio_resp_ready_and_lo, nbf_ready_and_lo})
-      ,.fifo_data_o({mmio_resp_data_li, nbf_data_li})
+      ,.fifo_data_o(fifo_data_li)
       ,.*
       );
+  assign mmio_resp_data_li = fifo_data_li;
+  assign nbf_data_li = fifo_data_li;
 
   // MMIO
   // consumes S_AXI I/O from BP and makes available via CSRs to Host
@@ -239,7 +232,7 @@ module blackparrot_fpga_host
       ,.fifo_data_width_p(S_AXIL_DATA_WIDTH)
       ,.BP_MMIO_ELS(BP_MMIO_ELS)
       )
-    mmio
+    host_mmio
      (.mmio_v_o(mmio_req_v_lo)
       ,.mmio_data_o(mmio_req_data_lo)
       ,.mmio_yumi_i(mmio_req_yumi_li)
@@ -263,7 +256,7 @@ module blackparrot_fpga_host
       ,.nbf_addr_width_p(nbf_addr_width_p)
       ,.nbf_data_width_p(nbf_data_width_p)
       )
-    nbf
+    host_nbf
      (.nbf_v_i(nbf_v_li)
       ,.nbf_data_i(nbf_data_li)
       ,.nbf_ready_and_o(nbf_ready_and_lo)
