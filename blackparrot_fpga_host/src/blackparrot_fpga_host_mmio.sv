@@ -95,7 +95,6 @@ module blackparrot_fpga_host_mmio
   logic [S_AXI_DATA_WIDTH-1:0] axi_data;
   logic [S_AXI_ADDR_WIDTH-1:0] axi_addr;
   logic axi_v, axi_w, axi_ready_and;
-  logic [(S_AXI_DATA_WIDTH/8)-1:0] axi_wmask;
   logic [2:0] axi_size;
   logic resp_v, resp_w, resp_ready_and;
   logic [S_AXI_DATA_WIDTH-1:0] resp_data;
@@ -113,7 +112,7 @@ module blackparrot_fpga_host_mmio
       ,.addr_o(axi_addr)
       ,.v_o(axi_v)
       ,.w_o(axi_w)
-      ,.wmask_o(axi_wmask)
+      ,.wmask_o(/* unused */)
       ,.size_o(axi_size)
       ,.ready_and_i(axi_ready_and)
       // response from FSM

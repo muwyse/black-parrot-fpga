@@ -176,9 +176,6 @@ module blackparrot_fpga_host
 
    );
 
-  wire reset = ~s_axi_aresetn;
-  wire clk = s_axi_aclk;
-
   // connects host to BP MMIO out buffer
   // 'h8: BP MMIO out buffer count
   // 'hC: BP MMIO out buffer data

@@ -19,11 +19,11 @@ module blackparrot_fpga_host_nbf
    , parameter M_AXI_DATA_WIDTH = 64 // must be 64
    , parameter M_AXI_ID_WIDTH = 4
 
-   , parameter fifo_data_width_p = 32 // must be 32 or 64
+   , parameter fifo_data_width_p = 32 // must be 32
 
    , parameter nbf_opcode_width_p = 8
-   , parameter nbf_addr_width_p = M_AXI_ADDR_WIDTH // must be 64
-   , parameter nbf_data_width_p = M_AXI_DATA_WIDTH // must be 64
+   , parameter nbf_addr_width_p = 64 // must be 64
+   , parameter nbf_data_width_p = 64 // must be 64
 
    , parameter nbf_credits_p = 64
    )
@@ -152,9 +152,10 @@ module blackparrot_fpga_host_nbf
       ,.wmask_i(m_axi_wmask)
       ,.size_i(m_axi_size)
       ,.ready_and_o(m_axi_ready_and)
-      // FIFO read responses - unused because host only issues writes to BP
+      // FIFO responses - unused because host only issues writes to BP
       ,.data_o(/* unused */)
       ,.v_o(/* unused */)
+      ,.w_o(/* unused */)
       ,.ready_and_i(1'b1)
       // M AXI
       ,.m_axi_awaddr_o(m_axi_awaddr)
@@ -198,8 +199,6 @@ module blackparrot_fpga_host_nbf
       ,.m_axi_rresp_i(m_axi_rresp)
       );
 
-  wire [7:0] nbf_data_idx = {5'b0, nbf.addr[0+:3]} << 3;
-
   always_comb begin
     m_axi_v = 1'b0;
     m_axi_w = 1'b1;
@@ -217,8 +216,8 @@ module blackparrot_fpga_host_nbf
         nbf_yumi_li = m_axi_v & m_axi_ready_and;
         m_axi_size = 3'b010;
         m_axi_data = (nbf.addr[0+:3] == 3'b0)
-                     ? {nbf.data[0+:32], nbf.data[0+:32]}
-                     : {nbf.data[32+:32], nbf.data[32+:32]};
+                     ? {2{nbf.data[0+:32]}}
+                     : {2{nbf.data[32+:32]}};
       end
       // 64b write
       8'h3: begin

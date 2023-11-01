@@ -36,6 +36,9 @@ module blackparrot_fpga_host_read_to_fifo
    , input [CSR_ELS_P-1:0][S_AXIL_DATA_WIDTH-1:0]  fifo_data_i
    );
 
+  // unused AXIL interface signals
+  wire ar_unused = &{s_axil_arprot};
+
   wire reset = ~s_axil_aresetn;
   wire clk = s_axil_aclk;
 

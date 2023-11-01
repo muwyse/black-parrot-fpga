@@ -43,9 +43,42 @@ module blackparrot_fpga_host_write_to_fifo
   wire reset = ~s_axil_aresetn;
   wire clk = s_axil_aclk;
 
-  typedef enum logic [1:0] {
+  // register the write address
+  wire aw_unused = &{s_axil_awprot};
+  logic addr_v, addr_yumi;
+  logic [S_AXIL_ADDR_WIDTH-1:0] addr;
+  bsg_two_fifo
+    #(.width_p(S_AXIL_ADDR_WIDTH))
+    addr_fifo
+     (.clk_i(clk)
+      ,.reset_i(reset)
+      ,.v_i(s_axil_awvalid)
+      ,.data_i(s_axil_awaddr)
+      ,.ready_o(s_axil_awready)
+      ,.v_o(addr_v)
+      ,.data_o(addr)
+      ,.yumi_i(addr_yumi)
+      );
+
+  // register the write data
+  wire w_unused = &{s_axil_wstrb};
+  logic data_v, data_yumi;
+  logic [S_AXIL_DATA_WIDTH-1:0] data;
+  bsg_two_fifo
+    #(.width_p(S_AXIL_DATA_WIDTH))
+    data_fifo
+     (.clk_i(clk)
+      ,.reset_i(reset)
+      ,.v_i(s_axil_wvalid)
+      ,.data_i(s_axil_wdata)
+      ,.ready_o(s_axil_wready)
+      ,.v_o(data_v)
+      ,.data_o(data)
+      ,.yumi_i(data_yumi)
+      );
+
+  typedef enum logic {
     e_ready
-    ,e_sink
     ,e_resp
   } state_e;
   state_e state_r, state_n;
@@ -58,35 +91,39 @@ module blackparrot_fpga_host_write_to_fifo
     end
   end
 
+  // per-CSR address comparison
+  logic [CSR_ELS_P-1:0] csr_match;
+  // per-CSR valid: fifo_v_o
+  // AXIL transaction matches a defined CSR
+  wire csr_send = |(fifo_v_o & fifo_ready_and_i);
+  // AXIL transaction does not match any defined CSR
+  wire csr_invalid = addr_v & data_v & ~(|fifo_v_o);
+
   always_comb begin
     state_n = state_r;
 
-    s_axil_awready = 1'b0;
-    s_axil_wready = 1'b0;
+    addr_yumi = 1'b0;
+    data_yumi = 1'b0;
 
     s_axil_bvalid = 1'b0;
     s_axil_bresp = e_axi_resp_okay;
 
     fifo_v_o = '0;
-    fifo_data_o = s_axil_wdata;
+    fifo_data_o = data;
 
     case (state_r)
       // send data to FIFO
       e_ready: begin
         for (int i = 0; i < CSR_ELS_P; i++) begin
-          fifo_v_o[i] = s_axil_awvalid & s_axil_wvalid & (s_axil_awaddr == csr_addr_p[i]);
+          csr_match[i] = (addr == csr_addr_p[i]);
+          fifo_v_o[i] = addr_v & data_v & csr_match[i];
         end
-        // sink the AXIL write when fifo handshake occurs or if no fifo_v_o raised, indicating
-        // no CSR address matched
-        state_n = |(fifo_v_o & fifo_ready_and_i) | ~(|fifo_v_o)
-                  ? e_sink
+        // sink the transaction when sending on FIFO interface or no CSR match detected
+        addr_yumi = csr_send | csr_invalid;
+        data_yumi = addr_yumi;
+        state_n = addr_yumi
+                  ? e_resp
                   : state_r;
-      end
-      // sink the AXIL write
-      e_sink: begin
-        s_axil_awready = 1'b1;
-        s_axil_wready = 1'b1;
-        state_n = e_resp;
       end
       // send the AXIL response
       e_resp: begin
