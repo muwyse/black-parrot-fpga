@@ -100,7 +100,7 @@ module blackparrot_fpga_host_mmio
   logic resp_v, resp_w, resp_ready_and;
   logic [S_AXI_DATA_WIDTH-1:0] resp_data;
 
-  bp_me_axi_to_fifo
+  bp_axi_to_fifo
     #(.s_axi_data_width_p(S_AXI_DATA_WIDTH)
       ,.s_axi_addr_width_p(S_AXI_ADDR_WIDTH)
       ,.s_axi_id_width_p(S_AXI_ID_WIDTH)

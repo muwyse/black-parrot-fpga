@@ -136,7 +136,7 @@ module blackparrot_fpga_host_nbf
   logic [(M_AXI_DATA_WIDTH/8)-1:0] m_axi_wmask;
 
   // BlackParrot FIFO to AXI (BP I/O In)
-  bp_me_fifo_to_axi
+  bp_fifo_to_axi
     #(.m_axi_data_width_p(M_AXI_DATA_WIDTH)
       ,.m_axi_addr_width_p(M_AXI_ADDR_WIDTH)
       ,.m_axi_id_width_p(M_AXI_ID_WIDTH)
@@ -203,7 +203,7 @@ module blackparrot_fpga_host_nbf
   always_comb begin
     m_axi_v = 1'b0;
     m_axi_w = 1'b1;
-    m_axi_wmask = '1; // unused by bp_me_fifo_to_axi
+    m_axi_wmask = '1; // unused by bp_fifo_to_axi
     m_axi_data = nbf.data;
     m_axi_addr = nbf.addr;
     m_axi_size = 3'b011;
