@@ -1,0 +1,8 @@
+vcu128_bp/
+blackparrot_ip/
+blackparrot_fpga_host_ip/
+vivado*
+last_programmed.txt
+*.bit
+.Xil/
+*.tar.gz

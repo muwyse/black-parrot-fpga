@@ -6,3 +6,4 @@ lint.flist
 ip.flist
 .Xil/
 blackparrot_ip_proj/
+*.tar.gz

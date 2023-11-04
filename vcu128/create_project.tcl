@@ -8,37 +8,10 @@
 # project properties
 set project_dir      $::env(PROJECT_DIR)
 set project_name     $::env(PROJECT_NAME)
-set project_top      $::env(PROJECT_TOP)
-set project_flist    $::env(PROJECT_FLIST)
 set project_xdc      $::env(PROJECT_XDC)
 set part             $::env(PART)
-set parse_flist_tcl  $::env(PARSE_FLIST_TCL)
 
-# parse IP flist
-source ${parse_flist_tcl}
-set vlist [parse_flist ${project_flist}]
-set vsources_list  [lindex $vlist 0]
-set vincludes_list [lindex $vlist 1]
-set vdefines_list  [lindex $vlist 2]
-
-# create project
 create_project -force -part ${part} ${project_name} ${project_dir}
-
-if {[string equal [get_filesets -quiet sources_1] ""]} {
-  create_fileset -srcset sources_1
-}
-
-if {[string equal [get_filesets -quiet constrs_1] ""]} {
-  create_fileset -constrset constrs_1
-}
-
-# add files
-add_files -norecurse ${vsources_list}
-set_property file_type SystemVerilog [get_files ${vsources_list}]
-set_property include_dirs ${vincludes_list} [current_fileset]
-set_property verilog_define ${vdefines_list} [current_fileset]
-set_property top ${project_top} [current_fileset]
-update_compile_order -fileset sources_1
 
 # Set 'constrs_1' fileset object
 set obj [get_filesets constrs_1]
