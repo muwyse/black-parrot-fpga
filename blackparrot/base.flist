@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# ip.flist
+#
+# BlackParrot IP project file list
+#
+
+$IP_SRC_DIR/blackparrot.sv
+$BLACKPARROT_SUB_DIR/axi/v/bp_axi4_top.sv
+$BLACKPARROT_SUB_DIR/axi/v/bp_me_axi_manager.sv
+$BLACKPARROT_SUB_DIR/axi/v/bp_me_axi_subordinate.sv
+$BLACKPARROT_SUB_DIR/axi/v/bp_axi_to_fifo.sv
+$BLACKPARROT_SUB_DIR/axi/v/bp_axi_pump.sv

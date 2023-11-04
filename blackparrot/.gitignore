@@ -1,0 +1,8 @@
+blackparrot_ip/
+vivado*
+config.vlt
+lint.log
+lint.flist
+ip.flist
+.Xil/
+blackparrot_ip_proj/

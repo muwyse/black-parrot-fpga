@@ -1,1 +1,4 @@
 *.swp
+vivado.jou
+vivado.log
+*.str

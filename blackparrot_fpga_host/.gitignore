@@ -3,3 +3,5 @@ lint.flist
 lint.log
 ip.flist
 vivado*
+blackparrot_fpga_host_ip/
+blackparrot_fpga_host_ip_proj/
