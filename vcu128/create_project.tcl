@@ -586,6 +586,13 @@ proc cr_bd_design_1 { parentCell } {
   close_bd_design $design_name
 }
 # End of cr_bd_design_1()
+
+set ip_repo_paths [get_property ip_repo_paths [current_fileset]]
+lappend ip_repo_paths ./blackparrot_ip
+lappend ip_repo_paths ./blackparrot_fpga_host_ip
+set_property ip_repo_paths $ip_repo_paths [current_fileset]
+update_ip_catalog
+
 cr_bd_design_1 ""
 set_property REGISTERED_WITH_MANAGER "1" [get_files design_1.bd ]
 set_property SYNTH_CHECKPOINT_MODE "Hierarchical" [get_files design_1.bd ]
