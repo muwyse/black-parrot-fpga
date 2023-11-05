@@ -9,17 +9,6 @@ set_property PACKAGE_PIN AR15 [get_ports {pcie_refclk_clk_p}]
 set_property PACKAGE_PIN BF41     [get_ports {pcie_perstn}]
 set_property IOSTANDARD  LVCMOS12 [get_ports {pcie_perstn}]
 
-# LEDs
-set_property PACKAGE_PIN BH24    [get_ports {led[0]}]
-set_property PACKAGE_PIN BG24    [get_ports {led[1]}]
-set_property PACKAGE_PIN BG25    [get_ports {led[2]}]
-set_property PACKAGE_PIN BF25    [get_ports {led[3]}]
-set_property PACKAGE_PIN BF26    [get_ports {led[4]}]
-set_property PACKAGE_PIN BF27    [get_ports {led[5]}]
-set_property PACKAGE_PIN BG27    [get_ports {led[6]}]
-set_property PACKAGE_PIN BG28    [get_ports {led[7]}]
-set_property IOSTANDARD LVCMOS18 [get_ports {led[*]}]
-
 # Reset
 set_property PACKAGE_PIN BL25     [get_ports {rstn}]
 set_property PULLTYPE    PULLUP   [get_ports {rstn}]
