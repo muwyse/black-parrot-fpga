@@ -134,6 +134,7 @@ module blackparrot_fpga_host_nbf
   logic m_axi_v, m_axi_ready_and, m_axi_w;
   logic [2:0] m_axi_size;
   logic [(M_AXI_DATA_WIDTH/8)-1:0] m_axi_wmask;
+  logic fifo_v;
 
   // BlackParrot FIFO to AXI (BP I/O In)
   bp_fifo_to_axi
@@ -154,9 +155,9 @@ module blackparrot_fpga_host_nbf
       ,.ready_and_o(m_axi_ready_and)
       // FIFO responses - unused because host only issues writes to BP
       ,.data_o(/* unused */)
-      ,.v_o(/* unused */)
+      ,.v_o(fifo_v)
       ,.w_o(/* unused */)
-      ,.ready_and_i(1'b1)
+      ,.yumi_i(fifo_v)
       // M AXI
       ,.m_axi_awaddr_o(m_axi_awaddr)
       ,.m_axi_awvalid_o(m_axi_awvalid)

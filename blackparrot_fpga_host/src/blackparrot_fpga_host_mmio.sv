@@ -94,7 +94,7 @@ module blackparrot_fpga_host_mmio
   // BlackParrot I/O Out AXI to FIFO (BP MMIO Requests)
   logic [S_AXI_DATA_WIDTH-1:0] axi_data;
   logic [S_AXI_ADDR_WIDTH-1:0] axi_addr;
-  logic axi_v, axi_w, axi_ready_and;
+  logic axi_v, axi_w, axi_yumi;
   logic [2:0] axi_size;
   logic resp_v, resp_w, resp_ready_and;
   logic [S_AXI_DATA_WIDTH-1:0] resp_data;
@@ -114,7 +114,7 @@ module blackparrot_fpga_host_mmio
       ,.w_o(axi_w)
       ,.wmask_o(/* unused */)
       ,.size_o(axi_size)
-      ,.ready_and_i(axi_ready_and)
+      ,.yumi_i(axi_yumi)
       // response from FSM
       ,.data_i(resp_data)
       ,.v_i(resp_v)
@@ -251,7 +251,7 @@ module blackparrot_fpga_host_mmio
     mmio_req_v_li = 1'b0;
     mmio_req_data_li = '0;
     mmio_resp_yumi_li = 1'b0;
-    axi_ready_and = 1'b0;
+    axi_yumi = 1'b0;
     resp_v = 1'b0;
     resp_w = 1'b0;
     resp_data = {2{mmio_resp_data_lo}};
@@ -261,12 +261,14 @@ module blackparrot_fpga_host_mmio
       e_addr: begin
         mmio_req_v_li = axi_v;
         mmio_req_data_li = axi_addr[0+:fifo_data_width_p];
+        axi_yumi = (mmio_req_v_li & mmio_req_ready_and_lo);
         state_n = (mmio_req_v_li & mmio_req_ready_and_lo) ? e_data : state_r;
       end
       // send 32b data to BP MMIO Request Buffer
       e_data: begin
         mmio_req_v_li = axi_v;
         mmio_req_data_li = selected_data;
+        axi_yumi = (mmio_req_v_li & mmio_req_ready_and_lo);
         state_n = (mmio_req_v_li & mmio_req_ready_and_lo)
                   ? axi_w
                     ? e_write_resp
