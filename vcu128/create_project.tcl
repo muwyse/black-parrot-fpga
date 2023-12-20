@@ -45,7 +45,8 @@ proc cr_bd_design_1 { parentCell } {
   if { $bCheckIPs == 1 } {
      set list_check_ips "\
   xilinx.com:ip:axi_clock_converter:2.1\
-  xilinx.com:ip:axi_protocol_converter:2.1\
+  BlackParrot:ip:blackparrot:1.0\
+  BlackParrot:ip:blackparrot_fpga_host:1.0\
   xilinx.com:ip:clk_wiz:6.0\
   xilinx.com:ip:hbm:1.0\
   xilinx.com:ip:ila:6.2\
@@ -105,13 +106,9 @@ proc cr_bd_design_1 { parentCell } {
 
 
   # Create interface ports
-  set m_axi_lite [ create_bd_intf_port -mode Master -vlnv xilinx.com:interface:aximm_rtl:1.0 m_axi_lite ]
-  set_property -dict [ list \
-   CONFIG.ADDR_WIDTH {32} \
-   CONFIG.DATA_WIDTH {32} \
-   CONFIG.FREQ_HZ {50000000} \
-   CONFIG.PROTOCOL {AXI4LITE} \
-   ] $m_axi_lite
+  set SAPB_0_0 [ create_bd_intf_port -mode Slave -vlnv xilinx.com:interface:apb_rtl:1.0 SAPB_0_0 ]
+
+  set SAPB_1_0 [ create_bd_intf_port -mode Slave -vlnv xilinx.com:interface:apb_rtl:1.0 SAPB_1_0 ]
 
   set pci_express_x4 [ create_bd_intf_port -mode Master -vlnv xilinx.com:interface:pcie_7x_mgt_rtl:1.0 pci_express_x4 ]
 
@@ -120,68 +117,16 @@ proc cr_bd_design_1 { parentCell } {
    CONFIG.FREQ_HZ {100000000} \
    ] $pcie_refclk
 
-  set s_apb [ create_bd_intf_port -mode Slave -vlnv xilinx.com:interface:apb_rtl:1.0 s_apb ]
-
-  set s_apb_1 [ create_bd_intf_port -mode Slave -vlnv xilinx.com:interface:apb_rtl:1.0 s_apb_1 ]
-
-  set s_axi [ create_bd_intf_port -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 s_axi ]
-  set_property -dict [ list \
-   CONFIG.ADDR_WIDTH {33} \
-   CONFIG.ARUSER_WIDTH {0} \
-   CONFIG.AWUSER_WIDTH {0} \
-   CONFIG.BUSER_WIDTH {0} \
-   CONFIG.DATA_WIDTH {128} \
-   CONFIG.FREQ_HZ {50000000} \
-   CONFIG.HAS_BRESP {1} \
-   CONFIG.HAS_BURST {1} \
-   CONFIG.HAS_CACHE {1} \
-   CONFIG.HAS_LOCK {1} \
-   CONFIG.HAS_PROT {1} \
-   CONFIG.HAS_QOS {1} \
-   CONFIG.HAS_REGION {1} \
-   CONFIG.HAS_RRESP {1} \
-   CONFIG.HAS_WSTRB {1} \
-   CONFIG.ID_WIDTH {6} \
-   CONFIG.MAX_BURST_LENGTH {256} \
-   CONFIG.NUM_READ_OUTSTANDING {1} \
-   CONFIG.NUM_READ_THREADS {1} \
-   CONFIG.NUM_WRITE_OUTSTANDING {1} \
-   CONFIG.NUM_WRITE_THREADS {1} \
-   CONFIG.PROTOCOL {AXI4} \
-   CONFIG.READ_WRITE_MODE {READ_WRITE} \
-   CONFIG.RUSER_BITS_PER_BYTE {0} \
-   CONFIG.RUSER_WIDTH {0} \
-   CONFIG.SUPPORTS_NARROW_BURST {1} \
-   CONFIG.WUSER_BITS_PER_BYTE {0} \
-   CONFIG.WUSER_WIDTH {0} \
-   ] $s_axi
-
 
   # Create ports
-  set apb_complete [ create_bd_port -dir O -type data apb_complete ]
-  set apb_complete_1 [ create_bd_port -dir O apb_complete_1 ]
-  set mig_clk [ create_bd_port -dir O -type clk mig_clk ]
-  set_property -dict [ list \
-   CONFIG.ASSOCIATED_BUSIF {s_axi:m_axi_lite} \
-   CONFIG.ASSOCIATED_RESET {mig_rstn} \
-   CONFIG.FREQ_HZ {50000000} \
- ] $mig_clk
-  set mig_rstn [ create_bd_port -dir O -from 0 -to 0 -type rst mig_rstn ]
-  set pcie_clk [ create_bd_port -dir O -type clk pcie_clk ]
-  set_property -dict [ list \
-   CONFIG.ASSOCIATED_RESET {pcie_rstn} \
-   CONFIG.FREQ_HZ {250000000} \
- ] $pcie_clk
-  set pcie_lnk_up [ create_bd_port -dir O -type data pcie_lnk_up ]
   set pcie_perstn [ create_bd_port -dir I -type rst pcie_perstn ]
   set_property -dict [ list \
    CONFIG.POLARITY {ACTIVE_LOW} \
  ] $pcie_perstn
-  set pcie_rstn [ create_bd_port -dir O -from 0 -to 0 -type rst pcie_rstn ]
-  set reset [ create_bd_port -dir I -type rst reset ]
+  set rstn [ create_bd_port -dir I -type rst rstn ]
   set_property -dict [ list \
-   CONFIG.POLARITY {ACTIVE_HIGH} \
- ] $reset
+   CONFIG.POLARITY {ACTIVE_LOW} \
+ ] $rstn
 
   # Create instance: axi_clock_converter_0, and set properties
   set axi_clock_converter_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_clock_converter:2.1 axi_clock_converter_0 ]
@@ -196,21 +141,24 @@ proc cr_bd_design_1 { parentCell } {
   set_property -dict [ list \
    CONFIG.ACLK_ASYNC {1} \
    CONFIG.ADDR_WIDTH {33} \
-   CONFIG.DATA_WIDTH {128} \
+   CONFIG.ARUSER_WIDTH {0} \
+   CONFIG.AWUSER_WIDTH {0} \
+   CONFIG.BUSER_WIDTH {0} \
+   CONFIG.DATA_WIDTH {64} \
    CONFIG.ID_WIDTH {6} \
-   CONFIG.PROTOCOL {AXI3} \
+   CONFIG.PROTOCOL {AXI4} \
+   CONFIG.RUSER_WIDTH {0} \
+   CONFIG.WUSER_WIDTH {0} \
  ] $axi_clock_converter_1
 
-  # Create instance: axi_protocol_convert_0, and set properties
-  set axi_protocol_convert_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_protocol_converter:2.1 axi_protocol_convert_0 ]
+  # Create instance: blackparrot_0, and set properties
+  set blackparrot_0 [ create_bd_cell -type ip -vlnv BlackParrot:ip:blackparrot:1.0 blackparrot_0 ]
   set_property -dict [ list \
-   CONFIG.ADDR_WIDTH {33} \
-   CONFIG.DATA_WIDTH {128} \
-   CONFIG.ID_WIDTH {6} \
-   CONFIG.MI_PROTOCOL {AXI3} \
-   CONFIG.SI_PROTOCOL {AXI4} \
-   CONFIG.TRANSLATION_MODE {2} \
- ] $axi_protocol_convert_0
+   CONFIG.M01_AXI_ADDR_WIDTH {33} \
+ ] $blackparrot_0
+
+  # Create instance: blackparrot_fpga_host_0, and set properties
+  set blackparrot_fpga_host_0 [ create_bd_cell -type ip -vlnv BlackParrot:ip:blackparrot_fpga_host:1.0 blackparrot_fpga_host_0 ]
 
   # Create instance: clk_wiz_0, and set properties
   set clk_wiz_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:clk_wiz:6.0 clk_wiz_0 ]
@@ -428,9 +376,6 @@ proc cr_bd_design_1 { parentCell } {
    CONFIG.C_PROBE9_MU_CNT {2} \
  ] $ila_0
 
-  # Create instance: proc_sys_reset_0, and set properties
-  set proc_sys_reset_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:proc_sys_reset:5.0 proc_sys_reset_0 ]
-
   # Create instance: proc_sys_reset_1, and set properties
   set proc_sys_reset_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:proc_sys_reset:5.0 proc_sys_reset_1 ]
 
@@ -477,106 +422,111 @@ proc cr_bd_design_1 { parentCell } {
  ] $xdma_0
 
   # Create interface connections
-  connect_bd_intf_net -intf_net SAPB_1_0_1 [get_bd_intf_ports s_apb_1] [get_bd_intf_pins hbm_0/SAPB_1]
-  connect_bd_intf_net -intf_net axi_clock_converter_0_M_AXI [get_bd_intf_ports m_axi_lite] [get_bd_intf_pins axi_clock_converter_0/M_AXI]
+  connect_bd_intf_net -intf_net SAPB_0_0_1 [get_bd_intf_ports SAPB_0_0] [get_bd_intf_pins hbm_0/SAPB_0]
+  connect_bd_intf_net -intf_net SAPB_1_0_1 [get_bd_intf_ports SAPB_1_0] [get_bd_intf_pins hbm_0/SAPB_1]
+  connect_bd_intf_net -intf_net axi_clock_converter_0_M_AXI [get_bd_intf_pins axi_clock_converter_0/M_AXI] [get_bd_intf_pins blackparrot_fpga_host_0/s_axil]
   connect_bd_intf_net -intf_net axi_clock_converter_1_M_AXI [get_bd_intf_pins axi_clock_converter_1/M_AXI] [get_bd_intf_pins smartconnect_0/S00_AXI]
-  connect_bd_intf_net -intf_net axi_protocol_convert_0_M_AXI [get_bd_intf_pins axi_clock_converter_1/S_AXI] [get_bd_intf_pins axi_protocol_convert_0/M_AXI]
+  connect_bd_intf_net -intf_net blackparrot_0_m_axi [get_bd_intf_pins blackparrot_0/m_axi] [get_bd_intf_pins blackparrot_fpga_host_0/s_axi]
+  connect_bd_intf_net -intf_net blackparrot_fpga_host_0_m_axi [get_bd_intf_pins blackparrot_0/s_axi] [get_bd_intf_pins blackparrot_fpga_host_0/m_axi]
   connect_bd_intf_net -intf_net pcie_refclk_1 [get_bd_intf_ports pcie_refclk] [get_bd_intf_pins util_ds_buf_0/CLK_IN_D]
-  connect_bd_intf_net -intf_net s_apb_1 [get_bd_intf_ports s_apb] [get_bd_intf_pins hbm_0/SAPB_0]
-  connect_bd_intf_net -intf_net s_axi_1 [get_bd_intf_ports s_axi] [get_bd_intf_pins axi_protocol_convert_0/S_AXI]
-  connect_bd_intf_net -intf_net [get_bd_intf_nets s_axi_1] [get_bd_intf_ports s_axi] [get_bd_intf_pins ila_0/SLOT_0_AXI]
+  connect_bd_intf_net -intf_net s_axi_1 [get_bd_intf_pins axi_clock_converter_1/S_AXI] [get_bd_intf_pins blackparrot_0/m01_axi]
+connect_bd_intf_net -intf_net [get_bd_intf_nets s_axi_1] [get_bd_intf_pins axi_clock_converter_1/S_AXI] [get_bd_intf_pins ila_0/SLOT_0_AXI]
   connect_bd_intf_net -intf_net smartconnect_0_M00_AXI [get_bd_intf_pins hbm_0/SAXI_00] [get_bd_intf_pins smartconnect_0/M00_AXI]
   connect_bd_intf_net -intf_net smartconnect_0_M01_AXI [get_bd_intf_pins hbm_0/SAXI_16] [get_bd_intf_pins smartconnect_0/M01_AXI]
   connect_bd_intf_net -intf_net xdma_0_M_AXI_LITE [get_bd_intf_pins axi_clock_converter_0/S_AXI] [get_bd_intf_pins xdma_0/M_AXI_LITE]
   connect_bd_intf_net -intf_net xdma_0_pcie_mgt [get_bd_intf_ports pci_express_x4] [get_bd_intf_pins xdma_0/pcie_mgt]
 
   # Create port connections
-  connect_bd_net -net clk_wiz_0_clk_out1 [get_bd_ports mig_clk] [get_bd_pins axi_clock_converter_0/m_axi_aclk] [get_bd_pins axi_clock_converter_1/s_axi_aclk] [get_bd_pins axi_protocol_convert_0/aclk] [get_bd_pins clk_wiz_0/clk_out1] [get_bd_pins ila_0/clk] [get_bd_pins proc_sys_reset_1/slowest_sync_clk]
+  connect_bd_net -net clk_wiz_0_clk_out1 [get_bd_pins axi_clock_converter_0/m_axi_aclk] [get_bd_pins axi_clock_converter_1/s_axi_aclk] [get_bd_pins blackparrot_0/m01_axi_aclk] [get_bd_pins blackparrot_0/m_axi_aclk] [get_bd_pins blackparrot_0/s_axi_aclk] [get_bd_pins blackparrot_fpga_host_0/m_axi_aclk] [get_bd_pins blackparrot_fpga_host_0/s_axi_aclk] [get_bd_pins blackparrot_fpga_host_0/s_axil_aclk] [get_bd_pins clk_wiz_0/clk_out1] [get_bd_pins ila_0/clk] [get_bd_pins proc_sys_reset_1/slowest_sync_clk]
   connect_bd_net -net clk_wiz_0_clk_out2 [get_bd_pins clk_wiz_0/clk_out2] [get_bd_pins hbm_0/HBM_REF_CLK_0] [get_bd_pins hbm_0/HBM_REF_CLK_1]
   connect_bd_net -net clk_wiz_0_clk_out3 [get_bd_pins clk_wiz_0/clk_out3] [get_bd_pins hbm_0/APB_0_PCLK] [get_bd_pins hbm_0/APB_1_PCLK] [get_bd_pins proc_sys_reset_2/slowest_sync_clk]
   connect_bd_net -net clk_wiz_0_clk_out4 [get_bd_pins axi_clock_converter_1/m_axi_aclk] [get_bd_pins clk_wiz_0/clk_out4] [get_bd_pins hbm_0/AXI_00_ACLK] [get_bd_pins hbm_0/AXI_16_ACLK] [get_bd_pins proc_sys_reset_3/slowest_sync_clk] [get_bd_pins smartconnect_0/aclk]
-  connect_bd_net -net hbm_0_apb_complete_0 [get_bd_ports apb_complete] [get_bd_pins hbm_0/apb_complete_0]
-  connect_bd_net -net hbm_0_apb_complete_1 [get_bd_ports apb_complete_1] [get_bd_pins hbm_0/apb_complete_1]
   connect_bd_net -net pcie_perstn_1 [get_bd_ports pcie_perstn] [get_bd_pins xdma_0/sys_rst_n]
-  connect_bd_net -net proc_sys_reset_0_peripheral_aresetn [get_bd_ports pcie_rstn] [get_bd_pins proc_sys_reset_0/peripheral_aresetn]
-  connect_bd_net -net proc_sys_reset_1_peripheral_aresetn [get_bd_ports mig_rstn] [get_bd_pins axi_clock_converter_0/m_axi_aresetn] [get_bd_pins axi_clock_converter_1/s_axi_aresetn] [get_bd_pins axi_protocol_convert_0/aresetn] [get_bd_pins proc_sys_reset_1/peripheral_aresetn]
+  connect_bd_net -net proc_sys_reset_1_peripheral_aresetn [get_bd_pins axi_clock_converter_0/m_axi_aresetn] [get_bd_pins axi_clock_converter_1/s_axi_aresetn] [get_bd_pins blackparrot_0/m01_axi_aresetn] [get_bd_pins blackparrot_0/m_axi_aresetn] [get_bd_pins blackparrot_0/s_axi_aresetn] [get_bd_pins blackparrot_fpga_host_0/m_axi_aresetn] [get_bd_pins blackparrot_fpga_host_0/s_axi_aresetn] [get_bd_pins blackparrot_fpga_host_0/s_axil_aresetn] [get_bd_pins proc_sys_reset_1/peripheral_aresetn]
   connect_bd_net -net proc_sys_reset_2_peripheral_aresetn [get_bd_pins hbm_0/APB_0_PRESET_N] [get_bd_pins hbm_0/APB_1_PRESET_N] [get_bd_pins proc_sys_reset_2/peripheral_aresetn]
   connect_bd_net -net proc_sys_reset_3_peripheral_aresetn [get_bd_pins axi_clock_converter_1/m_axi_aresetn] [get_bd_pins hbm_0/AXI_00_ARESET_N] [get_bd_pins hbm_0/AXI_16_ARESET_N] [get_bd_pins proc_sys_reset_3/peripheral_aresetn] [get_bd_pins smartconnect_0/aresetn]
-  connect_bd_net -net reset_1 [get_bd_ports reset] [get_bd_pins proc_sys_reset_0/ext_reset_in] [get_bd_pins proc_sys_reset_1/ext_reset_in] [get_bd_pins proc_sys_reset_2/ext_reset_in] [get_bd_pins proc_sys_reset_3/ext_reset_in]
+  connect_bd_net -net reset_1 [get_bd_ports rstn] [get_bd_pins proc_sys_reset_1/ext_reset_in] [get_bd_pins proc_sys_reset_2/ext_reset_in] [get_bd_pins proc_sys_reset_3/ext_reset_in]
   connect_bd_net -net util_ds_buf_0_IBUF_DS_ODIV2 [get_bd_pins util_ds_buf_0/IBUF_DS_ODIV2] [get_bd_pins xdma_0/sys_clk]
   connect_bd_net -net util_ds_buf_0_IBUF_OUT [get_bd_pins util_ds_buf_0/IBUF_OUT] [get_bd_pins xdma_0/sys_clk_gt]
-  connect_bd_net -net xdma_0_axi_aclk [get_bd_ports pcie_clk] [get_bd_pins axi_clock_converter_0/s_axi_aclk] [get_bd_pins clk_wiz_0/clk_in1] [get_bd_pins proc_sys_reset_0/slowest_sync_clk] [get_bd_pins xdma_0/axi_aclk]
-  connect_bd_net -net xdma_0_axi_aresetn [get_bd_pins axi_clock_converter_0/s_axi_aresetn] [get_bd_pins proc_sys_reset_0/aux_reset_in] [get_bd_pins proc_sys_reset_1/aux_reset_in] [get_bd_pins proc_sys_reset_2/aux_reset_in] [get_bd_pins proc_sys_reset_3/aux_reset_in] [get_bd_pins xdma_0/axi_aresetn]
-  connect_bd_net -net xdma_0_user_lnk_up [get_bd_ports pcie_lnk_up] [get_bd_pins xdma_0/user_lnk_up]
+  connect_bd_net -net xdma_0_axi_aclk [get_bd_pins axi_clock_converter_0/s_axi_aclk] [get_bd_pins clk_wiz_0/clk_in1] [get_bd_pins xdma_0/axi_aclk]
+  connect_bd_net -net xdma_0_axi_aresetn [get_bd_pins axi_clock_converter_0/s_axi_aresetn] [get_bd_pins proc_sys_reset_1/aux_reset_in] [get_bd_pins proc_sys_reset_2/aux_reset_in] [get_bd_pins proc_sys_reset_3/aux_reset_in] [get_bd_pins xdma_0/axi_aresetn]
 
   # Create address segments
-  create_bd_addr_seg -range 0x00010000 -offset 0x44A00000 [get_bd_addr_spaces xdma_0/M_AXI_LITE] [get_bd_addr_segs m_axi_lite/Reg] SEG_m_axi_lite_Reg
-  create_bd_addr_seg -range 0x08000000 -offset 0x00000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM00] SEG_hbm_0_HBM_MEM00
-  create_bd_addr_seg -range 0x08000000 -offset 0x10000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM01] SEG_hbm_0_HBM_MEM01
-  create_bd_addr_seg -range 0x08000000 -offset 0x08000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM00] SEG_hbm_0_HBM_MEM002
-  create_bd_addr_seg -range 0x08000000 -offset 0x20000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM02] SEG_hbm_0_HBM_MEM02
-  create_bd_addr_seg -range 0x08000000 -offset 0x30000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM03] SEG_hbm_0_HBM_MEM03
-  create_bd_addr_seg -range 0x08000000 -offset 0x40000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM04] SEG_hbm_0_HBM_MEM04
-  create_bd_addr_seg -range 0x08000000 -offset 0x50000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM05] SEG_hbm_0_HBM_MEM05
-  create_bd_addr_seg -range 0x08000000 -offset 0x60000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM06] SEG_hbm_0_HBM_MEM06
-  create_bd_addr_seg -range 0x08000000 -offset 0x70000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM07] SEG_hbm_0_HBM_MEM07
-  create_bd_addr_seg -range 0x08000000 -offset 0x80000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM08] SEG_hbm_0_HBM_MEM08
-  create_bd_addr_seg -range 0x08000000 -offset 0x90000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM09] SEG_hbm_0_HBM_MEM09
-  create_bd_addr_seg -range 0x08000000 -offset 0xA0000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM10] SEG_hbm_0_HBM_MEM10
-  create_bd_addr_seg -range 0x08000000 -offset 0xB0000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM11] SEG_hbm_0_HBM_MEM11
-  create_bd_addr_seg -range 0x08000000 -offset 0xC0000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM12] SEG_hbm_0_HBM_MEM12
-  create_bd_addr_seg -range 0x08000000 -offset 0xD0000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM13] SEG_hbm_0_HBM_MEM13
-  create_bd_addr_seg -range 0x08000000 -offset 0xE0000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM14] SEG_hbm_0_HBM_MEM14
-  create_bd_addr_seg -range 0x08000000 -offset 0xF0000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM15] SEG_hbm_0_HBM_MEM15
-  create_bd_addr_seg -range 0x08000000 -offset 0x18000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM01] SEG_hbm_0_HBM_MEM015
-  create_bd_addr_seg -range 0x08000000 -offset 0x000100000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM16] SEG_hbm_0_HBM_MEM16
-  create_bd_addr_seg -range 0x08000000 -offset 0x000110000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM17] SEG_hbm_0_HBM_MEM17
-  create_bd_addr_seg -range 0x08000000 -offset 0x000120000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM18] SEG_hbm_0_HBM_MEM18
-  create_bd_addr_seg -range 0x08000000 -offset 0x000130000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM19] SEG_hbm_0_HBM_MEM19
-  create_bd_addr_seg -range 0x08000000 -offset 0x000140000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM20] SEG_hbm_0_HBM_MEM20
-  create_bd_addr_seg -range 0x08000000 -offset 0x000150000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM21] SEG_hbm_0_HBM_MEM21
-  create_bd_addr_seg -range 0x08000000 -offset 0x000160000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM22] SEG_hbm_0_HBM_MEM22
-  create_bd_addr_seg -range 0x08000000 -offset 0x000170000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM23] SEG_hbm_0_HBM_MEM23
-  create_bd_addr_seg -range 0x08000000 -offset 0x000180000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM24] SEG_hbm_0_HBM_MEM24
-  create_bd_addr_seg -range 0x08000000 -offset 0x000190000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM25] SEG_hbm_0_HBM_MEM25
-  create_bd_addr_seg -range 0x08000000 -offset 0x0001A0000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM26] SEG_hbm_0_HBM_MEM26
-  create_bd_addr_seg -range 0x08000000 -offset 0x0001B0000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM27] SEG_hbm_0_HBM_MEM27
-  create_bd_addr_seg -range 0x08000000 -offset 0x28000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM02] SEG_hbm_0_HBM_MEM028
-  create_bd_addr_seg -range 0x08000000 -offset 0x0001C0000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM28] SEG_hbm_0_HBM_MEM28
-  create_bd_addr_seg -range 0x08000000 -offset 0x0001D0000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM29] SEG_hbm_0_HBM_MEM29
-  create_bd_addr_seg -range 0x08000000 -offset 0x0001E0000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM30] SEG_hbm_0_HBM_MEM30
-  create_bd_addr_seg -range 0x08000000 -offset 0x0001F0000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM31] SEG_hbm_0_HBM_MEM31
-  create_bd_addr_seg -range 0x08000000 -offset 0x38000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM03] SEG_hbm_0_HBM_MEM0311
-  create_bd_addr_seg -range 0x08000000 -offset 0x48000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM04] SEG_hbm_0_HBM_MEM0414
-  create_bd_addr_seg -range 0x08000000 -offset 0x58000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM05] SEG_hbm_0_HBM_MEM0517
-  create_bd_addr_seg -range 0x08000000 -offset 0x68000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM06] SEG_hbm_0_HBM_MEM0620
-  create_bd_addr_seg -range 0x08000000 -offset 0x78000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM07] SEG_hbm_0_HBM_MEM0723
-  create_bd_addr_seg -range 0x08000000 -offset 0x88000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM08] SEG_hbm_0_HBM_MEM0826
-  create_bd_addr_seg -range 0x08000000 -offset 0x98000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM09] SEG_hbm_0_HBM_MEM0929
-  create_bd_addr_seg -range 0x08000000 -offset 0xA8000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM10] SEG_hbm_0_HBM_MEM1032
-  create_bd_addr_seg -range 0x08000000 -offset 0xB8000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM11] SEG_hbm_0_HBM_MEM1135
-  create_bd_addr_seg -range 0x08000000 -offset 0xC8000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM12] SEG_hbm_0_HBM_MEM1238
-  create_bd_addr_seg -range 0x08000000 -offset 0xD8000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM13] SEG_hbm_0_HBM_MEM1341
-  create_bd_addr_seg -range 0x08000000 -offset 0xE8000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM14] SEG_hbm_0_HBM_MEM1444
-  create_bd_addr_seg -range 0x08000000 -offset 0xF8000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM15] SEG_hbm_0_HBM_MEM1547
-  create_bd_addr_seg -range 0x08000000 -offset 0x000108000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM16] SEG_hbm_0_HBM_MEM1650
-  create_bd_addr_seg -range 0x08000000 -offset 0x000118000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM17] SEG_hbm_0_HBM_MEM1753
-  create_bd_addr_seg -range 0x08000000 -offset 0x000128000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM18] SEG_hbm_0_HBM_MEM1856
-  create_bd_addr_seg -range 0x08000000 -offset 0x000138000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM19] SEG_hbm_0_HBM_MEM1959
-  create_bd_addr_seg -range 0x08000000 -offset 0x000148000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM20] SEG_hbm_0_HBM_MEM2062
-  create_bd_addr_seg -range 0x08000000 -offset 0x000158000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM21] SEG_hbm_0_HBM_MEM2165
-  create_bd_addr_seg -range 0x08000000 -offset 0x000168000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM22] SEG_hbm_0_HBM_MEM2268
-  create_bd_addr_seg -range 0x08000000 -offset 0x000178000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM23] SEG_hbm_0_HBM_MEM2371
-  create_bd_addr_seg -range 0x08000000 -offset 0x000188000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM24] SEG_hbm_0_HBM_MEM2474
-  create_bd_addr_seg -range 0x08000000 -offset 0x000198000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM25] SEG_hbm_0_HBM_MEM2577
-  create_bd_addr_seg -range 0x08000000 -offset 0x0001A8000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM26] SEG_hbm_0_HBM_MEM2680
-  create_bd_addr_seg -range 0x08000000 -offset 0x0001B8000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM27] SEG_hbm_0_HBM_MEM2783
-  create_bd_addr_seg -range 0x08000000 -offset 0x0001C8000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM28] SEG_hbm_0_HBM_MEM2886
-  create_bd_addr_seg -range 0x08000000 -offset 0x0001D8000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM29] SEG_hbm_0_HBM_MEM2989
-  create_bd_addr_seg -range 0x08000000 -offset 0x0001E8000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM30] SEG_hbm_0_HBM_MEM3092
-  create_bd_addr_seg -range 0x08000000 -offset 0x0001F8000000 [get_bd_addr_spaces s_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM31] SEG_hbm_0_HBM_MEM3195
-  create_bd_addr_seg -range 0x00400000 -offset 0x00000000 [get_bd_addr_spaces s_apb] [get_bd_addr_segs hbm_0/SAPB_0/Reg] SEG_hbm_0_Reg
-  create_bd_addr_seg -range 0x00400000 -offset 0x00000000 [get_bd_addr_spaces s_apb_1] [get_bd_addr_segs hbm_0/SAPB_1/Reg] SEG_hbm_0_Reg
+  create_bd_addr_seg -range 0x00010000000000000000 -offset 0x00000000 [get_bd_addr_spaces blackparrot_0/m_axi] [get_bd_addr_segs blackparrot_fpga_host_0/s_axi/mem] SEG_blackparrot_fpga_host_0_mem
+  create_bd_addr_seg -range 0x08000000 -offset 0x00000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM00] SEG_hbm_0_HBM_MEM00
+  create_bd_addr_seg -range 0x08000000 -offset 0x10000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM01] SEG_hbm_0_HBM_MEM01
+  create_bd_addr_seg -range 0x08000000 -offset 0x20000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM02] SEG_hbm_0_HBM_MEM02
+  create_bd_addr_seg -range 0x08000000 -offset 0x08000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM00] SEG_hbm_0_HBM_MEM002
+  create_bd_addr_seg -range 0x08000000 -offset 0x30000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM03] SEG_hbm_0_HBM_MEM03
+  create_bd_addr_seg -range 0x08000000 -offset 0x40000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM04] SEG_hbm_0_HBM_MEM04
+  create_bd_addr_seg -range 0x08000000 -offset 0x50000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM05] SEG_hbm_0_HBM_MEM05
+  create_bd_addr_seg -range 0x08000000 -offset 0x60000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM06] SEG_hbm_0_HBM_MEM06
+  create_bd_addr_seg -range 0x08000000 -offset 0x70000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM07] SEG_hbm_0_HBM_MEM07
+  create_bd_addr_seg -range 0x08000000 -offset 0x80000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM08] SEG_hbm_0_HBM_MEM08
+  create_bd_addr_seg -range 0x08000000 -offset 0x90000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM09] SEG_hbm_0_HBM_MEM09
+  create_bd_addr_seg -range 0x08000000 -offset 0xA0000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM10] SEG_hbm_0_HBM_MEM10
+  create_bd_addr_seg -range 0x08000000 -offset 0xB0000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM11] SEG_hbm_0_HBM_MEM11
+  create_bd_addr_seg -range 0x08000000 -offset 0xC0000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM12] SEG_hbm_0_HBM_MEM12
+  create_bd_addr_seg -range 0x08000000 -offset 0xD0000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM13] SEG_hbm_0_HBM_MEM13
+  create_bd_addr_seg -range 0x08000000 -offset 0xE0000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM14] SEG_hbm_0_HBM_MEM14
+  create_bd_addr_seg -range 0x08000000 -offset 0xF0000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM15] SEG_hbm_0_HBM_MEM15
+  create_bd_addr_seg -range 0x08000000 -offset 0x18000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM01] SEG_hbm_0_HBM_MEM015
+  create_bd_addr_seg -range 0x08000000 -offset 0x000100000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM16] SEG_hbm_0_HBM_MEM16
+  create_bd_addr_seg -range 0x08000000 -offset 0x000110000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM17] SEG_hbm_0_HBM_MEM17
+  create_bd_addr_seg -range 0x08000000 -offset 0x000120000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM18] SEG_hbm_0_HBM_MEM18
+  create_bd_addr_seg -range 0x08000000 -offset 0x000130000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM19] SEG_hbm_0_HBM_MEM19
+  create_bd_addr_seg -range 0x08000000 -offset 0x000140000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM20] SEG_hbm_0_HBM_MEM20
+  create_bd_addr_seg -range 0x08000000 -offset 0x000150000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM21] SEG_hbm_0_HBM_MEM21
+  create_bd_addr_seg -range 0x08000000 -offset 0x000160000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM22] SEG_hbm_0_HBM_MEM22
+  create_bd_addr_seg -range 0x08000000 -offset 0x000170000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM23] SEG_hbm_0_HBM_MEM23
+  create_bd_addr_seg -range 0x08000000 -offset 0x000180000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM24] SEG_hbm_0_HBM_MEM24
+  create_bd_addr_seg -range 0x08000000 -offset 0x000190000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM25] SEG_hbm_0_HBM_MEM25
+  create_bd_addr_seg -range 0x08000000 -offset 0x0001A0000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM26] SEG_hbm_0_HBM_MEM26
+  create_bd_addr_seg -range 0x08000000 -offset 0x0001B0000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM27] SEG_hbm_0_HBM_MEM27
+  create_bd_addr_seg -range 0x08000000 -offset 0x0001C0000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM28] SEG_hbm_0_HBM_MEM28
+  create_bd_addr_seg -range 0x08000000 -offset 0x28000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM02] SEG_hbm_0_HBM_MEM028
+  create_bd_addr_seg -range 0x08000000 -offset 0x0001D0000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM29] SEG_hbm_0_HBM_MEM29
+  create_bd_addr_seg -range 0x08000000 -offset 0x0001E0000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM30] SEG_hbm_0_HBM_MEM30
+  create_bd_addr_seg -range 0x08000000 -offset 0x0001F0000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM31] SEG_hbm_0_HBM_MEM31
+  create_bd_addr_seg -range 0x08000000 -offset 0x38000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM03] SEG_hbm_0_HBM_MEM0311
+  create_bd_addr_seg -range 0x08000000 -offset 0x48000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM04] SEG_hbm_0_HBM_MEM0414
+  create_bd_addr_seg -range 0x08000000 -offset 0x58000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM05] SEG_hbm_0_HBM_MEM0517
+  create_bd_addr_seg -range 0x08000000 -offset 0x68000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM06] SEG_hbm_0_HBM_MEM0620
+  create_bd_addr_seg -range 0x08000000 -offset 0x78000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM07] SEG_hbm_0_HBM_MEM0723
+  create_bd_addr_seg -range 0x08000000 -offset 0x88000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM08] SEG_hbm_0_HBM_MEM0826
+  create_bd_addr_seg -range 0x08000000 -offset 0x98000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM09] SEG_hbm_0_HBM_MEM0929
+  create_bd_addr_seg -range 0x08000000 -offset 0xA8000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM10] SEG_hbm_0_HBM_MEM1032
+  create_bd_addr_seg -range 0x08000000 -offset 0xB8000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM11] SEG_hbm_0_HBM_MEM1135
+  create_bd_addr_seg -range 0x08000000 -offset 0xC8000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM12] SEG_hbm_0_HBM_MEM1238
+  create_bd_addr_seg -range 0x08000000 -offset 0xD8000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM13] SEG_hbm_0_HBM_MEM1341
+  create_bd_addr_seg -range 0x08000000 -offset 0xE8000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM14] SEG_hbm_0_HBM_MEM1444
+  create_bd_addr_seg -range 0x08000000 -offset 0xF8000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM15] SEG_hbm_0_HBM_MEM1547
+  create_bd_addr_seg -range 0x08000000 -offset 0x000108000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM16] SEG_hbm_0_HBM_MEM1650
+  create_bd_addr_seg -range 0x08000000 -offset 0x000118000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM17] SEG_hbm_0_HBM_MEM1753
+  create_bd_addr_seg -range 0x08000000 -offset 0x000128000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM18] SEG_hbm_0_HBM_MEM1856
+  create_bd_addr_seg -range 0x08000000 -offset 0x000138000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM19] SEG_hbm_0_HBM_MEM1959
+  create_bd_addr_seg -range 0x08000000 -offset 0x000148000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM20] SEG_hbm_0_HBM_MEM2062
+  create_bd_addr_seg -range 0x08000000 -offset 0x000158000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM21] SEG_hbm_0_HBM_MEM2165
+  create_bd_addr_seg -range 0x08000000 -offset 0x000168000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM22] SEG_hbm_0_HBM_MEM2268
+  create_bd_addr_seg -range 0x08000000 -offset 0x000178000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM23] SEG_hbm_0_HBM_MEM2371
+  create_bd_addr_seg -range 0x08000000 -offset 0x000188000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM24] SEG_hbm_0_HBM_MEM2474
+  create_bd_addr_seg -range 0x08000000 -offset 0x000198000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM25] SEG_hbm_0_HBM_MEM2577
+  create_bd_addr_seg -range 0x08000000 -offset 0x0001A8000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM26] SEG_hbm_0_HBM_MEM2680
+  create_bd_addr_seg -range 0x08000000 -offset 0x0001B8000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM27] SEG_hbm_0_HBM_MEM2783
+  create_bd_addr_seg -range 0x08000000 -offset 0x0001C8000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM28] SEG_hbm_0_HBM_MEM2886
+  create_bd_addr_seg -range 0x08000000 -offset 0x0001D8000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM29] SEG_hbm_0_HBM_MEM2989
+  create_bd_addr_seg -range 0x08000000 -offset 0x0001E8000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM30] SEG_hbm_0_HBM_MEM3092
+  create_bd_addr_seg -range 0x08000000 -offset 0x0001F8000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM31] SEG_hbm_0_HBM_MEM3195
+  create_bd_addr_seg -range 0x00010000000000000000 -offset 0x00000000 [get_bd_addr_spaces blackparrot_fpga_host_0/m_axi] [get_bd_addr_segs blackparrot_0/s_axi/mem] SEG_blackparrot_0_mem
+  create_bd_addr_seg -range 0x00010000 -offset 0x44A00000 [get_bd_addr_spaces xdma_0/M_AXI_LITE] [get_bd_addr_segs blackparrot_fpga_host_0/s_axil/mem] SEG_blackparrot_fpga_host_0_mem
+
+  # Exclude Address Segments
+  create_bd_addr_seg -range 0x00400000 -offset 0x00000000 [get_bd_addr_spaces SAPB_0_0] [get_bd_addr_segs hbm_0/SAPB_0/Reg] SEG_hbm_0_Reg
+  exclude_bd_addr_seg [get_bd_addr_segs SAPB_0_0/SEG_hbm_0_Reg]
+
+  create_bd_addr_seg -range 0x00400000 -offset 0x00000000 [get_bd_addr_spaces SAPB_1_0] [get_bd_addr_segs hbm_0/SAPB_1/Reg] SEG_hbm_0_Reg
+  exclude_bd_addr_seg [get_bd_addr_segs SAPB_1_0/SEG_hbm_0_Reg]
+
 
   # Restore current instance
   current_bd_instance $oldCurInst
@@ -597,3 +547,6 @@ cr_bd_design_1 ""
 set_property REGISTERED_WITH_MANAGER "1" [get_files design_1.bd ]
 set_property SYNTH_CHECKPOINT_MODE "Hierarchical" [get_files design_1.bd ]
 
+set top_file [make_wrapper -files [get_files design_1.bd] -top]
+add_files -norecurse ${top_file}
+set_property -name "top" -value "design_1_wrapper" -objects [get_filesets sources_1]
