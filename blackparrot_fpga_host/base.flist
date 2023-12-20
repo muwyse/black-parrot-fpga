@@ -83,7 +83,7 @@ $BASEJUMP_STL_DIR/bsg_mem/bsg_mem_1r1w_synth.v
 #$BASEJUMP_STL_DIR/bsg_misc/bsg_adder_cin.v
 #$BASEJUMP_STL_DIR/bsg_misc/bsg_adder_one_hot.v
 #$BASEJUMP_STL_DIR/bsg_misc/bsg_adder_ripple_carry.v
-#$BASEJUMP_STL_DIR/bsg_misc/bsg_arb_fixed.v
+$BASEJUMP_STL_DIR/bsg_misc/bsg_arb_fixed.v
 #$BASEJUMP_STL_DIR/bsg_misc/bsg_arb_round_robin.v
 #$BASEJUMP_STL_DIR/bsg_misc/bsg_array_concentrate_static.v
 #$BASEJUMP_STL_DIR/bsg_misc/bsg_buf.v
@@ -137,13 +137,13 @@ $BASEJUMP_STL_DIR/bsg_mem/bsg_mem_1r1w_synth.v
 #$BASEJUMP_STL_DIR/bsg_misc/bsg_nor3.v
 #$BASEJUMP_STL_DIR/bsg_misc/bsg_nand.v
 #$BASEJUMP_STL_DIR/bsg_misc/bsg_priority_encode.v
-#$BASEJUMP_STL_DIR/bsg_misc/bsg_priority_encode_one_hot_out.v
+$BASEJUMP_STL_DIR/bsg_misc/bsg_priority_encode_one_hot_out.v
 #$BASEJUMP_STL_DIR/bsg_misc/bsg_reduce.v
 #$BASEJUMP_STL_DIR/bsg_misc/bsg_reduce_segmented.v
 #$BASEJUMP_STL_DIR/bsg_misc/bsg_rotate_left.v
 #$BASEJUMP_STL_DIR/bsg_misc/bsg_rotate_right.v
 #$BASEJUMP_STL_DIR/bsg_misc/bsg_round_robin_arb.v
-#$BASEJUMP_STL_DIR/bsg_misc/bsg_scan.v
+$BASEJUMP_STL_DIR/bsg_misc/bsg_scan.v
 #$BASEJUMP_STL_DIR/bsg_misc/bsg_strobe.v
 #$BASEJUMP_STL_DIR/bsg_misc/bsg_swap.v
 #$BASEJUMP_STL_DIR/bsg_misc/bsg_thermometer_count.v
