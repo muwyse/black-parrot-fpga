@@ -29,7 +29,7 @@
  *
  */
 
-`include "bsg_defines.v"
+`include "bsg_defines.sv"
 
 module blackparrot_fpga_host
  import bsg_axi_pkg::*;

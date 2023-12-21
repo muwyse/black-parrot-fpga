@@ -9,7 +9,7 @@
  *
  */
 
-`include "bsg_defines.v"
+`include "bsg_defines.sv"
 
 module blackparrot_fpga_host_write_to_fifo
  import bsg_axi_pkg::*;
@@ -54,7 +54,7 @@ module blackparrot_fpga_host_write_to_fifo
       ,.reset_i(reset)
       ,.v_i(s_axil_awvalid)
       ,.data_i(s_axil_awaddr)
-      ,.ready_o(s_axil_awready)
+      ,.ready_param_o(s_axil_awready)
       ,.v_o(addr_v)
       ,.data_o(addr)
       ,.yumi_i(addr_yumi)
@@ -71,7 +71,7 @@ module blackparrot_fpga_host_write_to_fifo
       ,.reset_i(reset)
       ,.v_i(s_axil_wvalid)
       ,.data_i(s_axil_wdata)
-      ,.ready_o(s_axil_wready)
+      ,.ready_param_o(s_axil_wready)
       ,.v_o(data_v)
       ,.data_o(data)
       ,.yumi_i(data_yumi)

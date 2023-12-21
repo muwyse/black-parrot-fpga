@@ -12,7 +12,7 @@
  *
  */
 
-`include "bsg_defines.v"
+`include "bsg_defines.sv"
 
 module blackparrot_fpga_host_mmio
  #(parameter S_AXI_ADDR_WIDTH = 64 // must be 64
@@ -173,7 +173,7 @@ module blackparrot_fpga_host_mmio
       ,.reset_i(reset)
       ,.v_i(mmio_req_v_li)
       ,.data_i(mmio_req_data_li)
-      ,.ready_o(mmio_req_ready_and_lo)
+      ,.ready_param_o(mmio_req_ready_and_lo)
       ,.v_o(mmio_v_o)
       ,.data_o(mmio_data_o)
       ,.yumi_i(mmio_yumi_i)
@@ -209,7 +209,7 @@ module blackparrot_fpga_host_mmio
       ,.reset_i(reset)
       ,.v_i(mmio_v_i)
       ,.data_i(mmio_data_i)
-      ,.ready_o(mmio_ready_and_o)
+      ,.ready_param_o(mmio_ready_and_o)
       ,.v_o(mmio_resp_v_lo)
       ,.data_o(mmio_resp_data_lo)
       ,.yumi_i(mmio_resp_yumi_li)

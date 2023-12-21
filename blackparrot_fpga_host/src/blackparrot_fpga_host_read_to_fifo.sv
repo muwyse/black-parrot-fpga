@@ -9,7 +9,7 @@
  *
  */
 
-`include "bsg_defines.v"
+`include "bsg_defines.sv"
 
 module blackparrot_fpga_host_read_to_fifo
  import bsg_axi_pkg::*;
@@ -52,7 +52,7 @@ module blackparrot_fpga_host_read_to_fifo
       ,.reset_i(reset)
       ,.v_i(s_axil_arvalid)
       ,.data_i(s_axil_araddr)
-      ,.ready_o(s_axil_arready)
+      ,.ready_param_o(s_axil_arready)
       ,.v_o(addr_v)
       ,.data_o(addr)
       ,.yumi_i(addr_yumi)
@@ -72,7 +72,7 @@ module blackparrot_fpga_host_read_to_fifo
       ,.lo_to_hi_p(1)
       )
     fixed_arbiter
-     (.ready_i(addr_v)
+     (.ready_then_i(addr_v)
       ,.reqs_i(csr_req)
       ,.grants_o(csr_grant)
       );

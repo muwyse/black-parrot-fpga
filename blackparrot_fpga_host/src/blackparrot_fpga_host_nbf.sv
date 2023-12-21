@@ -12,7 +12,7 @@
  *
  */
 
-`include "bsg_defines.v"
+`include "bsg_defines.sv"
 
 module blackparrot_fpga_host_nbf
  #(parameter M_AXI_ADDR_WIDTH = 64 // must be 64
@@ -93,7 +93,7 @@ module blackparrot_fpga_host_nbf
      (.clk_i(clk)
       ,.reset_i(reset)
       ,.v_i(m_axi_awvalid)
-      ,.ready_i(m_axi_awready)
+      ,.ready_param_i(m_axi_awready)
       ,.yumi_i(m_axi_bvalid & m_axi_bready)
       ,.count_o(m_axi_write_count)
       );
@@ -121,7 +121,7 @@ module blackparrot_fpga_host_nbf
       ,.reset_i(reset)
       // from AXIL write channel
       ,.v_i(nbf_v_i)
-      ,.ready_o(nbf_ready_and_o)
+      ,.ready_and_o(nbf_ready_and_o)
       ,.data_i(nbf_data_i)
       // to NBF FSM
       ,.data_o(nbf_lo)
