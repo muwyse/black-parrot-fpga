@@ -1,0 +1,8 @@
+# bsg_ip_cores files
+$BASEJUMP_STL_DIR/bsg_test/bsg_nonsynth_axi_mem.sv
+$BASEJUMP_STL_DIR/bsg_test/bsg_nonsynth_clock_gen.sv
+$BASEJUMP_STL_DIR/bsg_test/bsg_nonsynth_dpi_clock_gen.sv
+$BASEJUMP_STL_DIR/bsg_test/bsg_nonsynth_dpi_clock_gen.cpp
+# bsg_counter_clear_up
+# bsg_fifo_1r1w_small
+
