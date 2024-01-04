@@ -1,110 +1,146 @@
-override TOOL := verilator
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# Makefile.verilator
+#
+# Include this file for verilator-related variables and commands.
+# It sets LINT_OPTS, VV_OPTS to defaults if not already defined.
+#
+# Requires the following defined in the including Makefile:
+# VERILATOR (usually from black-parrot-tools/Makefile.common)
+# BASE_DIR (usually from Makefile.common)
+# from test Makefile:
+# LINT_DIR
+# LINT_FLIST
+# LINT_CONFIG
+# LINT_LOG
+# LINT_TOP
+# VV_TOP (defaults to testbench)
+# VV_FLIST
+# VV_CONFIG
+# HDL_PARAMS (optional, for -pvalue directives)
+# HDL_DEFINES (optional, for +define+ directives)
+#
+# Also requires rules defined for $(LINT_FLIST) and $(LINT_CONFIG), if they need to be
+# built dynamically.
 
-override LOG_DIR     := $(LOG_PATH)/$(TOOL)
-override RESULTS_DIR := $(RESULTS_PATH)/$(TOOL)
-override REPORT_DIR  := $(REPORT_PATH)/$(TOOL)
-override TOUCH_DIR   := $(TOUCH_PATH)/$(TOOL)
+export VV_CONFIG_BASE := $(BASE_DIR)/lint_settings.verilator
 
 ## Tools
 CC ?= $(GCC)
 VV ?= $(VERILATOR)
 
+###############
+### Linting ###
+###############
+
+LINT_DEFAULT_OPTS = --lint-only -Wall -Wno-unoptflat -Wno-timescalemod
+LINT_DEFAULT_OPTS += --top-module $(LINT_TOP)
+LINT_DEFAULT_OPTS += -f $(LINT_FLIST)
+LINT_DEFAULT_OPTS += $(LINT_CONFIG)
+
+LINT_OPTS         ?= $(LINT_DEFAULT_OPTS)
+
+$(LINT_CONFIG): | $(LINT_DIR)
+lint_config: $(LINT_CONFIG)
+
+$(LINT_FLIST): | $(LINT_DIR)
+lint_flist: $(LINT_FLIST)
+
+lint: $(LINT_FLIST) $(LINT_CONFIG) | $(LINT_DIR)
+	cd $(LINT_DIR); $(VV) $(LINT_OPTS) $(HDL_PARAMS) $(HDL_DEFINES) 2>&1 | tee -i $(LINT_LOG)
+
+clean_lint:
+	rm -rf $(LINT_DIR)
+
+################
+### Building ###
+################
+
+BUILD_BIN = $(BUILD_DIR)/simsc
+
+VV_TOP ?= testbench
 # Max number of threads to run verilated model with
 # TODO: untested beyond 1
-VERILATOR_THREADS ?= 1
+VV_THREADS ?= 1
 ## Tool options
-VV_OPTS  = --cc                 # Output in C++
-#VV_OPTS += --debug --gdbbt     # Debugs and produces stack trace
-VV_OPTS += -O1
-VV_OPTS += --x-assign fast --x-initial fast
-VV_OPTS += --threads $(VERILATOR_THREADS)
-VV_OPTS += --top-module testbench
-VV_OPTS += -f flist.vcs
-VV_OPTS += config.vlt
-VV_OPTS += --build --exe
-VV_OPTS += -o simsc
-VV_OPTS += -Wno-timescalemod
-VV_OPTS += --assert
+VV_DEFAULT_OPTS  = --cc                 # Output in C++
+#VV_DEFAULT_OPTS += --debug --gdbbt     # Debugs and produces stack trace
+VV_DEFAULT_OPTS += -O1
+VV_DEFAULT_OPTS += --x-assign fast --x-initial fast
+VV_DEFAULT_OPTS += --threads $(VV_THREADS)
+VV_DEFAULT_OPTS += --top-module $(VV_TOP)
+VV_DEFAULT_OPTS += -f $(VV_FLIST)
+VV_DEFAULT_OPTS += $(VV_CONFIG)
+VV_DEFAULT_OPTS += --build --exe
+VV_DEFAULT_OPTS += -o simsc
+VV_DEFAULT_OPTS += -Wno-timescalemod
+VV_DEFAULT_OPTS += --assert
 
-LINT_OPTS   = --lint-only -Wall --Wno-unoptflat --top-module testbench -f flist.vcs config.vlt
-BUILD_OPTS  = --Wno-fatal --Wno-lint --Wno-style --Wno-widthconcat --Wno-unoptflat -CFLAGS -std=c++14
-BUILD_OPTS += -CFLAGS "-I$(BP_TOOLS_DIR)/dromajo/include"
-BUILD_OPTS += -CFLAGS "-I$(BP_RTL_INSTALL_DIR)/include -I$(BASEJUMP_STL_DIR)/bsg_test/"
-BUILD_OPTS += -LDFLAGS "-lpthread"
-BUILD_OPTS += -LDFLAGS "-L$(BP_TOOLS_INSTALL_DIR)/lib -ldramsim3 -Wl,-rpath=$(BP_RTL_INSTALL_DIR)/lib"
-BUILD_OPTS += -LDFLAGS "-L$(BP_RTL_INSTALL_DIR)/lib -ldromajo_cosim -Wl,-rpath=$(BP_RTL_INSTALL_DIR)/lib"
+VV_OPTS ?= $(VV_DEFAULT_OPTS)
 
-VERILATOR_OPTIONS =
+BUILD_DEFAULT_OPTS  = --Wno-fatal --Wno-lint --Wno-style --Wno-widthconcat --Wno-unoptflat
+BUILD_DEFAULT_OPTS += -CFLAGS -std=c++14
+#BUILD_DEFAULT_OPTS += -CFLAGS "-I$(BP_TOOLS_DIR)/dromajo/include"
+BUILD_DEFAULT_OPTS += -CFLAGS "-I$(BP_RTL_INSTALL_DIR)/include"
+BUILD_DEFAULT_OPTS += -CFLAGS "-I$(BASEJUMP_STL_DIR)/bsg_test/"
+BUILD_DEFAULT_OPTS += -LDFLAGS "-lpthread"
+BUILD_DEFAULT_OPTS += -LDFLAGS "-L$(BP_TOOLS_INSTALL_DIR)/lib -ldramsim3 -Wl,-rpath=$(BP_RTL_INSTALL_DIR)/lib"
+#BUILD_DEFAULT_OPTS += -LDFLAGS "-L$(BP_RTL_INSTALL_DIR)/lib -ldromajo_cosim -Wl,-rpath=$(BP_RTL_INSTALL_DIR)/lib"
 
-VERILATOR_PLUSARGS =
+BUILD_OPTS ?= $(BUILD_DEFAULT_OPTS)
 
-LINT_DIR  := $(RESULTS_DIR)/$(TB).$(CFG).$(TAG).lint
-BUILD_DIR := $(RESULTS_DIR)/$(TB).$(CFG).$(TAG).build
-COV_DIR   := $(RESULTS_DIR)/$(TB).$(CFG).$(TAG).cov
-SIM_DIR   := $(RESULTS_DIR)/$(TB).$(CFG).$(TAG).sim.$(SUITE).$(PROG)
-$(TOUCH_DIR) $(RESULTS_DIR) $(LOG_DIR) $(REPORT_DIR) $(LINT_DIR) $(BUILD_DIR) $(SIM_DIR) $(COV_DIR):
+$(VV_CONFIG): | $(BUILD_DIR)
+build_config: $(VV_CONFIG)
+
+$(VV_FLIST): | $(BUILD_DIR)
+build_flist: $(VV_FLIST)
+
+build: $(BUILD_BIN)
+$(BUILD_BIN): $(BUILD_FLIST) $(BUILD_CONFIG) | $(BUILD_DIR)
+	cd $(BUILD_DIR); $(VV) $(VV_OPTS) $(BUILD_OPTS) $(HDL_PARAMS) $(HDL_DEFINES) 2>&1 | tee -i $(BUILD_LOG)
+
+build_dump: VV_OPTS += --trace-fst
+build_dump: VV_OPTS += --trace-structs
+build_dump: VV_OPTS += --trace-depth 15
+build_dump: build
+
+clean_build:
+	rm -rf $(BUILD_DIR)
+
+##############
+### Global ###
+##############
+
+$(LINT_DIR) $(BUILD_DIR) $(SIM_DIR):
 	mkdir -p $@
 
-.PHONY: clean.sc lint.sc build.sc cov.sc
+clean: clean_lint clean_build
 
-include $(TB_PATH)/$(TB)/Makefile.verilator
-
-lint.sc: $(LINT_DIR)/lintsc
-lint.sc: LINT_LOG    := $(LOG_DIR)/$(TB).$(CFG).$(TAG).lint.log
-lint.sc: LINT_REPORT := $(REPORT_DIR)/$(TB).$(CFG).$(TAG).lint.rpt
-lint.sc: LINT_ERROR  := $(REPORT_DIR)/$(TB).$(CFG).$(TAG).lint.err
-$(LINT_COLLATERAL): | $(TOUCH_DIR) $(RESULTS_DIR) $(LOG_DIR) $(REPORT_DIR) $(LINT_DIR)
-$(LINT_DIR)/lintsc: | $(LINT_COLLATERAL)
-	cd $(@D); $(VV) $(LINT_OPTS) $(HDL_PARAMS) $(HDL_DEFINES) 2>&1 | tee -i $(LINT_LOG)
-	-@grep -E "Exiting due to .* error\(s\)" -A 5 $(LINT_LOG) > $(LINT_ERROR)
-	-@test -s $(LINT_ERROR) && echo "FAILED" >> $(LINT_REPORT) \
-	|| { rm -f $(LINT_ERROR); echo "PASS" >> $(LINT_REPORT); }
-
-build.sc: $(BUILD_DIR)/obj_dir
-build.sc: VBUILD_LOG    := $(LOG_DIR)/$(TB).$(CFG).$(TAG).vbuild.log
-build.sc: VBUILD_REPORT := $(REPORT_DIR)/$(TB).$(CFG).$(TAG).vbuild.rpt
-build.sc: VBUILD_ERROR  := $(REPORT_DIR)/$(TB).$(CFG).$(TAG).vbuild.err
-$(VBUILD_COLLATERAL): | $(TOUCH_DIR) $(RESULTS_DIR) $(LOG_DIR) $(REPORT_DIR) $(BUILD_DIR)
-$(BUILD_DIR)/obj_dir: | $(VBUILD_COLLATERAL)
-	cd $(@D); \
-		$(VV) $(VV_OPTS) $(BUILD_OPTS) $(HDL_PARAMS) $(HDL_DEFINES) 2>&1 | tee -i $(VBUILD_LOG)
-	-@grep "Error" -A 5 $(VBUILD_LOG) > $(VBUILD_ERROR)
-	-@tail -n 3 $(VBUILD_LOG) > $(VBUILD_REPORT)
-	-@test -s $(VBUILD_ERROR) && echo "FAILED" >> $(VBUILD_REPORT) || rm $(VBUILD_ERROR)
-
-build_dump.sc: VV_OPTS += --trace-fst
-build_dump.sc: VV_OPTS += --trace-structs
-build_dump.sc: VV_OPTS += --trace-depth 15
-build_dump.sc: build.sc
-
-build_cov.sc: VV_OPTS += --coverage-line
-build_cov.sc: VV_OPTS += --coverage-toggle
-build_cov.sc: build.sc
-
-sim.sc: build.sc
-sim.sc: $(SIM_DIR)/run_simsc
-sim.sc: SIM_LOG    := $(LOG_DIR)/$(TB).$(CFG).$(TAG).sim.$(SUITE).$(PROG).log
-sim.sc: SIM_REPORT := $(REPORT_DIR)/$(TB).$(CFG).$(TAG).sim.$(SUITE).$(PROG).rpt
-sim.sc: SIM_ERROR  := $(REPORT_DIR)/$(TB).$(CFG).$(TAG).sim.$(SUITE).$(PROG).err
-$(SIM_COLLATERAL): | $(TOUCH_DIR) $(RESULTS_DIR) $(LOG_DIR) $(REPORT_DIR) $(SIM_DIR)
-$(SIM_DIR)/run_simsc: | $(SIM_COLLATERAL)
-	cd $(@D); ./simsc $(VERILATOR_OPTIONS) $(VERILATOR_PLUSARGS) 2>&1 | tee -i $(SIM_LOG)
-	-@grep "FAIL" $(SIM_LOG) && echo "FAILED" > $(SIM_ERROR)
-	-@grep "PASS" $(SIM_LOG) || echo "FAILED" > $(SIM_ERROR)
-	-@grep "Executing final" $(SIM_LOG) || echo "FAILED" > $(SIM_ERROR)
-	-@grep "STATS" -A 3 $(SIM_LOG) > $(SIM_REPORT)
-
-sim_dump.sc: VV_OPTS += --trace-fst
-sim_dump.sc: VV_OPTS += --trace-structs
-sim_dump.sc: VV_OPTS += --trace-depth 15
-sim_dump.sc: sim.sc
-
-wave.sc: $(SIM_DIR)/wavesc
-$(SIM_DIR)/wavesc:
-	$(GTKWAVE) -f $(@D)/dump.fst &
-
-clean.sc:
-	@rm -rf results/verilator
-	@rm -rf reports/verilator
-	@rm -rf logs/verilator
+#
+#VERILATOR_OPTIONS =
+#
+#VERILATOR_PLUSARGS =
+#
+#sim.sc: build.sc
+#sim.sc: $(SIM_DIR)/run_simsc
+#sim.sc: SIM_LOG    := $(LOG_DIR)/$(TB).$(CFG).$(TAG).sim.$(SUITE).$(PROG).log
+#sim.sc: SIM_REPORT := $(REPORT_DIR)/$(TB).$(CFG).$(TAG).sim.$(SUITE).$(PROG).rpt
+#sim.sc: SIM_ERROR  := $(REPORT_DIR)/$(TB).$(CFG).$(TAG).sim.$(SUITE).$(PROG).err
+#$(SIM_COLLATERAL): | $(TOUCH_DIR) $(RESULTS_DIR) $(LOG_DIR) $(REPORT_DIR) $(SIM_DIR)
+#$(SIM_DIR)/run_simsc: | $(SIM_COLLATERAL)
+#	cd $(@D); ./simsc $(VERILATOR_OPTIONS) $(VERILATOR_PLUSARGS) 2>&1 | tee -i $(SIM_LOG)
+#	-@grep "FAIL" $(SIM_LOG) && echo "FAILED" > $(SIM_ERROR)
+#	-@grep "PASS" $(SIM_LOG) || echo "FAILED" > $(SIM_ERROR)
+#	-@grep "Executing final" $(SIM_LOG) || echo "FAILED" > $(SIM_ERROR)
+#	-@grep "STATS" -A 3 $(SIM_LOG) > $(SIM_REPORT)
+#
+#sim_dump.sc: VV_OPTS += --trace-fst
+#sim_dump.sc: VV_OPTS += --trace-structs
+#sim_dump.sc: VV_OPTS += --trace-depth 15
+#sim_dump.sc: sim.sc
+#
+#wave.sc: $(SIM_DIR)/wavesc
+#$(SIM_DIR)/wavesc:
+#	$(GTKWAVE) -f $(@D)/dump.fst &
+#
 

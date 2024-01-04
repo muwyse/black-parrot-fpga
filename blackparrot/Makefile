@@ -10,8 +10,6 @@ TOP ?= $(shell git rev-parse --show-toplevel)
 include $(TOP)/Makefile.common
 include $(BLACKPARROT_TOOLS_DIR)/Makefile.common
 
-export BASE_DIR           := $(abspath $(TOP))
-export BASE_SRC_DIR       := $(BASE_DIR)/src
 export IP_NAME             = blackparrot
 export IP_DIR              = $(BASE_DIR)/$(IP_NAME)
 export IP_PROJECT_NAME     = $(IP_NAME)_ip_proj
@@ -32,8 +30,6 @@ export BOARD_PART         ?= xilinx.com:vcu128_es:part0:1.1
 
 BP_FLIST                   = $(BP_TOP_DIR)/syn/flist.vcs
 IP_TAR_GZ                  = $(IP_NAME)_ip.tar.gz
-
-script_dir := $(BASE_DIR)/script
 
 LINT_TOP                  ?= $(IP_TOP)
 LINT_FLIST                 = $(IP_DIR)/lint.flist

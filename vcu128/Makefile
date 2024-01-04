@@ -26,10 +26,6 @@ generate_tcl := $(script_dir)/generate_bitstream.tcl
 program_tcl := $(script_dir)/program_fpga.tcl
 bit_dir := $(PROJECT_BASE_DIR)/bit
 
-# set this variable to point to correct vivado binary
-# the vcu128 design assumes version 2019.1
-vivado_bin := $(XILINX_VIVADO)/bin/vivado
-
 BP_IP = blackparrot_ip
 BP_IP_DIR = $(BASE_DIR)/blackparrot
 BP_HOST_IP = blackparrot_fpga_host_ip
@@ -55,7 +51,7 @@ clean_project:
 DATE:=$(shell date +"%c")
 BITFILE ?= $(bit_dir)/design_1_wrapper.bit
 program_fpga:
-	sudo $(vivado_bin) -mode batch -source $(program_tcl) -tclargs --bitfile $(BITFILE)
+	sudo vivado -mode batch -source $(program_tcl) -tclargs --bitfile $(BITFILE)
 	@echo "$(DATE): $(shell readlink -f $(BITFILE))" > last_programmed.txt
 	@echo "$(shell md5sum $(BITFILE))" >> last_programmed.txt
 
@@ -64,7 +60,7 @@ check_device:
 
 JOBS ?= 8
 generate_bitstream:
-	$(vivado_bin) -mode batch -source $(generate_tcl) -tclargs --project_name $(PROJECT_NAME) --jobs $(JOBS)
+	vivado -mode batch -source $(generate_tcl) -tclargs --project_name $(PROJECT_NAME) --jobs $(JOBS)
 
 clean: clean_project clean_ip
 	rm -f vivado*

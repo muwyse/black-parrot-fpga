@@ -10,8 +10,6 @@ TOP ?= $(shell git rev-parse --show-toplevel)
 include $(TOP)/Makefile.common
 include $(BLACKPARROT_TOOLS_DIR)/Makefile.common
 
-export BASE_DIR           := $(abspath $(TOP))
-export BASE_SRC_DIR       := $(BASE_DIR)/src
 export IP_NAME             = blackparrot_fpga_host
 export IP_DIR             := $(BASE_DIR)/$(IP_NAME)
 export IP_PROJECT_NAME     = $(IP_NAME)_ip_proj
@@ -30,18 +28,31 @@ export IP_EXP_DIR          = $(IP_DIR)/$(IP_NAME)_ip
 export PART               ?= xcvu37p-fsvh2892-2L-e-es1
 export BOARD_PART         ?= xilinx.com:vcu128_es:part0:1.1
 
-IP_TAR_GZ                  = $(IP_NAME)_ip.tar.gz
+export IP_TAR_GZ           = $(IP_NAME)_ip.tar.gz
 
-script_dir := $(BASE_DIR)/script
+###############
+### Linting ###
+###############
 
-LINT_TOP                  ?= $(IP_TOP)
-LINT_FLIST                 = $(IP_DIR)/lint.flist
-LINT_LOG                   = $(IP_DIR)/lint.log
-LINT_CONFIG                = $(IP_DIR)/config.vlt
+export LINT_DIR      = $(IP_DIR)/$(IP_NAME).lint
+export LINT_FLIST    = $(LINT_DIR)/lint.flist
+export LINT_CONFIG   = $(LINT_DIR)/config.vlt
+export LINT_LOG      = $(LINT_DIR)/lint.log
+export LINT_TOP     ?= $(IP_TOP)
 
-lint_flist: $(LINT_FLIST)
 $(LINT_FLIST): $(IP_FLIST)
 	cp $(IP_FLIST) $(LINT_FLIST)
+
+$(LINT_CONFIG):
+	cat $(VV_CONFIG_BASE) | envsubst > $@
+
+include $(MAKE_DIR)/Makefile.verilator
+
+################
+### Building ###
+################
+
+export BUILD_DIR = $(IP_DIR)/$(IP_NAME).build
 
 ip_flist: $(IP_FLIST)
 $(IP_FLIST): $(IP_BASE_FLIST)
@@ -56,18 +67,7 @@ $(IP_FLIST): $(IP_BASE_FLIST)
 	echo "$(BASE_SRC_DIR)/bsg_mem_1rw_sync_mask_write_byte.sv" >> $@
 	echo "$(BASE_SRC_DIR)/bytewrite_bram.v" >> $@
 
-$(LINT_CONFIG):
-	cat $(LINT_CONFIG_BASE) | envsubst > $@
-
-lint: $(LINT_FLIST) $(LINT_CONFIG)
-	$(VERILATOR) $(LINT_OPTS) 2>&1 | tee -i $(LINT_LOG)
-
-clean_lint:
-	rm -f $(LINT_FLIST)
-	rm -f $(LINT_LOG)
-	rm -f $(LINT_CONFIG)
-
-build_ip: clean_ip | $(IP_FLIST)
+build_ip: clean_ip $(IP_FLIST)
 	vivado -source $(BUILD_IP_TCL) -mode batch
 
 pack_ip:

@@ -1,3 +1,9 @@
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# Makefile
+#
+# Top-level Makefile for BlackParrot FPGA test
+#
 
 TOP ?= $(shell git rev-parse --show-toplevel)
 
@@ -5,50 +11,37 @@ TOP ?= $(shell git rev-parse --show-toplevel)
 include $(TOP)/Makefile.common
 # Pull in tools (Verilator)
 include $(BLACKPARROT_TOOLS_DIR)/Makefile.common
-
-# TODO: refactor this Makefile into a common test makefile and a TB specific file
 # test params
 include Makefile.params
 
-# Tools
-CC ?= $(GCC)
-VV ?= $(VERILATOR)
+export TEST_DIR = $(BASE_DIR)/test
+export TEST_TOP = testbench
+export TEST_FLIST = $(TEST_DIR)/test.flist
+export TEST_NAME = fpga
 
-# Linting
-LINT_DIR ?= lint
-LINT_TOP ?= testbench
-LINT_LOG ?= $(LINT_DIR)/lint.log
-LINT_FLIST ?= $(LINT_DIR)/lint.flist
-LINT_CONFIG ?= $(LINT_DIR)/config.vlt
-LINT_OPTS = --lint-only -Wall -Wno-unoptflat -Wno-timescalemod
-LINT_OPTS += --top-module $(LINT_TOP) -f $(LINT_FLIST) $(LINT_CONFIG)
+export BP_IP_SRC_DIR = $(BASE_DIR)/blackparrot/src
+export BP_FPGA_HOST_IP_SRC_DIR = $(BASE_DIR)/blackparrot_fpga_host/src
 
-TB_FLIST ?= test.flist
+###############
+### Linting ###
+###############
+
+export LINT_DIR      = $(TEST_DIR)/$(TEST_NAME).lint
+export LINT_FLIST    = $(LINT_DIR)/lint.flist
+export LINT_CONFIG   = $(LINT_DIR)/config.vlt
+export LINT_LOG      = $(LINT_DIR)/lint.log
+export LINT_TOP     ?= $(TEST_TOP)
+
+$(LINT_FLIST): $(TEST_FLIST)
+	cat $(TEST_FLIST) | envsubst > $(LINT_FLIST)
 
 $(LINT_CONFIG):
-	cat $(LINT_CONFIG_BASE) | envsubst > $@
+	cat $(VV_CONFIG_BASE) | envsubst > $@
 
-# need to pull flists from IP blocks, add flist for current testbench
-# may need non-env substituted flists for each IP block, which get combined and deduplicated
-# to create a final flist for testbench/verilation
-$(LINT_FLIST): $(IP_FLIST) $(TB_FLIST)
-	cp $(IP_FLIST) $(LINT_FLIST)
+include $(MAKE_DIR)/Makefile.verilator
 
-lint: $(LINT_DIR)/lintsc
-LINT_COLLATERAL = $(LINT_CONFIG) $(LINT_FLIST)
-$(LINT_COLLATERAL): | $(LINT_DIR)
-$(LINT_DIR)/lintsc: $(LINT_COLLATERAL)
-	cd $(@D); $(VV) $(LINT_OPTS) $(HDL_PARAMS) $(HDL_DEFINES) 2>&1 | tee -i $(LINT_LOG)
+################
+### Building ###
+################
 
-# Directories
-$(LINT_DIR):
-	mkdir -p $@
-
-lint_clean:
-	rm -rf $(LINT_DIR)
-
-# Simulation
-VV_OPTS = --cc
-VV_OPTS += -O1
-
-
+export BUILD_DIR      = $(TEST_DIR)/$(TEST_NAME).build

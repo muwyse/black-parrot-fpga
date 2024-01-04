@@ -7,31 +7,36 @@
 
 TOP ?= $(shell git rev-parse --show-toplevel)
 
-export SCRIPT_DIR := $(abspath $(TOP)/script)
-export BUILD_IP_TCL := $(SCRIPT_DIR)/build_ip.tcl
+export BASE_DIR               := $(abspath $(TOP))
+
+export BASE_SRC_DIR           := $(BASE_DIR)/src
+
+export SCRIPT_DIR             := $(BASE_DIR)/script
+export BUILD_IP_TCL           := $(SCRIPT_DIR)/build_ip.tcl
 export GENERATE_BITSTREAM_TCL := $(SCRIPT_DIR)/generate_bitstream.tcl
-export PARSE_FLIST_TCL := $(SCRIPT_DIR)/parse_flist.tcl
-export PROGRAM_FPGA_TCL := $(SCRIPT_DIR)/program_fpga.tcl
+export PARSE_FLIST_TCL        := $(SCRIPT_DIR)/parse_flist.tcl
+export PROGRAM_FPGA_TCL       := $(SCRIPT_DIR)/program_fpga.tcl
 
-export VIVADO_VERSION ?= 2019.1
-export VIVADO_BOARD_DIR := $(abspath $(TOP)/../XilinxBoardStore)
+export MAKE_DIR               := $(BASE_DIR)/mk
 
-export BLACKPARROT_DIR := $(abspath $(TOP)/../black-parrot)
-export BLACKPARROT_SUB_DIR := $(abspath $(TOP)/../black-parrot-subsystems)
-export BLACKPARROT_SDK_DIR := $(abspath $(TOP)/../black-parrot-sdk)
-export BLACKPARROT_TOOLS_DIR := $(abspath $(TOP)/../black-parrot-tools)
-export ZYNQPARROT_DIR := $(abspath $(TOP)/../zynq-parrot)
+export PI_DIR                 := $(BASE_DIR)/pi
 
-export BASEJUMP_STL_DIR := $(BLACKPARROT_DIR)/external/basejump_stl
-export HARDFLOAT_DIR := $(BLACKPARROT_DIR)/external/HardFloat
-export BP_COMMON_DIR := $(BLACKPARROT_DIR)/bp_common
-export BP_TOP_DIR := $(BLACKPARROT_DIR)/bp_top
-export BP_FE_DIR := $(BLACKPARROT_DIR)/bp_fe
-export BP_BE_DIR := $(BLACKPARROT_DIR)/bp_be
-export BP_ME_DIR := $(BLACKPARROT_DIR)/bp_me
+export VIVADO_VERSION         ?= 2019.1
+export VIVADO_BOARD_DIR       := $(abspath $(BASE_DIR)/../XilinxBoardStore)
+# TODO: requires XILINX_VIVADO to be defined in environment
+#vivado_bin                    := $(XILINX_VIVADO)/bin/vivado
 
-# assumes version 2019.1
-vivado_bin := $(XILINX_VIVADO)/bin/vivado
+export BLACKPARROT_DIR       := $(abspath $(BASE_DIR)/../black-parrot)
+export BLACKPARROT_SUB_DIR   := $(abspath $(BASE_DIR)/../black-parrot-subsystems)
+export BLACKPARROT_SDK_DIR   := $(abspath $(BASE_DIR)/../black-parrot-sdk)
+export BLACKPARROT_TOOLS_DIR := $(abspath $(BASE_DIR)/../black-parrot-tools)
+export ZYNQPARROT_DIR        := $(abspath $(BASE_DIR)/../zynq-parrot)
 
-LINT_CONFIG_BASE  ?= $(BASE_DIR)/lint_settings.verilator
-LINT_OPTS         ?= --lint-only -Wall -Wno-unoptflat -Wno-timescalemod --top-module $(LINT_TOP) -f $(LINT_FLIST) $(LINT_CONFIG)
+export BASEJUMP_STL_DIR   := $(BLACKPARROT_DIR)/external/basejump_stl
+export HARDFLOAT_DIR      := $(BLACKPARROT_DIR)/external/HardFloat
+export BP_COMMON_DIR      := $(BLACKPARROT_DIR)/bp_common
+export BP_TOP_DIR         := $(BLACKPARROT_DIR)/bp_top
+export BP_FE_DIR          := $(BLACKPARROT_DIR)/bp_fe
+export BP_BE_DIR          := $(BLACKPARROT_DIR)/bp_be
+export BP_ME_DIR          := $(BLACKPARROT_DIR)/bp_me
+
