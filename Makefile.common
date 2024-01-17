@@ -39,4 +39,9 @@ export BP_TOP_DIR         := $(BLACKPARROT_DIR)/bp_top
 export BP_FE_DIR          := $(BLACKPARROT_DIR)/bp_fe
 export BP_BE_DIR          := $(BLACKPARROT_DIR)/bp_be
 export BP_ME_DIR          := $(BLACKPARROT_DIR)/bp_me
+export BP_RTL_INSTALL_DIR := $(BLACKPARROT_DIR)/install
+export BP_RTL_BIN_DIR     := $(BP_RTL_INSTALL_DIR)/bin
+export BP_RTL_LIB_DIR     := $(BP_RTL_INSTALL_DIR)/lib
+export BP_RTL_INCLUDE_DIR := $(BP_RTL_INSTALL_DIR)/include
 
+export BP_TOOLS_INSTALL_DIR := $(BLACKPARROT_TOOLS_DIR)/install

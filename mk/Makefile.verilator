@@ -84,7 +84,7 @@ BUILD_DEFAULT_OPTS += -CFLAGS -std=c++14
 BUILD_DEFAULT_OPTS += -CFLAGS "-I$(BP_RTL_INSTALL_DIR)/include"
 BUILD_DEFAULT_OPTS += -CFLAGS "-I$(BASEJUMP_STL_DIR)/bsg_test/"
 BUILD_DEFAULT_OPTS += -LDFLAGS "-lpthread"
-BUILD_DEFAULT_OPTS += -LDFLAGS "-L$(BP_TOOLS_INSTALL_DIR)/lib -ldramsim3 -Wl,-rpath=$(BP_RTL_INSTALL_DIR)/lib"
+BUILD_DEFAULT_OPTS += -LDFLAGS "-L$(BP_RTL_INSTALL_DIR)/lib -ldramsim3 -Wl,-rpath=$(BP_RTL_INSTALL_DIR)/lib"
 #BUILD_DEFAULT_OPTS += -LDFLAGS "-L$(BP_RTL_INSTALL_DIR)/lib -ldromajo_cosim -Wl,-rpath=$(BP_RTL_INSTALL_DIR)/lib"
 
 BUILD_OPTS ?= $(BUILD_DEFAULT_OPTS)
@@ -95,8 +95,7 @@ build_config: $(VV_CONFIG)
 $(VV_FLIST): | $(BUILD_DIR)
 build_flist: $(VV_FLIST)
 
-build: $(BUILD_BIN)
-$(BUILD_BIN): $(BUILD_FLIST) $(BUILD_CONFIG) | $(BUILD_DIR)
+build: $(VV_FLIST) $(VV_CONFIG) | $(BUILD_DIR)
 	cd $(BUILD_DIR); $(VV) $(VV_OPTS) $(BUILD_OPTS) $(HDL_PARAMS) $(HDL_DEFINES) 2>&1 | tee -i $(BUILD_LOG)
 
 build_dump: VV_OPTS += --trace-fst
@@ -107,6 +106,32 @@ build_dump: build
 clean_build:
 	rm -rf $(BUILD_DIR)
 
+##################
+### Simulation ###
+##################
+
+VERILATOR_OPTIONS =
+
+VERILATOR_PLUSARGS =
+
+sim: build
+sim: $(SIM_DIR)/run_simsc
+$(SIM_DIR)/run_simsc: | $(SIM_DIR)
+	cp $(BUILD_DIR)/obj_dir/simsc $(SIM_DIR)/
+	cd $(@D); ./simsc $(VERILATOR_OPTIONS) $(VERILATOR_PLUSARGS) 2>&1 | tee -i $(SIM_LOG)
+
+sim_dump: VV_OPTS += --trace-fst
+sim_dump: VV_OPTS += --trace-structs
+sim_dump: VV_OPTS += --trace-depth 15
+sim_dump: sim
+
+wave: $(SIM_DIR)/wavesc
+$(SIM_DIR)/wavesc:
+	$(GTKWAVE) -f $(@D)/dump.fst &
+
+clean_sim:
+	rm -rf $(SIM_DIR)
+
 ##############
 ### Global ###
 ##############
@@ -114,33 +139,5 @@ clean_build:
 $(LINT_DIR) $(BUILD_DIR) $(SIM_DIR):
 	mkdir -p $@
 
-clean: clean_lint clean_build
-
-#
-#VERILATOR_OPTIONS =
-#
-#VERILATOR_PLUSARGS =
-#
-#sim.sc: build.sc
-#sim.sc: $(SIM_DIR)/run_simsc
-#sim.sc: SIM_LOG    := $(LOG_DIR)/$(TB).$(CFG).$(TAG).sim.$(SUITE).$(PROG).log
-#sim.sc: SIM_REPORT := $(REPORT_DIR)/$(TB).$(CFG).$(TAG).sim.$(SUITE).$(PROG).rpt
-#sim.sc: SIM_ERROR  := $(REPORT_DIR)/$(TB).$(CFG).$(TAG).sim.$(SUITE).$(PROG).err
-#$(SIM_COLLATERAL): | $(TOUCH_DIR) $(RESULTS_DIR) $(LOG_DIR) $(REPORT_DIR) $(SIM_DIR)
-#$(SIM_DIR)/run_simsc: | $(SIM_COLLATERAL)
-#	cd $(@D); ./simsc $(VERILATOR_OPTIONS) $(VERILATOR_PLUSARGS) 2>&1 | tee -i $(SIM_LOG)
-#	-@grep "FAIL" $(SIM_LOG) && echo "FAILED" > $(SIM_ERROR)
-#	-@grep "PASS" $(SIM_LOG) || echo "FAILED" > $(SIM_ERROR)
-#	-@grep "Executing final" $(SIM_LOG) || echo "FAILED" > $(SIM_ERROR)
-#	-@grep "STATS" -A 3 $(SIM_LOG) > $(SIM_REPORT)
-#
-#sim_dump.sc: VV_OPTS += --trace-fst
-#sim_dump.sc: VV_OPTS += --trace-structs
-#sim_dump.sc: VV_OPTS += --trace-depth 15
-#sim_dump.sc: sim.sc
-#
-#wave.sc: $(SIM_DIR)/wavesc
-#$(SIM_DIR)/wavesc:
-#	$(GTKWAVE) -f $(@D)/dump.fst &
-#
+clean: clean_lint clean_build clean_sim
 

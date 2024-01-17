@@ -33,15 +33,33 @@ export LINT_LOG      = $(LINT_DIR)/lint.log
 export LINT_TOP     ?= $(TEST_TOP)
 
 $(LINT_FLIST): $(TEST_FLIST)
-	cat $(TEST_FLIST) | envsubst > $(LINT_FLIST)
+	cat $(TEST_FLIST) | envsubst > $@
 
 $(LINT_CONFIG):
 	cat $(VV_CONFIG_BASE) | envsubst > $@
-
-include $(MAKE_DIR)/Makefile.verilator
 
 ################
 ### Building ###
 ################
 
 export BUILD_DIR      = $(TEST_DIR)/$(TEST_NAME).build
+export VV_FLIST       = $(BUILD_DIR)/build.flist
+export VV_CONFIG      = $(BUILD_DIR)/config.vlt
+export VV_LOG         = $(BUILD_DIR)/build.log
+export VV_TOP        ?= $(TEST_TOP)
+
+$(VV_FLIST): $(TEST_FLIST)
+	cat $(TEST_FLIST) | envsubst > $@
+
+$(VV_CONFIG):
+	cat $(VV_CONFIG_BASE) | envsubst > $@
+
+##################
+### Simulation ###
+##################
+
+export SIM_DIR        = $(TEST_DIR)/$(TEST_NAME).sim
+export SIM_LOG        = $(SIM_DIR)/sim.log
+
+### Include tool Makefile
+include $(MAKE_DIR)/Makefile.verilator
