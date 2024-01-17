@@ -220,5 +220,13 @@ module bp_nonsynth_axi_nbf_loader
     end
   end
 
+  always_ff @(negedge m_axil_aclk) begin
+    if (~reset) begin
+      if (nbf_word_send) begin
+        $display("go to %0s", state_n.name());
+      end
+    end
+  end
+
 endmodule
 

@@ -443,4 +443,11 @@ module testbench
      ,.done_o(loader_done)
      );
 
+  always_ff @(negedge clk_i) begin
+    if (~reset_i & loader_done) begin
+      $display("loader done");
+      $finish();
+    end
+  end
+
 endmodule

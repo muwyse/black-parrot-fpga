@@ -114,9 +114,12 @@ VERILATOR_OPTIONS =
 
 VERILATOR_PLUSARGS =
 
+PROG_NBF ?= prog.nbf
+
 sim: build
 sim: $(SIM_DIR)/run_simsc
 $(SIM_DIR)/run_simsc: | $(SIM_DIR)
+	cp $(TEST_DIR)/$(PROG_NBF) $(SIM_DIR)/$(PROG_NBF)
 	cp $(BUILD_DIR)/obj_dir/simsc $(SIM_DIR)/
 	cd $(@D); ./simsc $(VERILATOR_OPTIONS) $(VERILATOR_PLUSARGS) 2>&1 | tee -i $(SIM_LOG)
 
