@@ -360,3 +360,4 @@ $BASEJUMP_STL_DIR/bsg_test/bsg_nonsynth_dpi_clock_gen.cpp
 # testbench files
 $TEST_DIR/testbench.sv
 $TEST_DIR/test.cpp
+$TEST_DIR/bp_nonsynth_axi_nbf_loader.sv

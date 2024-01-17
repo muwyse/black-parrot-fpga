@@ -410,5 +410,37 @@ module testbench
   // test driver
   // TODO: drives an m_axil interface to issue commands to fpga host
   // commands conform to fpga host interface
+  logic loader_done;
+  bp_nonsynth_axi_nbf_loader
+    #(.M_AXIL_ADDR_WIDTH(S_AXIL_ADDR_WIDTH)
+      ,.M_AXIL_DATA_WIDTH(S_AXIL_DATA_WIDTH)
+      ,.M_AXIL_CREDITS(64)
+      ,.nbf_filename_p("prog.nbf")
+      ,.nbf_host_addr_p(64'h0)
+      )
+    loader
+    (.m_axil_aclk(s_axil_aclk)
+     ,.m_axil_aresetn(s_axil_aresetn)
+     ,.m_axil_awaddr(s_axil_awaddr)
+     ,.m_axil_awvalid(s_axil_awvalid)
+     ,.m_axil_awready(s_axil_awready)
+     ,.m_axil_awprot(s_axil_awprot)
+     ,.m_axil_wdata(s_axil_wdata)
+     ,.m_axil_wvalid(s_axil_wvalid)
+     ,.m_axil_wready(s_axil_wready)
+     ,.m_axil_wstrb(s_axil_wstrb)
+     ,.m_axil_bvalid(s_axil_bvalid)
+     ,.m_axil_bready(s_axil_bready)
+     ,.m_axil_bresp(s_axil_bresp)
+     ,.m_axil_araddr(s_axil_araddr)
+     ,.m_axil_arvalid(s_axil_arvalid)
+     ,.m_axil_arready(s_axil_arready)
+     ,.m_axil_arprot(s_axil_arprot)
+     ,.m_axil_rdata(s_axil_rdata)
+     ,.m_axil_rvalid(s_axil_rvalid)
+     ,.m_axil_rready(s_axil_rready)
+     ,.m_axil_rresp(s_axil_rresp)
+     ,.done_o(loader_done)
+     );
 
 endmodule
