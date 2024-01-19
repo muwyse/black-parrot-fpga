@@ -11,6 +11,8 @@
 `define SIM_CLK_PERIOD 10
 `endif
 
+`include "bsg_defines.sv"
+
 module testbench
   #()
   (output bit reset_i
@@ -443,10 +445,29 @@ module testbench
      ,.done_o(loader_done)
      );
 
+  // AXIL watchdog
+  localparam timeout_p = 10000;
+  logic [`BSG_SAFE_CLOG2(timeout_p+1)-1:0] timeout_r;
+  bsg_counter_clear_up
+   #(.max_val_p(timeout_p), .init_val_p(0))
+   nbf_word_counter
+    (.clk_i(clk_i)
+     ,.reset_i(reset_i)
+     ,.clear_i(s_axil_awvalid & s_axil_awready)
+     ,.up_i(s_axil_awvalid & ~s_axil_awready)
+     ,.count_o(timeout_r)
+     );
+
   always_ff @(negedge clk_i) begin
-    if (~reset_i & loader_done) begin
-      $display("loader done");
-      $finish();
+    if (~reset_i) begin
+      if (loader_done) begin
+        $display("loader done");
+        $finish();
+      end
+      if (timeout_r == timeout_p) begin
+        $display("timeout on loader writes");
+        $finish();
+      end
     end
   end
 

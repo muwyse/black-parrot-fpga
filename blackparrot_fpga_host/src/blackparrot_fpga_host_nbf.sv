@@ -203,7 +203,7 @@ module blackparrot_fpga_host_nbf
   always_comb begin
     m_axi_v = 1'b0;
     m_axi_w = 1'b1;
-    m_axi_wmask = '1; // unused by bp_fifo_to_axi
+    m_axi_wmask = '1;
     m_axi_data = nbf.data;
     m_axi_addr = nbf.addr;
     m_axi_size = 3'b011;
@@ -219,6 +219,9 @@ module blackparrot_fpga_host_nbf
         m_axi_data = (nbf.addr[0+:3] == 3'b0)
                      ? {2{nbf.data[0+:32]}}
                      : {2{nbf.data[32+:32]}};
+        m_axi_wmask = (nbf.addr[0+:3] == 3'b0)
+                      ? 8'h0F
+                      : 8'hF0;
       end
       // 64b write
       8'h3: begin
