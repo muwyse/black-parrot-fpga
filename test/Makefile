@@ -55,7 +55,7 @@ export VV_TOP        ?= $(TEST_TOP)
 
 $(VV_FLIST): $(TEST_FLIST)
 	cat $(TEST_FLIST) | envsubst > $@
-	echo '$$TEST_DIR/test.cpp' | envsubst >> $@
+	@echo "$(TEST_DIR)/test.cpp" >> $@
 
 $(VV_CONFIG):
 	cat $(VV_CONFIG_BASE) | envsubst > $@
