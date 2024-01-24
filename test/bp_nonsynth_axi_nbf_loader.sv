@@ -1,6 +1,6 @@
 /*
  * Name:
- *  bp_nonsynth_axi_nbf_loader.v
+ *  bp_nonsynth_axi_nbf_loader.sv
  *
  * Description:
  *  This module serializes NBF commands onto M_AXIL. The NBF command is read
@@ -36,16 +36,6 @@ module bp_nonsynth_axi_nbf_loader
    ,input logic                              m_axil_bvalid
    ,output logic                             m_axil_bready
    ,input logic [1:0]                        m_axil_bresp
-
-   ,output logic [M_AXIL_ADDR_WIDTH-1:0]     m_axil_araddr
-   ,output logic                             m_axil_arvalid
-   ,input logic                              m_axil_arready
-   ,output logic [2:0]                       m_axil_arprot
-
-   ,input logic [M_AXIL_DATA_WIDTH-1:0]      m_axil_rdata
-   ,input logic                              m_axil_rvalid
-   ,output logic                             m_axil_rready
-   ,input logic [1:0]                        m_axil_rresp
 
    ,output logic                             done_o
    );
@@ -146,11 +136,6 @@ module bp_nonsynth_axi_nbf_loader
   wire goto_done = is_nbf_finish & next_nbf;
 
   always_comb begin
-    // stub read channel
-    m_axil_araddr = '0;
-    m_axil_arvalid = '0;
-    m_axil_arprot = '0;
-    m_axil_rready = 1'b1;
 
     // sink write responses
     m_axil_bready = 1'b1;
@@ -217,14 +202,6 @@ module bp_nonsynth_axi_nbf_loader
       state_r <= e_reset;
     end else begin
       state_r <= state_n;
-    end
-  end
-
-  always_ff @(negedge m_axil_aclk) begin
-    if (~reset) begin
-      if (next_nbf) begin
-        $display("go to %0s", state_n.name());
-      end
     end
   end
 

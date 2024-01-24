@@ -14,6 +14,7 @@
 `include "bsg_defines.sv"
 
 module testbench
+  import bp_common_pkg::*;
   #()
   (output bit reset_i
    );
@@ -41,7 +42,12 @@ module testbench
      ,.async_reset_o(reset_i)
      );
 
+  // test params
+  localparam nbf_filename_p = "prog.nbf";
+
   // design parameters
+  localparam bp_params_e bp_params_p = e_bp_default_cfg;
+
   localparam M_AXI_ADDR_WIDTH = 64;
   localparam M_AXI_DATA_WIDTH = 64;
   localparam M_AXI_ID_WIDTH = 4;
@@ -66,9 +72,8 @@ module testbench
   localparam nbf_addr_width_p = 64;
   localparam nbf_data_width_p = 64;
 
-  // TODO: how big can the ram be?
-  // ram size is MEM_ELS * M01_AXI_DATA_WIDTH
-  localparam MEM_ELS = 1024;
+  // 512 KiB
+  localparam MEM_ELS = (2**29)/M01_AXI_DATA_WIDTH;
 
   //======================== BP to Host I/O ========================
   logic                              m_axi_aclk;
@@ -264,7 +269,7 @@ module testbench
       ,.nbf_addr_width_p(nbf_addr_width_p)
       ,.nbf_data_width_p(nbf_data_width_p)
       )
-    host
+    fpga_host
     (// Host to BP
      .m_axi_aclk(s_axi_aclk)
      ,.m_axi_aresetn(s_axi_aresetn)
@@ -365,6 +370,7 @@ module testbench
       ,.M01_AXI_ID_WIDTH(M01_AXI_ID_WIDTH)
       ,.DID(DID)
       ,.HOST_DID(HOST_DID)
+      ,.bp_params_p(bp_params_p)
       )
     bp
     (.*);
@@ -410,17 +416,15 @@ module testbench
      );
 
   // test driver
-  // TODO: drives an m_axil interface to issue commands to fpga host
-  // commands conform to fpga host interface
   logic loader_done;
   bp_nonsynth_axi_nbf_loader
     #(.M_AXIL_ADDR_WIDTH(S_AXIL_ADDR_WIDTH)
       ,.M_AXIL_DATA_WIDTH(S_AXIL_DATA_WIDTH)
       ,.M_AXIL_CREDITS(64)
-      ,.nbf_filename_p("prog.nbf")
+      ,.nbf_filename_p(nbf_filename_p)
       ,.nbf_host_addr_p(64'h0)
       )
-    loader
+    nbf_loader
     (.m_axil_aclk(s_axil_aclk)
      ,.m_axil_aresetn(s_axil_aresetn)
      ,.m_axil_awaddr(s_axil_awaddr)
@@ -434,14 +438,6 @@ module testbench
      ,.m_axil_bvalid(s_axil_bvalid)
      ,.m_axil_bready(s_axil_bready)
      ,.m_axil_bresp(s_axil_bresp)
-     ,.m_axil_araddr(s_axil_araddr)
-     ,.m_axil_arvalid(s_axil_arvalid)
-     ,.m_axil_arready(s_axil_arready)
-     ,.m_axil_arprot(s_axil_arprot)
-     ,.m_axil_rdata(s_axil_rdata)
-     ,.m_axil_rvalid(s_axil_rvalid)
-     ,.m_axil_rready(s_axil_rready)
-     ,.m_axil_rresp(s_axil_rresp)
      ,.done_o(loader_done)
      );
 
@@ -458,10 +454,32 @@ module testbench
      ,.count_o(timeout_r)
      );
 
+  // host
+  logic host_done;
+  bp_nonsynth_axi_host
+    #(.M_AXIL_ADDR_WIDTH(S_AXIL_ADDR_WIDTH)
+      ,.M_AXIL_DATA_WIDTH(S_AXIL_DATA_WIDTH)
+      ,.M_AXIL_CREDITS(64)
+      ,.bp_params_p(bp_params_p)
+      )
+    nonsynth_host
+    (.m_axil_aclk(s_axil_aclk)
+     ,.m_axil_aresetn(s_axil_aresetn)
+     ,.m_axil_araddr(s_axil_araddr)
+     ,.m_axil_arvalid(s_axil_arvalid)
+     ,.m_axil_arready(s_axil_arready)
+     ,.m_axil_arprot(s_axil_arprot)
+     ,.m_axil_rdata(s_axil_rdata)
+     ,.m_axil_rvalid(s_axil_rvalid)
+     ,.m_axil_rready(s_axil_rready)
+     ,.m_axil_rresp(s_axil_rresp)
+     ,.done_o(host_done)
+     );
+
   always_ff @(negedge clk_i) begin
     if (~reset_i) begin
-      if (loader_done) begin
-        $display("loader done");
+      if (host_done) begin
+        $display("finish received by host");
         $finish();
       end
       if (timeout_r == timeout_p) begin
@@ -470,5 +488,6 @@ module testbench
       end
     end
   end
+
 
 endmodule

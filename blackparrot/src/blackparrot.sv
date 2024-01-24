@@ -43,6 +43,9 @@ module blackparrot
 
    , parameter DID = 0
    , parameter HOST_DID = 16'hFFFF
+`ifdef SIMULATION
+   , parameter bp_params_e bp_params_p = e_bp_default_cfg
+`endif
    )
   (//======================== Outgoing I/O ========================
    input                                       m_axi_aclk
@@ -193,7 +196,9 @@ module blackparrot
   wire [15:0] did = 16'(DID);
   wire [15:0] host_did = 16'(HOST_DID);
 
+`ifndef SIMULATION
   localparam bp_params_e bp_params_p = e_bp_default_cfg;
+`endif
   bp_axi4_top
     #(.bp_params_p(bp_params_p)
      ,.m_axi_addr_width_p(M_AXI_ADDR_WIDTH)
