@@ -107,10 +107,9 @@ VCS_PLUSARGS ?=
 PROG_NBF ?= prog.nbf
 
 sim.vcs: build.vcs
-sim.vcs: $(VCS_SIM_DIR)/run_sim.vcs
-$(VCS_SIM_DIR)/run_sim.vcs: | $(VCS_SIM_DIR)
-	cp $(TEST_DIR)/$(PROG_NBF) $(VCS_SIM_DIR)/$(PROG_NBF)
-	cp $(VCS_BUILD_DIR)/sim.vcs $(VCS_SIM_DIR)/
+sim.vcs: $(VCS_BUILD_DIR)/run_sim.vcs
+$(VCS_BUILD_DIR)/run_sim.vcs: | $(VCS_BUILD_DIR)
+	cp $(TEST_DIR)/$(PROG_NBF) $(VCS_BUILD_DIR)/$(PROG_NBF)
 	cd $(@D); ./sim.vcs $(VCS_OPTIONS) $(VCS_PLUSARGS) 2>&1 | tee -i $(VCS_SIM_LOG)
 
 sim_dump.vcs: VCS_OPTS += +memcbk
@@ -119,20 +118,22 @@ sim_dump.vcs: VCS_OPTS += +vcs+vcdplusmemon
 sim_dump.vcs: VCS_OPTS += +vcs+vcdplusautoflushon
 sim_dump.vcs: sim.vcs
 
-wave.vcs: $(VCS_SIM_DIR)/wave.vcs
-$(VCS_SIM_DIR)/wave.vcs:
+wave.vcs: $(VCS_BUILD_DIR)/wave.vcs
+$(VCS_BUILD_DIR)/wave.vcs:
 	$(_DVE) -full64 -vpd $(@D)/vcdplus.vpd &
 
 clean_sim.vcs:
-	rm -rf $(VCS_SIM_DIR)
+	rm -rf $(VCS_BUILD_DIR)
 
 ##############
 ### Global ###
 ##############
 
-$(VCS_LINT_DIR) $(VCS_BUILD_DIR) $(VCS_SIM_DIR):
+$(VCS_LINT_DIR) $(VCS_BUILD_DIR):
 	mkdir -p $@
 
 clean.vcs: clean_lint.vcs clean_build.vcs clean_sim.vcs
+	rm -rf $(TEST_DIR)/DVEfiles\
+
 clean: clean.vcs
 

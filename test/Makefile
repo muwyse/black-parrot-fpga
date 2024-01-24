@@ -104,8 +104,8 @@ $(VCS_FLIST): $(TEST_FLIST)
 ### Simulation ###
 ##################
 
-export VCS_SIM_DIR     = $(TEST_DIR)/$(TEST_NAME).sim.vcs
-export VCS_SIM_LOG     = $(VCS_SIM_DIR)/sim.log
+# VCS uses the BUILD_DIR as the SIM_DIR
+export VCS_SIM_LOG     = $(VCS_BUILD_DIR)/sim.log
 
 ### Include tool Makefile
 include $(MAKE_DIR)/Makefile.vcs
@@ -116,3 +116,4 @@ include $(MAKE_DIR)/Makefile.vcs
 
 clean:
 	@echo "clean"
+
