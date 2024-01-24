@@ -1,3 +1,6 @@
-fpga.lint
-fpga.build
-fpga.sim
+fpga.lint.vv
+fpga.build.vv
+fpga.sim.vv
+fpga.lint.vcs
+fpga.build.vcs
+fpga.sim.vcs

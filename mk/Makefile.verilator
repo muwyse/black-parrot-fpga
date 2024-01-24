@@ -3,24 +3,24 @@
 # Makefile.verilator
 #
 # Include this file for verilator-related variables and commands.
-# It sets LINT_OPTS, VV_OPTS to defaults if not already defined.
+# It sets VV_LINT_OPTS, VV_OPTS to defaults if not already defined.
 #
 # Requires the following defined in the including Makefile:
 # VERILATOR (usually from black-parrot-tools/Makefile.common)
 # BASE_DIR (usually from Makefile.common)
 # from test Makefile:
-# LINT_DIR
-# LINT_FLIST
-# LINT_CONFIG
-# LINT_LOG
-# LINT_TOP
+# VV_LINT_DIR
+# VV_LINT_FLIST
+# VV_LINT_CONFIG
+# VV_LINT_LOG
+# VV_LINT_TOP
 # VV_TOP (defaults to testbench)
 # VV_FLIST
 # VV_CONFIG
 # HDL_PARAMS (optional, for -pvalue directives)
 # HDL_DEFINES (optional, for +define+ directives)
 #
-# Also requires rules defined for $(LINT_FLIST) and $(LINT_CONFIG), if they need to be
+# Also requires rules defined for $(VV_LINT_FLIST) and $(VV_LINT_CONFIG), if they need to be
 # built dynamically.
 
 export VV_CONFIG_BASE := $(BASE_DIR)/lint_settings.verilator
@@ -33,30 +33,30 @@ VV ?= $(VERILATOR)
 ### Linting ###
 ###############
 
-LINT_DEFAULT_OPTS = --lint-only -Wall -Wno-unoptflat -Wno-timescalemod
-LINT_DEFAULT_OPTS += --top-module $(LINT_TOP)
-LINT_DEFAULT_OPTS += -f $(LINT_FLIST)
-LINT_DEFAULT_OPTS += $(LINT_CONFIG)
+VV_LINT_DEFAULT_OPTS = --lint-only -Wall -Wno-unoptflat -Wno-timescalemod
+VV_LINT_DEFAULT_OPTS += --top-module $(VV_LINT_TOP)
+VV_LINT_DEFAULT_OPTS += -f $(VV_LINT_FLIST)
+VV_LINT_DEFAULT_OPTS += $(VV_LINT_CONFIG)
 
-LINT_OPTS         ?= $(LINT_DEFAULT_OPTS)
+VV_LINT_OPTS         ?= $(VV_LINT_DEFAULT_OPTS)
 
-$(LINT_CONFIG): | $(LINT_DIR)
-lint_config: $(LINT_CONFIG)
+$(VV_LINT_CONFIG): | $(VV_LINT_DIR)
+lint_config.vv: $(VV_LINT_CONFIG)
 
-$(LINT_FLIST): | $(LINT_DIR)
-lint_flist: $(LINT_FLIST)
+$(VV_LINT_FLIST): | $(VV_LINT_DIR)
+lint_flist.vv: $(VV_LINT_FLIST)
 
-lint: $(LINT_FLIST) $(LINT_CONFIG) | $(LINT_DIR)
-	cd $(LINT_DIR); $(VV) $(LINT_OPTS) $(HDL_PARAMS) $(HDL_DEFINES) 2>&1 | tee -i $(LINT_LOG)
+lint.vv: $(VV_LINT_FLIST) $(VV_LINT_CONFIG) | $(VV_LINT_DIR)
+	cd $(VV_LINT_DIR); $(VV) $(VV_LINT_OPTS) $(HDL_PARAMS) $(HDL_DEFINES) 2>&1 | tee -i $(VV_LINT_LOG)
 
-clean_lint:
-	rm -rf $(LINT_DIR)
+clean_lint.vv:
+	rm -rf $(VV_LINT_DIR)
 
 ################
 ### Building ###
 ################
 
-BUILD_BIN = $(BUILD_DIR)/simsc
+VV_BUILD_BIN = $(VV_BUILD_DIR)/sim.vv
 
 VV_TOP ?= testbench
 # Max number of threads to run verilated model with
@@ -72,75 +72,76 @@ VV_DEFAULT_OPTS += --top-module $(VV_TOP)
 VV_DEFAULT_OPTS += -f $(VV_FLIST)
 VV_DEFAULT_OPTS += $(VV_CONFIG)
 VV_DEFAULT_OPTS += --build --exe
-VV_DEFAULT_OPTS += -o simsc
+VV_DEFAULT_OPTS += -o sim.vv
 VV_DEFAULT_OPTS += -Wno-timescalemod
 VV_DEFAULT_OPTS += --assert
 
 VV_OPTS ?= $(VV_DEFAULT_OPTS)
 
-BUILD_DEFAULT_OPTS  = --Wno-fatal --Wno-lint --Wno-style --Wno-widthconcat --Wno-unoptflat
-BUILD_DEFAULT_OPTS += -CFLAGS -std=c++14
-#BUILD_DEFAULT_OPTS += -CFLAGS "-I$(BP_TOOLS_DIR)/dromajo/include"
-BUILD_DEFAULT_OPTS += -CFLAGS "-I$(BP_RTL_INSTALL_DIR)/include"
-BUILD_DEFAULT_OPTS += -CFLAGS "-I$(BASEJUMP_STL_DIR)/bsg_test/"
-BUILD_DEFAULT_OPTS += -LDFLAGS "-lpthread"
-BUILD_DEFAULT_OPTS += -LDFLAGS "-L$(BP_RTL_INSTALL_DIR)/lib -ldramsim3 -Wl,-rpath=$(BP_RTL_INSTALL_DIR)/lib"
-#BUILD_DEFAULT_OPTS += -LDFLAGS "-L$(BP_RTL_INSTALL_DIR)/lib -ldromajo_cosim -Wl,-rpath=$(BP_RTL_INSTALL_DIR)/lib"
+VV_BUILD_DEFAULT_OPTS  = --Wno-fatal --Wno-lint --Wno-style --Wno-widthconcat --Wno-unoptflat
+VV_BUILD_DEFAULT_OPTS += -CFLAGS -std=c++14
+#VV_BUILD_DEFAULT_OPTS += -CFLAGS "-I$(BP_TOOLS_DIR)/dromajo/include"
+VV_BUILD_DEFAULT_OPTS += -CFLAGS "-I$(BP_RTL_INSTALL_DIR)/include"
+VV_BUILD_DEFAULT_OPTS += -CFLAGS "-I$(BASEJUMP_STL_DIR)/bsg_test"
+VV_BUILD_DEFAULT_OPTS += -LDFLAGS "-lpthread"
+VV_BUILD_DEFAULT_OPTS += -LDFLAGS "-L$(BP_RTL_INSTALL_DIR)/lib -ldramsim3 -Wl,-rpath=$(BP_RTL_INSTALL_DIR)/lib"
+#VV_BUILD_DEFAULT_OPTS += -LDFLAGS "-L$(BP_RTL_INSTALL_DIR)/lib -ldromajo_cosim -Wl,-rpath=$(BP_RTL_INSTALL_DIR)/lib"
 
-BUILD_OPTS ?= $(BUILD_DEFAULT_OPTS)
+VV_BUILD_OPTS ?= $(VV_BUILD_DEFAULT_OPTS)
 
-$(VV_CONFIG): | $(BUILD_DIR)
-build_config: $(VV_CONFIG)
+$(VV_CONFIG): | $(VV_BUILD_DIR)
+build_config.vv: $(VV_CONFIG)
 
-$(VV_FLIST): | $(BUILD_DIR)
-build_flist: $(VV_FLIST)
+$(VV_FLIST): | $(VV_BUILD_DIR)
+build_flist.vv: $(VV_FLIST)
 
-build: $(VV_FLIST) $(VV_CONFIG) | $(BUILD_DIR)
-	cd $(BUILD_DIR); $(VV) $(VV_OPTS) $(BUILD_OPTS) $(HDL_PARAMS) $(HDL_DEFINES) 2>&1 | tee -i $(BUILD_LOG)
+build.vv: $(VV_FLIST) $(VV_CONFIG) | $(VV_BUILD_DIR)
+	cd $(VV_BUILD_DIR); $(VV) $(VV_OPTS) $(VV_BUILD_OPTS) $(HDL_PARAMS) $(HDL_DEFINES) 2>&1 | tee -i $(BUILD_LOG)
 
-build_dump: VV_OPTS += --trace-fst
-build_dump: VV_OPTS += --trace-structs
-build_dump: VV_OPTS += --trace-depth 15
-build_dump: build
+build_dump.vv: VV_OPTS += --trace-fst
+build_dump.vv: VV_OPTS += --trace-structs
+build_dump.vv: VV_OPTS += --trace-depth 15
+build_dump.vv: build.vv
 
-clean_build:
-	rm -rf $(BUILD_DIR)
+clean_build.vv:
+	rm -rf $(VV_BUILD_DIR)
 
 ##################
 ### Simulation ###
 ##################
 
-VERILATOR_OPTIONS =
+VERILATOR_OPTIONS ?=
 
-VERILATOR_PLUSARGS =
+VERILATOR_PLUSARGS ?=
 
 PROG_NBF ?= prog.nbf
 
-sim: build
-sim: $(SIM_DIR)/run_simsc
-$(SIM_DIR)/run_simsc: | $(SIM_DIR)
-	cp $(TEST_DIR)/$(PROG_NBF) $(SIM_DIR)/$(PROG_NBF)
-	cp $(BUILD_DIR)/obj_dir/simsc $(SIM_DIR)/
-	cd $(@D); ./simsc $(VERILATOR_OPTIONS) $(VERILATOR_PLUSARGS) 2>&1 | tee -i $(SIM_LOG)
+sim.vv: build.vv
+sim.vv: $(VV_SIM_DIR)/run_sim.vv
+$(VV_SIM_DIR)/run_sim.vv: | $(VV_SIM_DIR)
+	cp $(TEST_DIR)/$(PROG_NBF) $(VV_SIM_DIR)/$(PROG_NBF)
+	cp $(VV_BUILD_DIR)/obj_dir/sim.vv $(VV_SIM_DIR)/
+	cd $(@D); ./sim.vv $(VERILATOR_OPTIONS) $(VERILATOR_PLUSARGS) 2>&1 | tee -i $(VV_SIM_LOG)
 
-sim_dump: VV_OPTS += --trace-fst
-sim_dump: VV_OPTS += --trace-structs
-sim_dump: VV_OPTS += --trace-depth 15
-sim_dump: sim
+sim_dump.vv: VV_OPTS += --trace-fst
+sim_dump.vv: VV_OPTS += --trace-structs
+sim_dump.vv: VV_OPTS += --trace-depth 15
+sim_dump.vv: sim.vv
 
-wave: $(SIM_DIR)/wavesc
-$(SIM_DIR)/wavesc:
+wave.vv: $(VV_SIM_DIR)/wave.vv
+$(VV_SIM_DIR)/wave.vv:
 	$(GTKWAVE) -f $(@D)/dump.fst &
 
-clean_sim:
-	rm -rf $(SIM_DIR)
+clean_sim.vv:
+	rm -rf $(VV_SIM_DIR)
 
 ##############
 ### Global ###
 ##############
 
-$(LINT_DIR) $(BUILD_DIR) $(SIM_DIR):
+$(VV_LINT_DIR) $(VV_BUILD_DIR) $(VV_SIM_DIR):
 	mkdir -p $@
 
-clean: clean_lint clean_build clean_sim
+clean.vv: clean_lint.vv clean_build.vv clean_sim.vv
+clean: clean.vv
 

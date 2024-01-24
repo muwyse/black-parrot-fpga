@@ -1,0 +1,138 @@
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# Makefile.vcs
+#
+# Include this file for verilator-related variables and commands.
+# It sets VCS_LINT_OPTS, VCS_OPTS to defaults if not already defined.
+#
+# Requires the following defined in the including Makefile:
+# VCS (usually from black-parrot-tools/Makefile.common)
+# BASE_DIR (usually from Makefile.common)
+# from test Makefile:
+# VCS_LINT_DIR
+# VCS_LINT_FLIST
+# VCS_LINT_LOG
+# VCS_LINT_TOP
+# VCS_TOP (defaults to testbench)
+# VCS_FLIST
+# HDL_PARAMS (optional, for -pvalue directives)
+# HDL_DEFINES (optional, for +define+ directives)
+#
+# Also requires rules defined for $(VCS_LINT_FLIST), if they need to be
+# built dynamically.
+
+## Tools
+CC ?= $(GCC)
+VCS ?= $(VCS)
+
+###############
+### Linting ###
+###############
+
+VCS_LINT_DEFAULT_OPTS  = +lint=all,noSVA-UA,noSVA-NSVU,noNS,noVCDE
+VCS_LINT_DEFAULT_OPTS += -f $(VCS_LINT_FLIST)
+
+VCS_LINT_OPTS         ?= $(VCS_LINT_DEFAULT_OPTS)
+
+$(VCS_LINT_FLIST): | $(VCS_LINT_DIR)
+lint_flist.vcs: $(VCS_LINT_FLIST)
+
+lint.vcs: $(VCS_LINT_FLIST) | $(VCS_LINT_DIR)
+	cd $(VCS_LINT_DIR); \
+		$(VCS) $(VCS_BUILD_OPTS) $(VCS_LINT_OPTS) $(HDL_PARAMS) $(HDL_DEFINES) -o $(VCS_LINT_DIR)/$@ 2>&1 | tee -i $(VCS_LINT_LOG)
+
+clean_lint.vcs:
+	rm -rf $(VCS_LINT_DIR)
+
+################
+### Building ###
+################
+
+VCS_BUILD_BIN = $(VCS_BUILD_DIR)/sim.vcs
+
+VCS_TOP ?= testbench
+VCS_TIMEOUT ?= 1000ms
+## Tool options
+VCS_DEFAULT_OPTS  = +vcs+finish+$(VCS_TIMEOUT)  # Change this to run longer/shorter
+VCS_DEFAULT_OPTS += +vcs+lic+wait               # Wait for license
+VCS_DEFAULT_OPTS += +libext+.v+.vlib+.vh        # Find library files with these extensions
+#VCS_DEFAULT_OPTS += +vcs+loopdetect +vcs+loopreport
+VCS_DEFAULT_OPTS += -f $(VCS_FLIST)
+
+VCS_OPTS ?= $(VCS_DEFAULT_OPTS)
+
+VCS_BUILD_DEFAULT_OPTS  = -full64               # compile 64-bit executable
+VCS_BUILD_DEFAULT_OPTS += -notice -V +v2k
+VCS_BUILD_DEFAULT_OPTS += -sverilog             # enable SystemVerilog
+VCS_BUILD_DEFAULT_OPTS += -assert svaext        # enable elaboration system tasks
+VCS_BUILD_DEFAULT_OPTS += +noportcoerce
+VCS_BUILD_DEFAULT_OPTS += -timescale=1ps/1ps    # set timescale
+VCS_BUILD_DEFAULT_OPTS += -diag timescale
+VCS_BUILD_DEFAULT_OPTS += +lint=TFIPC-L
+VCS_BUILD_DEFAULT_OPTS += +plusarg_save
+VCS_BUILD_DEFAULT_OPTS += -top $(VCS_TOP)
+#VCS_BUILD_DEFAULT_OPTS += -CFLAGS "-I$(BP_TOOLS_DIR)/dromajo/include"
+VCS_BUILD_DEFAULT_OPTS += -CFLAGS "-I$(BP_RTL_INSTALL_DIR)/include -std=c++17"
+VCS_BUILD_DEFAULT_OPTS += -CFLAGS "-I$(BASEJUMP_STL_DIR)/bsg_test"
+VCS_BUILD_DEFAULT_OPTS += -LDFLAGS "-lpthread"
+VCS_BUILD_DEFAULT_OPTS += -LDFLAGS "-L$(BP_RTL_INSTALL_DIR)/lib -ldramsim3 -Wl,-rpath=$(BP_RTL_INSTALL_DIR)/lib"
+#VCS_BUILD_DEFAULT_OPTS += -LDFLAGS "-L$(BP_RTL_INSTALL_DIR)/lib -ldromajo_cosim -Wl,-rpath=$(BP_RTL_INSTALL_DIR)/lib"
+
+VCS_BUILD_OPTS ?= $(VCS_BUILD_DEFAULT_OPTS)
+
+$(VCS_FLIST): | $(VCS_BUILD_DIR)
+build_flist.vcs: $(VCS_FLIST)
+
+build.vcs: $(VCS_FLIST) | $(VCS_BUILD_DIR)
+	cd $(VCS_BUILD_DIR); \
+		$(VCS) $(VCS_OPTS) $(VCS_BUILD_OPTS) $(HDL_PARAMS) $(HDL_DEFINES) -o sim.vcs 2>&1 | tee -i $(BUILD_LOG)
+
+build_dump.vcs: VCS_BUILD_OPTS += -debug_pp
+build_dump.vcs: VCS_BUILD_OPTS += +vcs+vcdpluson
+build_dump.vcs: VCS_BUILD_OPTS += +vcs+vcdplusautoflushon
+build_dump.vcs: VCS_BUILD_OPTS += +vpdfilesize+512
+build_dump.vcs: build.vcs
+
+clean_build.vcs:
+	rm -rf $(VCS_BUILD_DIR)
+
+##################
+### Simulation ###
+##################
+
+VCS_OPTIONS ?=
+
+VCS_PLUSARGS ?=
+
+PROG_NBF ?= prog.nbf
+
+sim.vcs: build.vcs
+sim.vcs: $(VCS_SIM_DIR)/run_sim.vcs
+$(VCS_SIM_DIR)/run_sim.vcs: | $(VCS_SIM_DIR)
+	cp $(TEST_DIR)/$(PROG_NBF) $(VCS_SIM_DIR)/$(PROG_NBF)
+	cp $(VCS_BUILD_DIR)/sim.vcs $(VCS_SIM_DIR)/
+	cd $(@D); ./sim.vcs $(VCS_OPTIONS) $(VCS_PLUSARGS) 2>&1 | tee -i $(VCS_SIM_LOG)
+
+sim_dump.vcs: VCS_OPTS += +memcbk
+sim_dump.vcs: VCS_OPTS += +vcs+vcdpluson
+sim_dump.vcs: VCS_OPTS += +vcs+vcdplusmemon
+sim_dump.vcs: VCS_OPTS += +vcs+vcdplusautoflushon
+sim_dump.vcs: sim.vcs
+
+wave.vcs: $(VCS_SIM_DIR)/wave.vcs
+$(VCS_SIM_DIR)/wave.vcs:
+	$(_DVE) -full64 -vpd $(@D)/vcdplus.vpd &
+
+clean_sim.vcs:
+	rm -rf $(VCS_SIM_DIR)
+
+##############
+### Global ###
+##############
+
+$(VCS_LINT_DIR) $(VCS_BUILD_DIR) $(VCS_SIM_DIR):
+	mkdir -p $@
+
+clean.vcs: clean_lint.vcs clean_build.vcs clean_sim.vcs
+clean: clean.vcs
+

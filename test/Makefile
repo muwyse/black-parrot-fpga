@@ -22,34 +22,40 @@ export TEST_NAME = fpga
 export BP_IP_SRC_DIR = $(BASE_DIR)/blackparrot/src
 export BP_FPGA_HOST_IP_SRC_DIR = $(BASE_DIR)/blackparrot_fpga_host/src
 
+################################################################################
+### Verilator
+################################################################################
+
 ###############
 ### Linting ###
 ###############
 
-export LINT_DIR      = $(TEST_DIR)/$(TEST_NAME).lint
-export LINT_FLIST    = $(LINT_DIR)/lint.flist
-export LINT_CONFIG   = $(LINT_DIR)/config.vlt
-export LINT_LOG      = $(LINT_DIR)/lint.log
-export LINT_TOP     ?= $(TEST_TOP)
+export VV_LINT_DIR      = $(TEST_DIR)/$(TEST_NAME).lint.vv
+export VV_LINT_FLIST    = $(VV_LINT_DIR)/lint.flist
+export VV_LINT_CONFIG   = $(VV_LINT_DIR)/config.vlt
+export VV_LINT_LOG      = $(VV_LINT_DIR)/lint.log
+export VV_LINT_TOP     ?= $(TEST_TOP)
 
-$(LINT_FLIST): $(TEST_FLIST)
+$(VV_LINT_FLIST): $(TEST_FLIST)
 	cat $(TEST_FLIST) | envsubst > $@
+	echo '$$TEST_DIR/test.cpp' | envsubst >> $@
 
-$(LINT_CONFIG):
+$(VV_LINT_CONFIG):
 	cat $(VV_CONFIG_BASE) | envsubst > $@
 
 ################
 ### Building ###
 ################
 
-export BUILD_DIR      = $(TEST_DIR)/$(TEST_NAME).build
-export VV_FLIST       = $(BUILD_DIR)/build.flist
-export VV_CONFIG      = $(BUILD_DIR)/config.vlt
-export VV_LOG         = $(BUILD_DIR)/build.log
+export VV_BUILD_DIR   = $(TEST_DIR)/$(TEST_NAME).build.vv
+export VV_FLIST       = $(VV_BUILD_DIR)/build.flist
+export VV_CONFIG      = $(VV_BUILD_DIR)/config.vlt
+export VV_LOG         = $(VV_BUILD_DIR)/build.log
 export VV_TOP        ?= $(TEST_TOP)
 
 $(VV_FLIST): $(TEST_FLIST)
 	cat $(TEST_FLIST) | envsubst > $@
+	echo '$$TEST_DIR/test.cpp' | envsubst >> $@
 
 $(VV_CONFIG):
 	cat $(VV_CONFIG_BASE) | envsubst > $@
@@ -58,8 +64,55 @@ $(VV_CONFIG):
 ### Simulation ###
 ##################
 
-export SIM_DIR        = $(TEST_DIR)/$(TEST_NAME).sim
-export SIM_LOG        = $(SIM_DIR)/sim.log
+export VV_SIM_DIR     = $(TEST_DIR)/$(TEST_NAME).sim.vv
+export VV_SIM_LOG     = $(VV_SIM_DIR)/sim.log
 
 ### Include tool Makefile
 include $(MAKE_DIR)/Makefile.verilator
+
+################################################################################
+### VCS
+################################################################################
+
+###############
+### Linting ###
+###############
+
+export VCS_LINT_DIR      = $(TEST_DIR)/$(TEST_NAME).lint.vcs
+export VCS_LINT_FLIST    = $(VCS_LINT_DIR)/lint.flist
+export VCS_LINT_CONFIG   = $(VCS_LINT_DIR)/config.vlt
+export VCS_LINT_LOG      = $(VCS_LINT_DIR)/lint.log
+export VCS_LINT_TOP     ?= $(TEST_TOP)
+
+$(VCS_LINT_FLIST): $(TEST_FLIST)
+	cat $(TEST_FLIST) | envsubst > $@
+
+################
+### Building ###
+################
+
+export VCS_BUILD_DIR   = $(TEST_DIR)/$(TEST_NAME).build.vcs
+export VCS_FLIST       = $(VCS_BUILD_DIR)/build.flist
+export VCS_CONFIG      = $(VCS_BUILD_DIR)/config.vlt
+export VCS_LOG         = $(VCS_BUILD_DIR)/build.log
+export VCS_TOP        ?= $(TEST_TOP)
+
+$(VCS_FLIST): $(TEST_FLIST)
+	cat $(TEST_FLIST) | envsubst > $@
+
+##################
+### Simulation ###
+##################
+
+export VCS_SIM_DIR     = $(TEST_DIR)/$(TEST_NAME).sim.vcs
+export VCS_SIM_LOG     = $(VCS_SIM_DIR)/sim.log
+
+### Include tool Makefile
+include $(MAKE_DIR)/Makefile.vcs
+
+################################################################################
+### Global
+################################################################################
+
+clean:
+	@echo "clean"
