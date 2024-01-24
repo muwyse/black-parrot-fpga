@@ -63,10 +63,10 @@ module blackparrot_fpga_host_read_to_fifo
 
   // per-CSR request generation
   // pick channel based on CSR address from address fifo
+  logic [CSR_ELS_P-1:0] csr_req, csr_grant;
   for (genvar i = 0; i < CSR_ELS_P; i++) begin
     assign csr_req[i] = (addr == csr_addr_p[i]);
   end
-  logic [CSR_ELS_P-1:0] csr_req, csr_grant;
   bsg_arb_fixed
     #(.inputs_p(CSR_ELS_P)
       ,.lo_to_hi_p(1)
