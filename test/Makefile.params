@@ -1,2 +1,2 @@
-export HDL_DEFINES =
+export HDL_DEFINES = +define+SIMULATION=1
 export HDL_PARAMS =

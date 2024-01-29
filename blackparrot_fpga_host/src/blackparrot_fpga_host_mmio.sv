@@ -258,10 +258,10 @@ module blackparrot_fpga_host_mmio
 
     case (state_r)
       // send 32b address to BP MMIO Request Buffer
+      // do not consume the bp_axi_to_fifo output until data sends
       e_addr: begin
         mmio_req_v_li = axi_v;
         mmio_req_data_li = axi_addr[0+:fifo_data_width_p];
-        axi_yumi = (mmio_req_v_li & mmio_req_ready_and_lo);
         state_n = (mmio_req_v_li & mmio_req_ready_and_lo) ? e_data : state_r;
       end
       // send 32b data to BP MMIO Request Buffer

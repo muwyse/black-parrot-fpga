@@ -22,8 +22,6 @@ export TEST_NAME = fpga
 export BP_IP_SRC_DIR = $(BASE_DIR)/blackparrot/src
 export BP_FPGA_HOST_IP_SRC_DIR = $(BASE_DIR)/blackparrot_fpga_host/src
 
-export HDL_DEFINES = +define+SIMULATION=1
-
 ################################################################################
 ### Verilator
 ################################################################################

@@ -184,7 +184,7 @@ module bp_nonsynth_axi_host
   // the SIPO output is sunk immediately
   assign sipo_yumi_li = sipo_v_lo;
   // split MMIO request into address and data
-  wire [M_AXIL_DATA_WIDTH-1:0] cmd_addr = sipo_data_lo[0];
+  wire [M_AXIL_DATA_WIDTH-1:0] cmd_addr = {{(32-dev_addr_width_gp)'(1'b0)}, sipo_data_lo[0][0+:dev_addr_width_gp]};
   wire [M_AXIL_DATA_WIDTH-1:0] cmd_data = sipo_data_lo[1];
 
   // determine MMIO request
