@@ -454,7 +454,7 @@ module testbench
      ,.count_o(timeout_r)
      );
 
-  // host
+  // nonsynth test host
   logic host_done;
   bp_nonsynth_axi_host
     #(.M_AXIL_ADDR_WIDTH(S_AXIL_ADDR_WIDTH)
@@ -488,6 +488,99 @@ module testbench
       end
     end
   end
+
+
+  // profiling
+  bind bp_be_top
+    bp_nonsynth_watchdog
+     #(.bp_params_p(bp_params_p)
+       ,.stall_cycles_p(100000)
+       ,.halt_cycles_p(10000)
+       ,.heartbeat_instr_p(10000)
+       )
+     watchdog
+      (.clk_i(clk_i)
+       ,.reset_i(reset_i)
+       ,.freeze_i(calculator.pipe_sys.csr.cfg_bus_cast_i.freeze)
+       ,.wfi_i(director.is_wait)
+
+       ,.mhartid_i(calculator.pipe_sys.csr.cfg_bus_cast_i.core_id)
+
+       ,.npc_i(calculator.pipe_sys.csr.apc_r)
+       ,.instret_i(calculator.commit_pkt_cast_o.instret)
+       );
+
+  logic core_profile_en_lo;
+  assign core_profile_en_lo = 1'b1;
+  bind bp_core_minimal
+    bp_nonsynth_core_profiler
+     #(.bp_params_p(bp_params_p))
+      core_profiler
+      (.clk_i(clk_i & testbench.core_profile_en_lo)
+      ,.reset_i(reset_i)
+      ,.freeze_i(be.calculator.pipe_sys.csr.cfg_bus_cast_i.freeze)
+
+      ,.mhartid_i(be.calculator.pipe_sys.csr.cfg_bus_cast_i.core_id)
+
+      ,.fe_queue_ready_and_i(fe.fe_queue_ready_and_i)
+
+      ,.br_ovr_i(fe.pc_gen.ovr_btaken | fe.pc_gen.ovr_jmp)
+      ,.ret_ovr_i(fe.pc_gen.ovr_ret)
+      ,.realigner_i(fe.if2_instr_v & ~fe.fetch_instr_v_lo)
+
+      ,.icache_data_v_i(fe.icache.data_v_o)
+      ,.icache_v_i(fe.icache.v_i)
+      ,.icache_yumi_i(fe.icache.yumi_o)
+
+      ,.fe_cmd_nonattaboy_i(be.director.fe_cmd_v_li)
+      ,.fe_queue_empty_i(be.scheduler.issue_queue.empty)
+
+      ,.mispredict_i(be.director.npc_mismatch_v)
+      ,.dcache_miss_i(be.calculator.pipe_mem.dcache.busy_o)
+      ,.control_haz_i(be.detector.control_haz_v)
+      ,.data_haz_i(be.detector.data_haz_v)
+      ,.aux_dep_i((be.detector.dep_status_r[0].aux_iwb_v
+                 | be.detector.dep_status_r[0].aux_fwb_v
+                 ) & be.detector.data_haz_v
+                )
+      ,.load_dep_i((be.detector.dep_status_r[0].emem_iwb_v
+                    | be.detector.dep_status_r[0].fmem_iwb_v
+                    | be.detector.dep_status_r[1].fmem_iwb_v
+                    | be.detector.dep_status_r[0].emem_fwb_v
+                    | be.detector.dep_status_r[0].fmem_fwb_v
+                    | be.detector.dep_status_r[1].fmem_fwb_v
+                    ) & be.detector.data_haz_v
+                   )
+      ,.mul_dep_i((be.detector.dep_status_r[0].mul_iwb_v
+                   | be.detector.dep_status_r[1].mul_iwb_v
+                   | be.detector.dep_status_r[2].mul_iwb_v
+                   ) & be.detector.data_haz_v
+                  )
+      ,.fma_dep_i((be.detector.dep_status_r[0].fma_fwb_v
+                 | be.detector.dep_status_r[1].fma_fwb_v
+                 | be.detector.dep_status_r[2].fma_fwb_v
+                 | be.detector.dep_status_r[3].fma_fwb_v
+                 ) & be.detector.data_haz_v
+                )
+      ,.sb_iraw_dep_i((be.detector.irs1_sb_raw_haz_v
+                     | be.detector.irs2_sb_raw_haz_v
+                     ) & be.detector.data_haz_v
+                    )
+      ,.sb_fraw_dep_i((be.detector.frs1_sb_raw_haz_v
+                     | be.detector.frs2_sb_raw_haz_v
+                     | be.detector.frs3_sb_raw_haz_v
+                     ) & be.detector.data_haz_v
+                    )
+      ,.sb_iwaw_dep_i(be.detector.ird_sb_waw_haz_v & be.detector.data_haz_v)
+      ,.sb_fwaw_dep_i(be.detector.frd_sb_waw_haz_v & be.detector.data_haz_v)
+      ,.struct_haz_i(be.detector.struct_haz_v | be.scheduler.late_wb_yumi_o)
+      ,.idiv_haz_i(be.detector.idiv_busy_i & be.detector.issue_pkt_cast_i.decode.pipe_long_v)
+      ,.fdiv_haz_i(be.detector.fdiv_busy_i & be.detector.issue_pkt_cast_i.decode.pipe_long_v)
+      ,.ptw_busy_i(be.scheduler.ptw_busy_lo)
+
+      ,.retire_pkt_i(be.calculator.pipe_sys.retire_pkt)
+      ,.commit_pkt_i(be.calculator.pipe_sys.commit_pkt_cast_o)
+      );
 
 
 endmodule
