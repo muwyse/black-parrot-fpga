@@ -382,6 +382,8 @@ module testbench
       ,.axi_data_width_p(M01_AXI_DATA_WIDTH)
       ,.axi_len_width_p(8)
       ,.mem_els_p(MEM_ELS)
+      // TODO: simulation fails if init_data_p is not 0
+      ,.init_data_p(32'hdeadbeef)
       )
     axi_mem
     (.clk_i(clk_i)
