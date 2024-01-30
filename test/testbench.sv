@@ -56,8 +56,8 @@ module testbench
   localparam S_AXI_DATA_WIDTH = 64;
   localparam S_AXI_ID_WIDTH = 4;
 
-  localparam M01_AXI_ADDR_WIDTH = 32;
-  localparam M01_AXI_DATA_WIDTH = 64;
+  localparam M01_AXI_ADDR_WIDTH = 64;
+  localparam M01_AXI_DATA_WIDTH = 128;
   localparam M01_AXI_ID_WIDTH = 4;
 
   localparam S_AXIL_ADDR_WIDTH = 64;
@@ -73,7 +73,8 @@ module testbench
   localparam nbf_data_width_p = 64;
 
   // 512 KiB
-  localparam MEM_ELS = (2**29)/M01_AXI_DATA_WIDTH;
+  // 2**29 bytes
+  localparam MEM_ELS = (2**29)/(M01_AXI_DATA_WIDTH/8);
 
   //======================== BP to Host I/O ========================
   logic                              m_axi_aclk;
