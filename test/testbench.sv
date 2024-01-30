@@ -585,5 +585,23 @@ module testbench
       ,.commit_pkt_i(be.calculator.pipe_sys.commit_pkt_cast_o)
       );
 
+  logic dcache_trace_en_lo;
+  assign dcache_trace_en_lo = 1'b1;
+  bind bp_be_dcache
+    bp_be_nonsynth_dcache_tracer
+     #(.bp_params_p(bp_params_p)
+       ,.assoc_p(assoc_p)
+       ,.sets_p(sets_p)
+       ,.block_width_p(block_width_p)
+       ,.fill_width_p(fill_width_p)
+       ,.tag_width_p(tag_width_p)
+       ,.id_width_p(id_width_p)
+       )
+     dcache_tracer
+      (.clk_i(clk_i & testbench.dcache_trace_en_lo)
+       ,.freeze_i(cfg_bus_cast_i.freeze)
+       ,.mhartid_i(cfg_bus_cast_i.core_id)
+       ,.*
+       );
 
 endmodule
