@@ -46,6 +46,7 @@ module blackparrot
 `ifdef SIMULATION
    , parameter bp_params_e bp_params_p = e_bp_default_cfg
 `endif
+   , parameter [63:0] DRAM_BASE_ADDR = 64'h0
    )
   (//======================== Outgoing I/O ========================
    input                                       m_axi_aclk
@@ -199,6 +200,10 @@ module blackparrot
 `ifndef SIMULATION
   localparam bp_params_e bp_params_p = e_bp_default_cfg;
 `endif
+
+  logic [M01_AXI_ADDR_WIDTH-1:0] mem_axi_araddr;
+  logic [M01_AXI_ADDR_WIDTH-1:0] mem_axi_awaddr;
+
   bp_axi4_top
     #(.bp_params_p(bp_params_p)
      ,.m_axi_addr_width_p(M_AXI_ADDR_WIDTH)
@@ -295,7 +300,7 @@ module blackparrot
      ,.s_axi_rid_o(s_axi_rid)
      ,.s_axi_rlast_o(s_axi_rlast)
      ,.s_axi_rresp_o(s_axi_rresp)
-     ,.m01_axi_awaddr_o(m01_axi_awaddr)
+     ,.m01_axi_awaddr_o(mem_axi_awaddr)
      ,.m01_axi_awvalid_o(m01_axi_awvalid)
      ,.m01_axi_awready_i(m01_axi_awready)
      ,.m01_axi_awid_o(m01_axi_awid)
@@ -316,7 +321,7 @@ module blackparrot
      ,.m01_axi_bready_o(m01_axi_bready)
      ,.m01_axi_bid_i(m01_axi_bid)
      ,.m01_axi_bresp_i(m01_axi_bresp)
-     ,.m01_axi_araddr_o(m01_axi_araddr)
+     ,.m01_axi_araddr_o(mem_axi_araddr)
      ,.m01_axi_arvalid_o(m01_axi_arvalid)
      ,.m01_axi_arready_i(m01_axi_arready)
      ,.m01_axi_arid_o(m01_axi_arid)
@@ -335,6 +340,9 @@ module blackparrot
      ,.m01_axi_rlast_i(m01_axi_rlast)
      ,.m01_axi_rresp_i(m01_axi_rresp)
      );
+
+  assign m01_axi_araddr = mem_axi_araddr - DRAM_BASE_ADDR;
+  assign m01_axi_awaddr = mem_axi_awaddr - DRAM_BASE_ADDR;
 
 endmodule
 

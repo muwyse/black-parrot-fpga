@@ -372,13 +372,12 @@ module testbench
       ,.DID(DID)
       ,.HOST_DID(HOST_DID)
       ,.bp_params_p(bp_params_p)
+      ,.DRAM_BASE_ADDR(dram_base_addr_gp)
       )
     bp
     (.*);
 
   // mem (bsg_nonsynth_axi_mem)
-  wire [M01_AXI_ADDR_WIDTH-1:0] mem_axi_araddr = m01_axi_araddr - dram_base_addr_gp;
-  wire [M01_AXI_ADDR_WIDTH-1:0] mem_axi_awaddr = m01_axi_awaddr - dram_base_addr_gp;
   bsg_nonsynth_axi_mem
     #(.axi_id_width_p(M01_AXI_ID_WIDTH)
       ,.axi_addr_width_p(M01_AXI_ADDR_WIDTH)
@@ -392,7 +391,7 @@ module testbench
     (.clk_i(clk_i)
      ,.reset_i(reset_i)
      ,.axi_awid_i(m01_axi_awid)
-     ,.axi_awaddr_i(mem_axi_awaddr)
+     ,.axi_awaddr_i(m01_axi_awaddr)
      ,.axi_awlen_i(m01_axi_awlen)
      ,.axi_awburst_i(m01_axi_awburst)
      ,.axi_awvalid_i(m01_axi_awvalid)
@@ -407,7 +406,7 @@ module testbench
      ,.axi_bvalid_o(m01_axi_bvalid)
      ,.axi_bready_i(m01_axi_bready)
      ,.axi_arid_i(m01_axi_arid)
-     ,.axi_araddr_i(mem_axi_araddr)
+     ,.axi_araddr_i(m01_axi_araddr)
      ,.axi_arlen_i(m01_axi_arlen)
      ,.axi_arburst_i(m01_axi_arburst)
      ,.axi_arvalid_i(m01_axi_arvalid)
