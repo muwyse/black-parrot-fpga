@@ -14,3 +14,4 @@ $BLACKPARROT_SUB_DIR/axi/v/bp_axi_pump.sv
 $BASEJUMP_STL_DIR/bsg_cache/bsg_cache_to_axi.sv
 $BASEJUMP_STL_DIR/bsg_cache/bsg_cache_to_axi_rx.sv
 $BASEJUMP_STL_DIR/bsg_cache/bsg_cache_to_axi_tx.sv
+$BASEJUMP_STL_DIR/bsg_cache/bsg_cache_to_axi_ordering.sv

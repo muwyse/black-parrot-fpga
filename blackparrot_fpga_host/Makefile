@@ -30,23 +30,46 @@ export BOARD_PART         ?= xilinx.com:vcu128_es:part0:1.1
 
 export IP_TAR_GZ           = $(IP_NAME)_ip.tar.gz
 
+################################################################################
+### Verilator
+################################################################################
+
 ###############
 ### Linting ###
 ###############
 
-export LINT_DIR      = $(IP_DIR)/$(IP_NAME).lint
-export LINT_FLIST    = $(LINT_DIR)/lint.flist
-export LINT_CONFIG   = $(LINT_DIR)/config.vlt
-export LINT_LOG      = $(LINT_DIR)/lint.log
-export LINT_TOP     ?= $(IP_TOP)
+export VV_LINT_DIR      = $(IP_DIR)/$(IP_NAME).lint.vv
+export VV_LINT_FLIST    = $(VV_LINT_DIR)/lint.flist
+export VV_LINT_CONFIG   = $(VV_LINT_DIR)/config.vlt
+export VV_LINT_LOG      = $(VV_LINT_DIR)/lint.log
+export VV_LINT_TOP     ?= $(IP_TOP)
 
-$(LINT_FLIST): $(IP_FLIST)
-	cp $(IP_FLIST) $(LINT_FLIST)
+$(VV_LINT_FLIST): $(IP_FLIST)
+	cp $< $@
 
-$(LINT_CONFIG):
+$(VV_LINT_CONFIG):
 	cat $(VV_CONFIG_BASE) | envsubst > $@
 
 include $(MAKE_DIR)/Makefile.verilator
+
+################################################################################
+### VCS
+################################################################################
+
+###############
+### Linting ###
+###############
+
+export VCS_LINT_DIR      = $(IP_DIR)/$(IP_NAME).lint.vcs
+export VCS_LINT_FLIST    = $(VCS_LINT_DIR)/lint.flist
+export VCS_LINT_LOG      = $(VCS_LINT_DIR)/lint.log
+export VCS_LINT_TOP     ?= $(IP_TOP)
+
+$(VCS_LINT_FLIST): $(IP_FLIST)
+	cp $< $@
+
+### Include tool Makefile
+include $(MAKE_DIR)/Makefile.vcs
 
 ################
 ### Building ###
@@ -78,6 +101,6 @@ clean_ip:
 	rm -rf $(IP_PROJECT_DIR)
 	rm -f $(IP_TAR_GZ)
 	rm -f $(IP_FLIST)
-
-clean: clean_lint clean_ip
 	rm -f vivado*
+
+clean: clean_ip

@@ -6,3 +6,5 @@ vivado*
 blackparrot_fpga_host_ip/
 blackparrot_fpga_host_ip_proj/
 *.tar.gz
+blackparrot_fpga_host.lint.vv/
+blackparrot_fpga_host.lint.vcs/

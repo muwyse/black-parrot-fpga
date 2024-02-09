@@ -37,8 +37,8 @@ module blackparrot
    , parameter S_AXI_DATA_WIDTH = 64
    , parameter S_AXI_ID_WIDTH = 4
 
-   , parameter M01_AXI_ADDR_WIDTH = 32
-   , parameter M01_AXI_DATA_WIDTH = 64
+   , parameter M01_AXI_ADDR_WIDTH = 64
+   , parameter M01_AXI_DATA_WIDTH = 128
    , parameter M01_AXI_ID_WIDTH = 4
 
    , parameter DID = 0

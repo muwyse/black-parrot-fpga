@@ -31,6 +31,7 @@ VCS ?= $(VCS)
 
 VCS_LINT_DEFAULT_OPTS  = +lint=all,noSVA-UA,noSVA-NSVU,noNS,noVCDE
 VCS_LINT_DEFAULT_OPTS += -f $(VCS_LINT_FLIST)
+VCS_LINT_DEFAULT_OPTS += -top $(VCS_LINT_TOP)
 
 VCS_LINT_OPTS         ?= $(VCS_LINT_DEFAULT_OPTS)
 
@@ -70,7 +71,6 @@ VCS_BUILD_DEFAULT_OPTS += -timescale=1ps/1ps    # set timescale
 VCS_BUILD_DEFAULT_OPTS += -diag timescale
 VCS_BUILD_DEFAULT_OPTS += +lint=TFIPC-L
 VCS_BUILD_DEFAULT_OPTS += +plusarg_save
-VCS_BUILD_DEFAULT_OPTS += -top $(VCS_TOP)
 #VCS_BUILD_DEFAULT_OPTS += -CFLAGS "-I$(BP_TOOLS_DIR)/dromajo/include"
 VCS_BUILD_DEFAULT_OPTS += -CFLAGS "-I$(BP_RTL_INSTALL_DIR)/include -std=c++17"
 VCS_BUILD_DEFAULT_OPTS += -CFLAGS "-I$(BASEJUMP_STL_DIR)/bsg_test"
@@ -85,7 +85,7 @@ build_flist.vcs: $(VCS_FLIST)
 
 build.vcs: $(VCS_FLIST) | $(VCS_BUILD_DIR)
 	cd $(VCS_BUILD_DIR); \
-		$(VCS) $(VCS_OPTS) $(VCS_BUILD_OPTS) $(HDL_PARAMS) $(HDL_DEFINES) -o sim.vcs 2>&1 | tee -i $(BUILD_LOG)
+		$(VCS) $(VCS_OPTS) $(VCS_BUILD_OPTS) -top $(VCS_TOP) $(HDL_PARAMS) $(HDL_DEFINES) -o sim.vcs 2>&1 | tee -i $(BUILD_LOG)
 
 build_dump.vcs: VCS_BUILD_OPTS += -debug_pp
 build_dump.vcs: VCS_BUILD_OPTS += +vcs+vcdpluson

@@ -80,7 +80,6 @@ include $(MAKE_DIR)/Makefile.verilator
 
 export VCS_LINT_DIR      = $(TEST_DIR)/$(TEST_NAME).lint.vcs
 export VCS_LINT_FLIST    = $(VCS_LINT_DIR)/lint.flist
-export VCS_LINT_CONFIG   = $(VCS_LINT_DIR)/config.vlt
 export VCS_LINT_LOG      = $(VCS_LINT_DIR)/lint.log
 export VCS_LINT_TOP     ?= $(TEST_TOP)
 

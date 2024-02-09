@@ -29,16 +29,54 @@ export PART               ?= xcvu37p-fsvh2892-2L-e-es1
 export BOARD_PART         ?= xilinx.com:vcu128_es:part0:1.1
 
 BP_FLIST                   = $(BP_TOP_DIR)/syn/flist.vcs
-IP_TAR_GZ                  = $(IP_NAME)_ip.tar.gz
+export IP_TAR_GZ           = $(IP_NAME)_ip.tar.gz
 
-LINT_TOP                  ?= $(IP_TOP)
-LINT_FLIST                 = $(IP_DIR)/lint.flist
-LINT_LOG                   = $(IP_DIR)/lint.log
-LINT_CONFIG                = $(IP_DIR)/config.vlt
+################################################################################
+### Verilator
+################################################################################
 
-lint_flist: $(LINT_FLIST)
-$(LINT_FLIST): $(IP_FLIST)
-	cp $(IP_FLIST) $(LINT_FLIST)
+###############
+### Linting ###
+###############
+
+export VV_LINT_DIR      = $(IP_DIR)/$(IP_NAME).lint.vv
+export VV_LINT_FLIST    = $(VV_LINT_DIR)/lint.flist
+export VV_LINT_CONFIG   = $(VV_LINT_DIR)/config.vlt
+export VV_LINT_LOG      = $(VV_LINT_DIR)/lint.log
+export VV_LINT_TOP     ?= $(IP_TOP)
+
+$(VV_LINT_FLIST): $(IP_FLIST)
+	cp $< $@
+
+$(VV_LINT_CONFIG):
+	cat $(VV_CONFIG_BASE) | envsubst > $@
+
+include $(MAKE_DIR)/Makefile.verilator
+
+################################################################################
+### VCS
+################################################################################
+
+###############
+### Linting ###
+###############
+
+export VCS_LINT_DIR      = $(IP_DIR)/$(IP_NAME).lint.vcs
+export VCS_LINT_FLIST    = $(VCS_LINT_DIR)/lint.flist
+export VCS_LINT_LOG      = $(VCS_LINT_DIR)/lint.log
+export VCS_LINT_TOP     ?= $(IP_TOP)
+
+$(VCS_LINT_FLIST): $(IP_FLIST)
+	cp $< $@
+
+### Include tool Makefile
+include $(MAKE_DIR)/Makefile.vcs
+
+################
+### Building ###
+################
+
+export BUILD_DIR = $(IP_DIR)/$(IP_NAME).build
 
 ip_flist: $(IP_FLIST)
 $(IP_FLIST): $(BP_FLIST) $(IP_BASE_FLIST)
@@ -53,17 +91,6 @@ $(IP_FLIST): $(BP_FLIST) $(IP_BASE_FLIST)
 	echo "$(BASE_SRC_DIR)/bsg_mem_1rw_sync_mask_write_byte.sv" >> $@
 	echo "$(BASE_SRC_DIR)/bytewrite_bram.v" >> $@
 
-$(LINT_CONFIG):
-	cat $(LINT_CONFIG_BASE) | envsubst > $@
-
-lint: $(LINT_FLIST) $(LINT_CONFIG)
-	$(VERILATOR) $(LINT_OPTS) 2>&1 | tee -i $(LINT_LOG)
-
-clean_lint:
-	rm -f $(LINT_FLIST)
-	rm -f $(LINT_LOG)
-	rm -f $(LINT_CONFIG)
-
 build_ip: clean_ip | $(IP_FLIST)
 	vivado -source $(BUILD_IP_TCL) -mode batch
 
@@ -75,6 +102,6 @@ clean_ip:
 	rm -rf $(IP_PROJECT_DIR)
 	rm -f $(IP_TAR_GZ)
 	rm -f $(IP_FLIST)
-
-clean: clean_lint clean_ip
 	rm -f vivado*
+
+clean: clean_ip

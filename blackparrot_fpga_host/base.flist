@@ -22,9 +22,18 @@ $BASEJUMP_STL_DIR/bsg_dataflow/bsg_two_fifo.sv
 $BASEJUMP_STL_DIR/bsg_mem/bsg_mem_1r1w.sv
 $BASEJUMP_STL_DIR/bsg_mem/bsg_mem_1r1w_synth.sv
 $BASEJUMP_STL_DIR/bsg_misc/bsg_arb_fixed.sv
-$BASEJUMP_STL_DIR/bsg_misc/bsg_priority_encode_one_hot_out.sv
-$BASEJUMP_STL_DIR/bsg_misc/bsg_scan.sv
+$BASEJUMP_STL_DIR/bsg_misc/bsg_circular_ptr.sv
+$BASEJUMP_STL_DIR/bsg_misc/bsg_counter_clear_up.sv
+$BASEJUMP_STL_DIR/bsg_misc/bsg_counter_up_down.sv
+$BASEJUMP_STL_DIR/bsg_misc/bsg_dff_en.sv
+$BASEJUMP_STL_DIR/bsg_misc/bsg_dff_reset.sv
+$BASEJUMP_STL_DIR/bsg_misc/bsg_dff_reset_en.sv
+$BASEJUMP_STL_DIR/bsg_misc/bsg_dff_reset_set_clear.sv
+$BASEJUMP_STL_DIR/bsg_misc/bsg_mux.sv
 $BASEJUMP_STL_DIR/bsg_misc/bsg_mux_one_hot.sv
+$BASEJUMP_STL_DIR/bsg_misc/bsg_priority_encode_one_hot_out.sv
+$BASEJUMP_STL_DIR/bsg_misc/bsg_rotate_right.sv
+$BASEJUMP_STL_DIR/bsg_misc/bsg_scan.sv
 # Common files
 $BP_COMMON_DIR/src/v/bsg_bus_pack.sv
 # BP Subsystem files
