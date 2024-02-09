@@ -21,6 +21,8 @@
  *
  */
 
+`define VCU128 1
+
 `include "bp_common_defines.svh"
 `include "bp_me_defines.svh"
 
