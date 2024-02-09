@@ -154,7 +154,7 @@ proc cr_bd_design_1 { parentCell } {
   # Create instance: blackparrot_0, and set properties
   set blackparrot_0 [ create_bd_cell -type ip -vlnv BlackParrot:ip:blackparrot:1.0 blackparrot_0 ]
   set_property -dict [ list \
-   CONFIG.M01_AXI_ADDR_WIDTH {64} \
+   CONFIG.DRAM_BASE_ADDR {0x80000000} \
  ] $blackparrot_0
 
   # Create instance: blackparrot_fpga_host_0, and set properties
