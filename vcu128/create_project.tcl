@@ -140,11 +140,11 @@ proc cr_bd_design_1 { parentCell } {
   set axi_clock_converter_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_clock_converter:2.1 axi_clock_converter_1 ]
   set_property -dict [ list \
    CONFIG.ACLK_ASYNC {1} \
-   CONFIG.ADDR_WIDTH {33} \
+   CONFIG.ADDR_WIDTH {64} \
    CONFIG.ARUSER_WIDTH {0} \
    CONFIG.AWUSER_WIDTH {0} \
    CONFIG.BUSER_WIDTH {0} \
-   CONFIG.DATA_WIDTH {64} \
+   CONFIG.DATA_WIDTH {128} \
    CONFIG.ID_WIDTH {6} \
    CONFIG.PROTOCOL {AXI4} \
    CONFIG.RUSER_WIDTH {0} \
@@ -154,7 +154,7 @@ proc cr_bd_design_1 { parentCell } {
   # Create instance: blackparrot_0, and set properties
   set blackparrot_0 [ create_bd_cell -type ip -vlnv BlackParrot:ip:blackparrot:1.0 blackparrot_0 ]
   set_property -dict [ list \
-   CONFIG.M01_AXI_ADDR_WIDTH {33} \
+   CONFIG.M01_AXI_ADDR_WIDTH {64} \
  ] $blackparrot_0
 
   # Create instance: blackparrot_fpga_host_0, and set properties
