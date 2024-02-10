@@ -45,6 +45,9 @@ export VV_LINT_CONFIG   = $(VV_LINT_DIR)/config.vlt
 export VV_LINT_LOG      = $(VV_LINT_DIR)/lint.log
 export VV_LINT_TOP     ?= $(IP_TOP)
 
+export VV_BUILD_DIR     = $(IP_DIR)/$(IP_NAME).build.vv
+export VV_SIM_DIR       = $(IP_DIR)/$(IP_NAME).sim.vv
+
 $(VV_LINT_FLIST): $(IP_FLIST)
 	cp $< $@
 
@@ -65,6 +68,8 @@ export VCS_LINT_DIR      = $(IP_DIR)/$(IP_NAME).lint.vcs
 export VCS_LINT_FLIST    = $(VCS_LINT_DIR)/lint.flist
 export VCS_LINT_LOG      = $(VCS_LINT_DIR)/lint.log
 export VCS_LINT_TOP     ?= $(IP_TOP)
+
+export VCS_BUILD_DIR     = $(IP_DIR)/$(IP_NAME).build.vcs
 
 $(VCS_LINT_FLIST): $(IP_FLIST)
 	cp $< $@
@@ -105,3 +110,4 @@ clean_ip:
 	rm -f vivado*
 
 clean: clean_ip
+

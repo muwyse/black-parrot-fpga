@@ -122,9 +122,6 @@ wave.vcs: $(VCS_BUILD_DIR)/wave.vcs
 $(VCS_BUILD_DIR)/wave.vcs:
 	$(_DVE) -full64 -vpd $(@D)/vcdplus.vpd &
 
-clean_sim.vcs:
-	rm -rf $(VCS_BUILD_DIR)
-
 ##############
 ### Global ###
 ##############
@@ -132,7 +129,7 @@ clean_sim.vcs:
 $(VCS_LINT_DIR) $(VCS_BUILD_DIR):
 	mkdir -p $@
 
-clean.vcs: clean_lint.vcs clean_build.vcs clean_sim.vcs
+clean.vcs: clean_lint.vcs clean_build.vcs
 	rm -rf $(TEST_DIR)/DVEfiles\
 
 clean: clean.vcs

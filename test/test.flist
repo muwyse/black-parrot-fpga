@@ -52,12 +52,6 @@ $BASEJUMP_STL_DIR/bsg_cache/bsg_cache_sbuf.sv
 $BASEJUMP_STL_DIR/bsg_cache/bsg_cache_tbuf.sv
 $BASEJUMP_STL_DIR/bsg_cache/bsg_cache_buffer_queue.sv
 $BASEJUMP_STL_DIR/bsg_cache/bsg_wormhole_to_cache_dma_fanout.sv
-
-$BASEJUMP_STL_DIR/bsg_cache/bsg_cache_to_axi.sv
-$BASEJUMP_STL_DIR/bsg_cache/bsg_cache_to_axi_rx.sv
-$BASEJUMP_STL_DIR/bsg_cache/bsg_cache_to_axi_tx.sv
-$BASEJUMP_STL_DIR/bsg_cache/bsg_cache_to_axi_ordering.sv
-
 $BASEJUMP_STL_DIR/bsg_dataflow/bsg_channel_tunnel.sv
 $BASEJUMP_STL_DIR/bsg_dataflow/bsg_channel_tunnel_in.sv
 $BASEJUMP_STL_DIR/bsg_dataflow/bsg_channel_tunnel_out.sv
@@ -74,6 +68,8 @@ $BASEJUMP_STL_DIR/bsg_dataflow/bsg_one_fifo.sv
 $BASEJUMP_STL_DIR/bsg_dataflow/bsg_parallel_in_serial_out.sv
 $BASEJUMP_STL_DIR/bsg_dataflow/bsg_parallel_in_serial_out_dynamic.sv
 $BASEJUMP_STL_DIR/bsg_dataflow/bsg_parallel_in_serial_out_passthrough.sv
+$BP_COMMON_DIR/src/v/bsg_parallel_in_serial_out_passthrough_dynamic.v
+$BP_COMMON_DIR/src/v/bsg_serial_in_parallel_out_passthrough_dynamic.v
 $BASEJUMP_STL_DIR/bsg_dataflow/bsg_round_robin_1_to_n.sv
 $BASEJUMP_STL_DIR/bsg_dataflow/bsg_round_robin_2_to_2.sv
 $BASEJUMP_STL_DIR/bsg_dataflow/bsg_round_robin_n_to_1.sv
@@ -202,11 +198,6 @@ $HARDFLOAT_DIR/source/recFNToIN.v
 $HARDFLOAT_DIR/source/recFNToRecFN.v
 $HARDFLOAT_DIR/source/RISCV/HardFloat_specialize.v
 # Common files and BSG staging area
-$BP_COMMON_DIR/src/v/bsg_async_noc_link.sv
-$BP_COMMON_DIR/src/v/bsg_dff_sync_read.v
-$BP_COMMON_DIR/src/v/bsg_rom_param.v
-$BP_COMMON_DIR/src/v/bsg_parallel_in_serial_out_passthrough_dynamic.v
-$BP_COMMON_DIR/src/v/bsg_serial_in_parallel_out_passthrough_dynamic.v
 $BP_COMMON_DIR/src/v/bsg_fifo_1r1w_rolly.sv
 $BP_COMMON_DIR/src/v/bsg_bus_pack.sv
 $BP_COMMON_DIR/src/v/bp_mmu.sv
@@ -217,8 +208,11 @@ $BP_BE_DIR/src/v/bp_be_top.sv
 # Calculator
 $BP_BE_DIR/src/v/bp_be_calculator/bp_be_calculator_top.sv
 $BP_BE_DIR/src/v/bp_be_calculator/bp_be_csr.sv
-$BP_BE_DIR/src/v/bp_be_calculator/bp_be_fp_to_reg.sv
-$BP_BE_DIR/src/v/bp_be_calculator/bp_be_nan_unbox.sv
+$BP_BE_DIR/src/v/bp_be_calculator/bp_be_fp_box.sv
+$BP_BE_DIR/src/v/bp_be_calculator/bp_be_fp_rebox.sv
+$BP_BE_DIR/src/v/bp_be_calculator/bp_be_fp_unbox.sv
+$BP_BE_DIR/src/v/bp_be_calculator/bp_be_int_unbox.sv
+$BP_BE_DIR/src/v/bp_be_calculator/bp_be_int_box.sv
 $BP_BE_DIR/src/v/bp_be_calculator/bp_be_pipe_int.sv
 $BP_BE_DIR/src/v/bp_be_calculator/bp_be_pipe_aux.sv
 $BP_BE_DIR/src/v/bp_be_calculator/bp_be_pipe_fma.sv
@@ -226,7 +220,7 @@ $BP_BE_DIR/src/v/bp_be_calculator/bp_be_pipe_long.sv
 $BP_BE_DIR/src/v/bp_be_calculator/bp_be_pipe_mem.sv
 $BP_BE_DIR/src/v/bp_be_calculator/bp_be_pipe_sys.sv
 $BP_BE_DIR/src/v/bp_be_calculator/bp_be_ptw.sv
-$BP_BE_DIR/src/v/bp_be_calculator/bp_be_reg_to_fp.sv
+$BP_BE_DIR/src/v/bp_be_calculator/bp_be_reservation.sv
 # Checker
 $BP_BE_DIR/src/v/bp_be_checker/bp_be_cmd_queue.sv
 $BP_BE_DIR/src/v/bp_be_checker/bp_be_detector.sv
@@ -335,6 +329,11 @@ $BP_TOP_DIR/src/v/bp_core_tile.sv
 $BP_TOP_DIR/src/v/bp_core_tile_node.sv
 $BP_TOP_DIR/src/v/bp_processor.sv
 
+# BSG Staging area
+$BP_COMMON_DIR/src/v/bsg_async_noc_link.sv
+$BP_COMMON_DIR/src/v/bsg_dff_sync_read.v
+#$BP_COMMON_DIR/src/v/bsg_rom_param.v
+
 ### BlackParrot Sub-Systems files
 $BLACKPARROT_SUB_DIR/axi/v/bp_axi4_top.sv
 $BLACKPARROT_SUB_DIR/axi/v/bp_axi_pump.sv
@@ -342,6 +341,12 @@ $BLACKPARROT_SUB_DIR/axi/v/bp_axi_to_fifo.sv
 $BLACKPARROT_SUB_DIR/axi/v/bp_fifo_to_axi.sv
 $BLACKPARROT_SUB_DIR/axi/v/bp_me_axi_manager.sv
 $BLACKPARROT_SUB_DIR/axi/v/bp_me_axi_subordinate.sv
+
+# AXI4 top requirements
+$BASEJUMP_STL_DIR/bsg_cache/bsg_cache_to_axi.sv
+$BASEJUMP_STL_DIR/bsg_cache/bsg_cache_to_axi_rx.sv
+$BASEJUMP_STL_DIR/bsg_cache/bsg_cache_to_axi_tx.sv
+$BASEJUMP_STL_DIR/bsg_cache/bsg_cache_to_axi_ordering.sv
 
 ### BP IP files
 $BP_IP_SRC_DIR/blackparrot.sv

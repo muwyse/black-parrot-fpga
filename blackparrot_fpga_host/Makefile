@@ -44,6 +44,9 @@ export VV_LINT_CONFIG   = $(VV_LINT_DIR)/config.vlt
 export VV_LINT_LOG      = $(VV_LINT_DIR)/lint.log
 export VV_LINT_TOP     ?= $(IP_TOP)
 
+export VV_BUILD_DIR     = $(IP_DIR)/$(IP_NAME).build.vv
+export VV_SIM_DIR       = $(IP_DIR)/$(IP_NAME).sim.vv
+
 $(VV_LINT_FLIST): $(IP_FLIST)
 	cp $< $@
 
@@ -65,6 +68,8 @@ export VCS_LINT_FLIST    = $(VCS_LINT_DIR)/lint.flist
 export VCS_LINT_LOG      = $(VCS_LINT_DIR)/lint.log
 export VCS_LINT_TOP     ?= $(IP_TOP)
 
+export VCS_BUILD_DIR     = $(IP_DIR)/$(IP_NAME).build.vcs
+
 $(VCS_LINT_FLIST): $(IP_FLIST)
 	cp $< $@
 
@@ -81,14 +86,6 @@ ip_flist: $(IP_FLIST)
 $(IP_FLIST): $(IP_BASE_FLIST)
 	# substitute paths in BP flist
 	cat $^ | envsubst >> $@
-	# swap in memories that infer incorrectly in FPGA
-	sed -i "/bsg_mem_1rw_sync_mask_write_bit.sv/d" $@
-	sed -i "/bsg_mem_1rw_sync_mask_write_bit_synth.sv/d" $@
-	sed -i "/bsg_mem_1rw_sync_mask_write_byte.sv/d" $@
-	sed -i "/bsg_mem_1rw_sync_mask_write_byte_synth.sv/d" $@
-	echo "$(BASEJUMP_STL_DIR)/hard/ultrascale_plus/bsg_mem/bsg_mem_1rw_sync_mask_write_bit.sv" >> $@
-	echo "$(BASE_SRC_DIR)/bsg_mem_1rw_sync_mask_write_byte.sv" >> $@
-	echo "$(BASE_SRC_DIR)/bytewrite_bram.v" >> $@
 
 build_ip: clean_ip $(IP_FLIST)
 	vivado -source $(BUILD_IP_TCL) -mode batch
