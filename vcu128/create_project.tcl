@@ -44,6 +44,7 @@ proc cr_bd_design_1 { parentCell } {
   set bCheckIPs 1
   if { $bCheckIPs == 1 } {
      set list_check_ips "\
+  xilinx.com:ip:axi_apb_bridge:3.0\
   xilinx.com:ip:axi_clock_converter:2.1\
   BlackParrot:ip:blackparrot:1.0\
   BlackParrot:ip:blackparrot_fpga_host:1.0\
@@ -106,10 +107,6 @@ proc cr_bd_design_1 { parentCell } {
 
 
   # Create interface ports
-  set SAPB_0_0 [ create_bd_intf_port -mode Slave -vlnv xilinx.com:interface:apb_rtl:1.0 SAPB_0_0 ]
-
-  set SAPB_1_0 [ create_bd_intf_port -mode Slave -vlnv xilinx.com:interface:apb_rtl:1.0 SAPB_1_0 ]
-
   set pci_express_x4 [ create_bd_intf_port -mode Master -vlnv xilinx.com:interface:pcie_7x_mgt_rtl:1.0 pci_express_x4 ]
 
   set pcie_refclk [ create_bd_intf_port -mode Slave -vlnv xilinx.com:interface:diff_clock_rtl:1.0 pcie_refclk ]
@@ -127,6 +124,12 @@ proc cr_bd_design_1 { parentCell } {
   set_property -dict [ list \
    CONFIG.POLARITY {ACTIVE_LOW} \
  ] $rstn
+
+  # Create instance: axi_apb_bridge_0, and set properties
+  set axi_apb_bridge_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_apb_bridge:3.0 axi_apb_bridge_0 ]
+  set_property -dict [ list \
+   CONFIG.C_APB_NUM_SLAVES {2} \
+ ] $axi_apb_bridge_0
 
   # Create instance: axi_clock_converter_0, and set properties
   set axi_clock_converter_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_clock_converter:2.1 axi_clock_converter_0 ]
@@ -151,10 +154,13 @@ proc cr_bd_design_1 { parentCell } {
    CONFIG.WUSER_WIDTH {0} \
  ] $axi_clock_converter_1
 
+  # Create instance: axi_clock_converter_2, and set properties
+  set axi_clock_converter_2 [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_clock_converter:2.1 axi_clock_converter_2 ]
+
   # Create instance: blackparrot_0, and set properties
   set blackparrot_0 [ create_bd_cell -type ip -vlnv BlackParrot:ip:blackparrot:1.0 blackparrot_0 ]
   set_property -dict [ list \
-   CONFIG.DRAM_BASE_ADDR {0x80000000} \
+   CONFIG.DRAM_BASE_ADDR {0x0000000080000000} \
  ] $blackparrot_0
 
   # Create instance: blackparrot_fpga_host_0, and set properties
@@ -513,6 +519,13 @@ proc cr_bd_design_1 { parentCell } {
    CONFIG.NUM_SI {1} \
  ] $smartconnect_0
 
+  # Create instance: smartconnect_1, and set properties
+  set smartconnect_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:smartconnect:1.0 smartconnect_1 ]
+  set_property -dict [ list \
+   CONFIG.NUM_MI {2} \
+   CONFIG.NUM_SI {1} \
+ ] $smartconnect_1
+
   # Create instance: util_ds_buf_0, and set properties
   set util_ds_buf_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:util_ds_buf:2.1 util_ds_buf_0 ]
   set_property -dict [ list \
@@ -543,10 +556,11 @@ proc cr_bd_design_1 { parentCell } {
  ] $xdma_0
 
   # Create interface connections
-  connect_bd_intf_net -intf_net SAPB_0_0_1 [get_bd_intf_ports SAPB_0_0] [get_bd_intf_pins hbm_0/SAPB_0]
-  connect_bd_intf_net -intf_net SAPB_1_0_1 [get_bd_intf_ports SAPB_1_0] [get_bd_intf_pins hbm_0/SAPB_1]
+  connect_bd_intf_net -intf_net axi_apb_bridge_0_APB_M [get_bd_intf_pins axi_apb_bridge_0/APB_M] [get_bd_intf_pins hbm_0/SAPB_0]
+  connect_bd_intf_net -intf_net axi_apb_bridge_0_APB_M2 [get_bd_intf_pins axi_apb_bridge_0/APB_M2] [get_bd_intf_pins hbm_0/SAPB_1]
   connect_bd_intf_net -intf_net axi_clock_converter_0_M_AXI [get_bd_intf_pins axi_clock_converter_0/M_AXI] [get_bd_intf_pins blackparrot_fpga_host_0/s_axil]
   connect_bd_intf_net -intf_net axi_clock_converter_1_M_AXI [get_bd_intf_pins axi_clock_converter_1/M_AXI] [get_bd_intf_pins smartconnect_0/S00_AXI]
+  connect_bd_intf_net -intf_net axi_clock_converter_2_M_AXI [get_bd_intf_pins axi_apb_bridge_0/AXI4_LITE] [get_bd_intf_pins axi_clock_converter_2/M_AXI]
   connect_bd_intf_net -intf_net blackparrot_0_m_axi [get_bd_intf_pins blackparrot_0/m_axi] [get_bd_intf_pins blackparrot_fpga_host_0/s_axi]
   connect_bd_intf_net -intf_net blackparrot_fpga_host_0_m_axi [get_bd_intf_pins blackparrot_0/s_axi] [get_bd_intf_pins blackparrot_fpga_host_0/m_axi]
   connect_bd_intf_net -intf_net pcie_refclk_1 [get_bd_intf_ports pcie_refclk] [get_bd_intf_pins util_ds_buf_0/CLK_IN_D]
@@ -554,30 +568,33 @@ proc cr_bd_design_1 { parentCell } {
 connect_bd_intf_net -intf_net [get_bd_intf_nets s_axi_1] [get_bd_intf_pins axi_clock_converter_1/S_AXI] [get_bd_intf_pins ila_0/SLOT_0_AXI]
   connect_bd_intf_net -intf_net smartconnect_0_M00_AXI [get_bd_intf_pins hbm_0/SAXI_00] [get_bd_intf_pins smartconnect_0/M00_AXI]
   connect_bd_intf_net -intf_net smartconnect_0_M01_AXI [get_bd_intf_pins hbm_0/SAXI_16] [get_bd_intf_pins smartconnect_0/M01_AXI]
-  connect_bd_intf_net -intf_net xdma_0_M_AXI_LITE [get_bd_intf_pins axi_clock_converter_0/S_AXI] [get_bd_intf_pins xdma_0/M_AXI_LITE]
+  connect_bd_intf_net -intf_net smartconnect_1_M00_AXI [get_bd_intf_pins axi_clock_converter_0/S_AXI] [get_bd_intf_pins smartconnect_1/M00_AXI]
+  connect_bd_intf_net -intf_net smartconnect_1_M01_AXI [get_bd_intf_pins axi_clock_converter_2/S_AXI] [get_bd_intf_pins smartconnect_1/M01_AXI]
+  connect_bd_intf_net -intf_net xdma_0_M_AXI_LITE [get_bd_intf_pins smartconnect_1/S00_AXI] [get_bd_intf_pins xdma_0/M_AXI_LITE]
   connect_bd_intf_net -intf_net xdma_0_pcie_mgt [get_bd_intf_ports pci_express_x4] [get_bd_intf_pins xdma_0/pcie_mgt]
 
   # Create port connections
   connect_bd_net -net clk_wiz_0_clk_out1 [get_bd_pins axi_clock_converter_0/m_axi_aclk] [get_bd_pins axi_clock_converter_1/s_axi_aclk] [get_bd_pins blackparrot_0/m01_axi_aclk] [get_bd_pins blackparrot_0/m_axi_aclk] [get_bd_pins blackparrot_0/s_axi_aclk] [get_bd_pins blackparrot_fpga_host_0/m_axi_aclk] [get_bd_pins blackparrot_fpga_host_0/s_axi_aclk] [get_bd_pins blackparrot_fpga_host_0/s_axil_aclk] [get_bd_pins clk_wiz_0/clk_out1] [get_bd_pins ila_0/clk] [get_bd_pins proc_sys_reset_1/slowest_sync_clk]
   connect_bd_net -net clk_wiz_0_clk_out2 [get_bd_pins clk_wiz_0/clk_out2] [get_bd_pins hbm_0/HBM_REF_CLK_0] [get_bd_pins hbm_0/HBM_REF_CLK_1]
-  connect_bd_net -net clk_wiz_0_clk_out3 [get_bd_pins clk_wiz_0/clk_out3] [get_bd_pins hbm_0/APB_0_PCLK] [get_bd_pins hbm_0/APB_1_PCLK] [get_bd_pins proc_sys_reset_2/slowest_sync_clk]
+  connect_bd_net -net clk_wiz_0_clk_out3 [get_bd_pins axi_apb_bridge_0/s_axi_aclk] [get_bd_pins axi_clock_converter_2/m_axi_aclk] [get_bd_pins clk_wiz_0/clk_out3] [get_bd_pins hbm_0/APB_0_PCLK] [get_bd_pins hbm_0/APB_1_PCLK] [get_bd_pins proc_sys_reset_2/slowest_sync_clk]
   connect_bd_net -net clk_wiz_0_clk_out4 [get_bd_pins axi_clock_converter_1/m_axi_aclk] [get_bd_pins clk_wiz_0/clk_out4] [get_bd_pins hbm_0/AXI_00_ACLK] [get_bd_pins hbm_0/AXI_16_ACLK] [get_bd_pins proc_sys_reset_3/slowest_sync_clk] [get_bd_pins smartconnect_0/aclk]
   connect_bd_net -net pcie_perstn_1 [get_bd_ports pcie_perstn] [get_bd_pins xdma_0/sys_rst_n]
   connect_bd_net -net proc_sys_reset_1_peripheral_aresetn [get_bd_pins axi_clock_converter_0/m_axi_aresetn] [get_bd_pins axi_clock_converter_1/s_axi_aresetn] [get_bd_pins blackparrot_0/m01_axi_aresetn] [get_bd_pins blackparrot_0/m_axi_aresetn] [get_bd_pins blackparrot_0/s_axi_aresetn] [get_bd_pins blackparrot_fpga_host_0/m_axi_aresetn] [get_bd_pins blackparrot_fpga_host_0/s_axi_aresetn] [get_bd_pins blackparrot_fpga_host_0/s_axil_aresetn] [get_bd_pins proc_sys_reset_1/peripheral_aresetn]
-  connect_bd_net -net proc_sys_reset_2_peripheral_aresetn [get_bd_pins hbm_0/APB_0_PRESET_N] [get_bd_pins hbm_0/APB_1_PRESET_N] [get_bd_pins proc_sys_reset_2/peripheral_aresetn]
-  connect_bd_net -net proc_sys_reset_3_peripheral_aresetn [get_bd_pins axi_clock_converter_1/m_axi_aresetn] [get_bd_pins hbm_0/AXI_00_ARESET_N] [get_bd_pins hbm_0/AXI_16_ARESET_N] [get_bd_pins proc_sys_reset_3/peripheral_aresetn] [get_bd_pins smartconnect_0/aresetn]
+  connect_bd_net -net proc_sys_reset_2_peripheral_aresetn [get_bd_pins axi_apb_bridge_0/s_axi_aresetn] [get_bd_pins axi_clock_converter_2/m_axi_aresetn] [get_bd_pins hbm_0/APB_0_PRESET_N] [get_bd_pins hbm_0/APB_1_PRESET_N] [get_bd_pins proc_sys_reset_2/peripheral_aresetn]
+  connect_bd_net -net proc_sys_reset_3_interconnect_aresetn [get_bd_pins proc_sys_reset_3/interconnect_aresetn] [get_bd_pins smartconnect_0/aresetn]
+  connect_bd_net -net proc_sys_reset_3_peripheral_aresetn [get_bd_pins axi_clock_converter_1/m_axi_aresetn] [get_bd_pins hbm_0/AXI_00_ARESET_N] [get_bd_pins hbm_0/AXI_16_ARESET_N] [get_bd_pins proc_sys_reset_3/peripheral_aresetn]
   connect_bd_net -net reset_1 [get_bd_ports rstn] [get_bd_pins proc_sys_reset_1/ext_reset_in] [get_bd_pins proc_sys_reset_2/ext_reset_in] [get_bd_pins proc_sys_reset_3/ext_reset_in]
   connect_bd_net -net util_ds_buf_0_IBUF_DS_ODIV2 [get_bd_pins util_ds_buf_0/IBUF_DS_ODIV2] [get_bd_pins xdma_0/sys_clk]
   connect_bd_net -net util_ds_buf_0_IBUF_OUT [get_bd_pins util_ds_buf_0/IBUF_OUT] [get_bd_pins xdma_0/sys_clk_gt]
-  connect_bd_net -net xdma_0_axi_aclk [get_bd_pins axi_clock_converter_0/s_axi_aclk] [get_bd_pins clk_wiz_0/clk_in1] [get_bd_pins xdma_0/axi_aclk]
-  connect_bd_net -net xdma_0_axi_aresetn [get_bd_pins axi_clock_converter_0/s_axi_aresetn] [get_bd_pins proc_sys_reset_1/aux_reset_in] [get_bd_pins proc_sys_reset_2/aux_reset_in] [get_bd_pins proc_sys_reset_3/aux_reset_in] [get_bd_pins xdma_0/axi_aresetn]
+  connect_bd_net -net xdma_0_axi_aclk [get_bd_pins axi_clock_converter_0/s_axi_aclk] [get_bd_pins axi_clock_converter_2/s_axi_aclk] [get_bd_pins clk_wiz_0/clk_in1] [get_bd_pins smartconnect_1/aclk] [get_bd_pins xdma_0/axi_aclk]
+  connect_bd_net -net xdma_0_axi_aresetn [get_bd_pins axi_clock_converter_0/s_axi_aresetn] [get_bd_pins axi_clock_converter_2/s_axi_aresetn] [get_bd_pins proc_sys_reset_1/aux_reset_in] [get_bd_pins proc_sys_reset_2/aux_reset_in] [get_bd_pins proc_sys_reset_3/aux_reset_in] [get_bd_pins smartconnect_1/aresetn] [get_bd_pins xdma_0/axi_aresetn]
 
   # Create address segments
   create_bd_addr_seg -range 0x00010000000000000000 -offset 0x00000000 [get_bd_addr_spaces blackparrot_0/m_axi] [get_bd_addr_segs blackparrot_fpga_host_0/s_axi/mem] SEG_blackparrot_fpga_host_0_mem
   create_bd_addr_seg -range 0x08000000 -offset 0x00000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM00] SEG_hbm_0_HBM_MEM00
   create_bd_addr_seg -range 0x08000000 -offset 0x10000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM01] SEG_hbm_0_HBM_MEM01
-  create_bd_addr_seg -range 0x08000000 -offset 0x20000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM02] SEG_hbm_0_HBM_MEM02
   create_bd_addr_seg -range 0x08000000 -offset 0x08000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM00] SEG_hbm_0_HBM_MEM002
+  create_bd_addr_seg -range 0x08000000 -offset 0x20000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM02] SEG_hbm_0_HBM_MEM02
   create_bd_addr_seg -range 0x08000000 -offset 0x30000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM03] SEG_hbm_0_HBM_MEM03
   create_bd_addr_seg -range 0x08000000 -offset 0x40000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM04] SEG_hbm_0_HBM_MEM04
   create_bd_addr_seg -range 0x08000000 -offset 0x50000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM05] SEG_hbm_0_HBM_MEM05
@@ -604,8 +621,8 @@ connect_bd_intf_net -intf_net [get_bd_intf_nets s_axi_1] [get_bd_intf_pins axi_c
   create_bd_addr_seg -range 0x08000000 -offset 0x000190000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM25] SEG_hbm_0_HBM_MEM25
   create_bd_addr_seg -range 0x08000000 -offset 0x0001A0000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM26] SEG_hbm_0_HBM_MEM26
   create_bd_addr_seg -range 0x08000000 -offset 0x0001B0000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM27] SEG_hbm_0_HBM_MEM27
-  create_bd_addr_seg -range 0x08000000 -offset 0x0001C0000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM28] SEG_hbm_0_HBM_MEM28
   create_bd_addr_seg -range 0x08000000 -offset 0x28000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM02] SEG_hbm_0_HBM_MEM028
+  create_bd_addr_seg -range 0x08000000 -offset 0x0001C0000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM28] SEG_hbm_0_HBM_MEM28
   create_bd_addr_seg -range 0x08000000 -offset 0x0001D0000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM29] SEG_hbm_0_HBM_MEM29
   create_bd_addr_seg -range 0x08000000 -offset 0x0001E0000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM30] SEG_hbm_0_HBM_MEM30
   create_bd_addr_seg -range 0x08000000 -offset 0x0001F0000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_00/HBM_MEM31] SEG_hbm_0_HBM_MEM31
@@ -640,14 +657,8 @@ connect_bd_intf_net -intf_net [get_bd_intf_nets s_axi_1] [get_bd_intf_pins axi_c
   create_bd_addr_seg -range 0x08000000 -offset 0x0001F8000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM31] SEG_hbm_0_HBM_MEM3195
   create_bd_addr_seg -range 0x00010000000000000000 -offset 0x00000000 [get_bd_addr_spaces blackparrot_fpga_host_0/m_axi] [get_bd_addr_segs blackparrot_0/s_axi/mem] SEG_blackparrot_0_mem
   create_bd_addr_seg -range 0x00010000 -offset 0x44A00000 [get_bd_addr_spaces xdma_0/M_AXI_LITE] [get_bd_addr_segs blackparrot_fpga_host_0/s_axil/mem] SEG_blackparrot_fpga_host_0_mem
-
-  # Exclude Address Segments
-  create_bd_addr_seg -range 0x00400000 -offset 0x00000000 [get_bd_addr_spaces SAPB_0_0] [get_bd_addr_segs hbm_0/SAPB_0/Reg] SEG_hbm_0_Reg
-  exclude_bd_addr_seg [get_bd_addr_segs SAPB_0_0/SEG_hbm_0_Reg]
-
-  create_bd_addr_seg -range 0x00400000 -offset 0x00000000 [get_bd_addr_spaces SAPB_1_0] [get_bd_addr_segs hbm_0/SAPB_1/Reg] SEG_hbm_0_Reg
-  exclude_bd_addr_seg [get_bd_addr_segs SAPB_1_0/SEG_hbm_0_Reg]
-
+  create_bd_addr_seg -range 0x00400000 -offset 0x00000000 [get_bd_addr_spaces xdma_0/M_AXI_LITE] [get_bd_addr_segs hbm_0/SAPB_0/Reg] SEG_hbm_0_Reg
+  create_bd_addr_seg -range 0x00400000 -offset 0x00400000 [get_bd_addr_spaces xdma_0/M_AXI_LITE] [get_bd_addr_segs hbm_0/SAPB_1/Reg] SEG_hbm_0_Reg2
 
   # Restore current instance
   current_bd_instance $oldCurInst
