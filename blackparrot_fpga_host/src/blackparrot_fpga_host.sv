@@ -179,21 +179,29 @@ module blackparrot_fpga_host
   // connects host to BP MMIO out buffer
   // 'h8: BP MMIO out buffer count
   // 'hC: BP MMIO out buffer data
+  // 'h10: NBF read response buffer count
+  // 'h14: NBF read response buffer data
   localparam [S_AXIL_ADDR_WIDTH-1:0] mmio_req_cnt_addr_lp = S_AXIL_ADDR_WIDTH'('h8);
   localparam [S_AXIL_ADDR_WIDTH-1:0] mmio_req_addr_lp = S_AXIL_ADDR_WIDTH'('hC);
-  localparam [S_AXIL_ADDR_WIDTH-1:0] axil_read_csr_lp [1:0] = '{mmio_req_addr_lp, mmio_req_cnt_addr_lp};
+  localparam [S_AXIL_ADDR_WIDTH-1:0] nbf_resp_cnt_addr_lp = S_AXIL_ADDR_WIDTH'('h10);
+  localparam [S_AXIL_ADDR_WIDTH-1:0] nbf_resp_addr_lp = S_AXIL_ADDR_WIDTH'('h14);
+  localparam [S_AXIL_ADDR_WIDTH-1:0] axil_read_csr_lp [3:0] = '{nbf_resp_addr_lp, nbf_resp_cnt_addr_lp, mmio_req_addr_lp, mmio_req_cnt_addr_lp};
   logic mmio_req_v_lo, mmio_req_count_v_lo, mmio_req_yumi_li, mmio_req_count_yumi_li;
   logic [S_AXIL_DATA_WIDTH-1:0] mmio_req_data_lo, mmio_req_count_lo;
+
+  logic nbf_resp_v_lo, nbf_resp_yumi_li, nbf_resp_count_v_lo, nbf_resp_count_yumi_li;
+  logic [S_AXIL_DATA_WIDTH-1:0] nbf_resp_data_lo, nbf_resp_count_lo;
+
   blackparrot_fpga_host_read_to_fifo
     #(.S_AXIL_ADDR_WIDTH(S_AXIL_ADDR_WIDTH)
       ,.S_AXIL_DATA_WIDTH(S_AXIL_DATA_WIDTH)
-      ,.CSR_ELS_P(2)
+      ,.CSR_ELS_P(4)
       ,.csr_addr_p(axil_read_csr_lp)
       )
     axil_read
-     (.fifo_v_i({mmio_req_v_lo, mmio_req_count_v_lo})
-      ,.fifo_yumi_o({mmio_req_yumi_li, mmio_req_count_yumi_li})
-      ,.fifo_data_i({mmio_req_data_lo, mmio_req_count_lo})
+     (.fifo_v_i({nbf_resp_v_lo, nbf_resp_count_v_lo, mmio_req_v_lo, mmio_req_count_v_lo})
+      ,.fifo_yumi_o({nbf_resp_yumi_li, nbf_resp_count_yumi_li, mmio_req_yumi_li, mmio_req_count_yumi_li})
+      ,.fifo_data_i({nbf_resp_data_lo, nbf_resp_count_lo, mmio_req_data_lo, mmio_req_count_lo})
       ,.*
       );
 
@@ -233,9 +241,9 @@ module blackparrot_fpga_host
      (.mmio_v_o(mmio_req_v_lo)
       ,.mmio_data_o(mmio_req_data_lo)
       ,.mmio_yumi_i(mmio_req_yumi_li)
-      ,.mmio_data_count_v_o(mmio_req_count_v_lo)
-      ,.mmio_data_count_o(mmio_req_count_lo)
-      ,.mmio_data_count_yumi_i(mmio_req_count_yumi_li)
+      ,.mmio_count_v_o(mmio_req_count_v_lo)
+      ,.mmio_count_o(mmio_req_count_lo)
+      ,.mmio_count_yumi_i(mmio_req_count_yumi_li)
       ,.mmio_v_i(mmio_resp_v_li)
       ,.mmio_data_i(mmio_resp_data_li)
       ,.mmio_ready_and_o(mmio_resp_ready_and_lo)
@@ -257,6 +265,12 @@ module blackparrot_fpga_host
      (.nbf_v_i(nbf_v_li)
       ,.nbf_data_i(nbf_data_li)
       ,.nbf_ready_and_o(nbf_ready_and_lo)
+      ,.nbf_resp_v_o(nbf_resp_v_lo)
+      ,.nbf_resp_data_o(nbf_resp_data_lo)
+      ,.nbf_resp_yumi_i(nbf_resp_yumi_li)
+      ,.nbf_resp_count_v_o(nbf_resp_count_v_lo)
+      ,.nbf_resp_count_o(nbf_resp_count_lo)
+      ,.nbf_resp_count_yumi_i(nbf_resp_count_yumi_li)
       ,.*
       );
 

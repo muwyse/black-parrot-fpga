@@ -245,6 +245,28 @@ module testbench
   logic                              s_axil_rready;
   logic [1:0]                        s_axil_rresp;
 
+  // nbf loader to FPGA host
+  logic [S_AXIL_ADDR_WIDTH-1:0]      nbf_s_axil_araddr;
+  logic                              nbf_s_axil_arvalid;
+  logic                              nbf_s_axil_arready;
+  logic [2:0]                        nbf_s_axil_arprot;
+
+  logic [S_AXIL_DATA_WIDTH-1:0]      nbf_s_axil_rdata;
+  logic                              nbf_s_axil_rvalid;
+  logic                              nbf_s_axil_rready;
+  logic [1:0]                        nbf_s_axil_rresp;
+
+  // axi host to FPGA host
+  logic [S_AXIL_ADDR_WIDTH-1:0]      host_s_axil_araddr;
+  logic                              host_s_axil_arvalid;
+  logic                              host_s_axil_arready;
+  logic [2:0]                        host_s_axil_arprot;
+
+  logic [S_AXIL_DATA_WIDTH-1:0]      host_s_axil_rdata;
+  logic                              host_s_axil_rvalid;
+  logic                              host_s_axil_rready;
+  logic [1:0]                        host_s_axil_rresp;
+
   // clocks and resets
   assign s_axi_aclk = clk_i;
   assign m_axi_aclk = clk_i;
@@ -442,6 +464,14 @@ module testbench
      ,.m_axil_bvalid(s_axil_bvalid)
      ,.m_axil_bready(s_axil_bready)
      ,.m_axil_bresp(s_axil_bresp)
+     ,.m_axil_araddr(nbf_s_axil_araddr)
+     ,.m_axil_arvalid(nbf_s_axil_arvalid)
+     ,.m_axil_arready(nbf_s_axil_arready)
+     ,.m_axil_arprot(nbf_s_axil_arprot)
+     ,.m_axil_rdata(nbf_s_axil_rdata)
+     ,.m_axil_rvalid(nbf_s_axil_rvalid)
+     ,.m_axil_rready(nbf_s_axil_rready)
+     ,.m_axil_rresp(nbf_s_axil_rresp)
      ,.done_o(loader_done)
      );
 
@@ -469,16 +499,52 @@ module testbench
     nonsynth_host
     (.m_axil_aclk(s_axil_aclk)
      ,.m_axil_aresetn(s_axil_aresetn)
-     ,.m_axil_araddr(s_axil_araddr)
-     ,.m_axil_arvalid(s_axil_arvalid)
-     ,.m_axil_arready(s_axil_arready)
-     ,.m_axil_arprot(s_axil_arprot)
-     ,.m_axil_rdata(s_axil_rdata)
-     ,.m_axil_rvalid(s_axil_rvalid)
-     ,.m_axil_rready(s_axil_rready)
-     ,.m_axil_rresp(s_axil_rresp)
+     ,.m_axil_araddr(host_s_axil_araddr)
+     ,.m_axil_arvalid(host_s_axil_arvalid)
+     ,.m_axil_arready(host_s_axil_arready)
+     ,.m_axil_arprot(host_s_axil_arprot)
+     ,.m_axil_rdata(host_s_axil_rdata)
+     ,.m_axil_rvalid(host_s_axil_rvalid)
+     ,.m_axil_rready(host_s_axil_rready)
+     ,.m_axil_rresp(host_s_axil_rresp)
      ,.done_o(host_done)
      );
+
+  // NBF loader connects to AR/R until loader is done,
+  // then host connects
+  always_comb begin
+    // data and resp can always be connected
+    nbf_s_axil_rdata = s_axil_rdata;
+    nbf_s_axil_rresp = s_axil_rresp;
+    host_s_axil_rdata = s_axil_rdata;
+    host_s_axil_rresp = s_axil_rresp;
+
+    // defaults
+    nbf_s_axil_arready = 1'b0;
+    nbf_s_axil_rvalid = 1'b0;
+    host_s_axil_arready = 1'b0;
+    host_s_axil_rvalid = 1'b0;
+
+    if (~loader_done) begin
+      // AR
+      s_axil_araddr = nbf_s_axil_araddr;
+      s_axil_arprot = nbf_s_axil_arprot;
+      s_axil_arvalid = nbf_s_axil_arvalid;
+      nbf_s_axil_arready = s_axil_arready;
+      // R
+      s_axil_rready = nbf_s_axil_rready;
+      nbf_s_axil_rvalid = s_axil_rvalid;
+    end else begin
+      // AR
+      s_axil_araddr = host_s_axil_araddr;
+      s_axil_arprot = host_s_axil_arprot;
+      s_axil_arvalid = host_s_axil_arvalid;
+      host_s_axil_arready = s_axil_arready;
+      // R
+      s_axil_rready = host_s_axil_rready;
+      host_s_axil_rvalid = s_axil_rvalid;
+    end
+  end
 
   always_ff @(negedge clk_i) begin
     if (~reset_i) begin

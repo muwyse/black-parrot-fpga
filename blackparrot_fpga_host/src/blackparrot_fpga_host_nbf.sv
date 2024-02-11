@@ -7,7 +7,7 @@
  *  generates AXI read and write transactions to BP.
  *
  * Constraints:
- *  - only supports NBF writes of 4 or 8 bytes, Fence, and Finish
+ *  - supports NBF writes of 4 or 8 bytes, reads of 4 bytes, Fence, and Finish
  *  - NBF address and data width must both be 64b
  *
  */
@@ -79,6 +79,14 @@ module blackparrot_fpga_host_nbf
    , input                                     nbf_v_i
    , input [fifo_data_width_p-1:0]             nbf_data_i
    , output logic                              nbf_ready_and_o
+
+   , output logic                              nbf_resp_v_o
+   , output logic [fifo_data_width_p-1:0]      nbf_resp_data_o
+   , input                                     nbf_resp_yumi_i
+
+   , output logic                              nbf_resp_count_v_o
+   , output logic [fifo_data_width_p-1:0]      nbf_resp_count_o
+   , input                                     nbf_resp_count_yumi_i
    );
 
   wire reset = ~m_axi_aresetn;
@@ -97,6 +105,14 @@ module blackparrot_fpga_host_nbf
       ,.yumi_i(m_axi_bvalid & m_axi_bready)
       ,.count_o(m_axi_write_count)
       );
+
+  // NBF response count is a simple register - always valid
+  // only one read can be outstanding at a time
+  // the count register value is set to 1 when there is a valid NBF response
+  wire unused = &{nbf_resp_count_yumi_i};
+  assign nbf_resp_count_v_o = 1'b1;
+  assign nbf_resp_count_o = fifo_data_width_p'(nbf_resp_v_o ? 1'b1 : 1'b0);
+
 
   // NBF SIPO
   localparam nbf_width_lp = nbf_opcode_width_p + nbf_addr_width_p + nbf_data_width_p;
@@ -134,7 +150,9 @@ module blackparrot_fpga_host_nbf
   logic m_axi_v, m_axi_ready_and, m_axi_w;
   logic [2:0] m_axi_size;
   logic [(M_AXI_DATA_WIDTH/8)-1:0] m_axi_wmask;
-  logic fifo_v;
+
+  logic fifo_v, fifo_w, fifo_yumi;
+  logic [M_AXI_DATA_WIDTH-1:0] fifo_data;
 
   // BlackParrot FIFO to AXI (BP I/O In)
   bp_fifo_to_axi
@@ -153,11 +171,11 @@ module blackparrot_fpga_host_nbf
       ,.wmask_i(m_axi_wmask)
       ,.size_i(m_axi_size)
       ,.ready_and_o(m_axi_ready_and)
-      // FIFO responses - unused because host only issues writes to BP
-      ,.data_o(/* unused */)
+      // FIFO responses
+      ,.data_o(fifo_data)
       ,.v_o(fifo_v)
-      ,.w_o(/* unused */)
-      ,.yumi_i(fifo_v)
+      ,.w_o(fifo_w)
+      ,.yumi_i(fifo_yumi)
       // M AXI
       ,.m_axi_awaddr_o(m_axi_awaddr)
       ,.m_axi_awvalid_o(m_axi_awvalid)
@@ -200,7 +218,32 @@ module blackparrot_fpga_host_nbf
       ,.m_axi_rresp_i(m_axi_rresp)
       );
 
+  logic [nbf_addr_width_p-1:0] nbf_addr;
+  bsg_dff_reset_en
+    #(.width_p(nbf_addr_width_p))
+    nbf_addr_reg
+     (.clk_i(clk)
+      ,.reset_i(reset)
+      ,.en_i(nbf_yumi_li)
+      ,.data_i(nbf.addr)
+      ,.data_o(nbf_addr)
+      );
+
+  typedef enum logic { e_ready, e_resp } state_e;
+  state_e state_r, state_n;
+
+  always_ff @(posedge clk) begin
+    if (reset) begin
+      state_r <= e_ready;
+    end else begin
+      state_r <= state_n;
+    end
+  end
+
   always_comb begin
+    state_n = state_r;
+
+    // default 64b write
     m_axi_v = 1'b0;
     m_axi_w = 1'b1;
     m_axi_wmask = '1;
@@ -210,36 +253,61 @@ module blackparrot_fpga_host_nbf
 
     nbf_yumi_li = 1'b0;
 
-    case (nbf.opcode)
-      // 32b write
-      8'h2: begin
-        m_axi_v = nbf_v_lo;
-        nbf_yumi_li = m_axi_v & m_axi_ready_and;
-        m_axi_size = 3'b010;
-        m_axi_data = (nbf.addr[0+:3] == 3'b0)
-                     ? {2{nbf.data[0+:32]}}
-                     : {2{nbf.data[32+:32]}};
-        m_axi_wmask = (nbf.addr[0+:3] == 3'b0)
-                      ? 8'h0F
-                      : 8'hF0;
+    case (state_r)
+      e_ready: begin
+        case (nbf.opcode)
+          // 32b write
+          8'h2: begin
+            m_axi_v = nbf_v_lo;
+            nbf_yumi_li = m_axi_v & m_axi_ready_and;
+            m_axi_size = 3'b010;
+            m_axi_data = (nbf.addr[0+:3] == 3'b0)
+                         ? {2{nbf.data[0+:32]}}
+                         : {2{nbf.data[32+:32]}};
+            m_axi_wmask = (nbf.addr[0+:3] == 3'b0)
+                          ? 8'h0F
+                          : 8'hF0;
+          end
+          // 64b write
+          8'h3: begin
+            m_axi_v = nbf_v_lo;
+            nbf_yumi_li = m_axi_v & m_axi_ready_and;
+          end
+          // 32b read
+          8'h12: begin
+            m_axi_v = nbf_v_lo;
+            m_axi_w = 1'b0;
+            m_axi_size = 3'b010;
+            nbf_yumi_li = m_axi_v & m_axi_ready_and;
+            state_n = nbf_yumi_li ? e_resp : state_r;
+          end
+          // Fence and Finish
+          // sink after all write responses received
+          8'hFE
+          ,8'hFF: begin
+            nbf_yumi_li = nbf_v_lo & m_axi_credits_empty;
+          end
+          // sink anything else
+          default: begin
+            nbf_yumi_li = nbf_v_lo;
+          end
+        endcase
       end
-      // 64b write
-      8'h3: begin
-        m_axi_v = nbf_v_lo;
-        nbf_yumi_li = m_axi_v & m_axi_ready_and;
-      end
-      // Fence and Finish
-      // sink after all write responses received
-      8'hFE
-      ,8'hFF: begin
-        nbf_yumi_li = nbf_v_lo & m_axi_credits_empty;
-      end
-      // sink anything else
-      default: begin
-        nbf_yumi_li = nbf_v_lo;
+      // back to ready when read response is consumed
+      e_resp: begin
+        state_n = nbf_resp_yumi_i ? e_ready : state_r;
       end
     endcase
   end
+
+  // forward read responses from fifo_to_axi to nbf_resp output
+  assign nbf_resp_v_o = fifo_v & ~fifo_w;
+  assign nbf_resp_data_o = nbf_addr[0+:3] == 3'b0
+                           ? fifo_data[0+:32]
+                           : fifo_data[32+:32];
+
+  // sink write responses, wait for nbf_resp_yumi for read responses
+  assign fifo_yumi = (fifo_v & fifo_w) | (nbf_resp_yumi_i);
 
 endmodule
 

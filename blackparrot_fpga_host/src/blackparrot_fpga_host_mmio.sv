@@ -77,9 +77,9 @@ module blackparrot_fpga_host_mmio
    , output logic [fifo_data_width_p-1:0]      mmio_data_o
    , input                                     mmio_yumi_i
    // MMIO Request Count
-   , output logic                              mmio_data_count_v_o
-   , output logic [fifo_data_width_p-1:0]      mmio_data_count_o
-   , input                                     mmio_data_count_yumi_i
+   , output logic                              mmio_count_v_o
+   , output logic [fifo_data_width_p-1:0]      mmio_count_o
+   , input                                     mmio_count_yumi_i
    // MMIO Response from Host to BP
    // Requests to read-only addresses return data on this interface
    // 32b data returned per read request
@@ -180,7 +180,7 @@ module blackparrot_fpga_host_mmio
       );
 
   // BP I/O Out Buffer Counter
-  logic [`BSG_WIDTH(BP_MMIO_ELS)-1:0] mmio_data_count_lo;
+  logic [`BSG_WIDTH(BP_MMIO_ELS)-1:0] mmio_count_lo;
   bsg_counter_up_down
     #(.max_val_p(BP_MMIO_ELS)
       ,.init_val_p(0)
@@ -191,12 +191,12 @@ module blackparrot_fpga_host_mmio
       ,.reset_i(reset)
       ,.up_i(mmio_req_v_li & mmio_req_ready_and_lo)
       ,.down_i(mmio_yumi_i)
-      ,.count_o(mmio_data_count_lo)
+      ,.count_o(mmio_count_lo)
       );
   // MMIO data count is a simple register - always valid
-  wire unused = &{mmio_data_count_yumi_i};
-  assign mmio_data_count_v_o = 1'b1;
-  assign mmio_data_count_o = fifo_data_width_p'(mmio_data_count_lo);
+  wire unused = &{mmio_count_yumi_i};
+  assign mmio_count_v_o = 1'b1;
+  assign mmio_count_o = fifo_data_width_p'(mmio_count_lo);
 
   // BP MMIO Response Buffer
   // Host software enqueues
