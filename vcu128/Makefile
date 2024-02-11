@@ -43,7 +43,7 @@ clean_ip:
 
 
 project: clean_project
-	vivado -source $(PROJECT_TCL) -mode batch
+	$(vivado_bin) -source $(PROJECT_TCL) -mode batch
 
 clean_project:
 	rm -rf $(PROJECT_DIR)
@@ -51,7 +51,7 @@ clean_project:
 DATE:=$(shell date +"%c")
 BITFILE ?= $(bit_dir)/design_1_wrapper.bit
 program_fpga:
-	sudo vivado -mode batch -source $(program_tcl) -tclargs --bitfile $(BITFILE)
+	sudo $(vivado_bin) -mode batch -source $(program_tcl) -tclargs --bitfile $(BITFILE)
 	@echo "$(DATE): $(shell readlink -f $(BITFILE))" > last_programmed.txt
 	@echo "$(shell md5sum $(BITFILE))" >> last_programmed.txt
 
@@ -60,7 +60,7 @@ check_device:
 
 JOBS ?= 8
 generate_bitstream:
-	vivado -mode batch -source $(generate_tcl) -tclargs --project_name $(PROJECT_NAME) --jobs $(JOBS)
+	$(vivado_bin) -mode batch -source $(generate_tcl) -tclargs --project_name $(PROJECT_NAME) --jobs $(JOBS)
 
 clean: clean_project clean_ip
 	rm -f vivado*

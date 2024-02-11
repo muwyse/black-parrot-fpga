@@ -22,9 +22,9 @@ export MAKE_DIR               := $(BASE_DIR)/mk
 export PI_DIR                 := $(BASE_DIR)/pi
 
 export VIVADO_VERSION         ?= 2019.1
+export XILINX_VIVADO          ?= /gro/cad/Xilinx/Vivado/$(VIVADO_VERSION)
 export VIVADO_BOARD_DIR       := $(abspath $(BASE_DIR)/../XilinxBoardStore)
-# TODO: requires XILINX_VIVADO to be defined in environment
-#vivado_bin                    := $(XILINX_VIVADO)/bin/vivado
+vivado_bin                    := $(XILINX_VIVADO)/bin/vivado
 
 export BLACKPARROT_DIR       := $(abspath $(BASE_DIR)/../black-parrot)
 export BLACKPARROT_SUB_DIR   := $(abspath $(BASE_DIR)/../black-parrot-subsystems)
