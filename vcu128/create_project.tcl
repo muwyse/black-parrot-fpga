@@ -697,7 +697,7 @@ connect_bd_intf_net -intf_net [get_bd_intf_nets xdma_0_M_AXI_LITE] [get_bd_intf_
   create_bd_addr_seg -range 0x08000000 -offset 0x0001E8000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM30] SEG_hbm_0_HBM_MEM3092
   create_bd_addr_seg -range 0x08000000 -offset 0x0001F8000000 [get_bd_addr_spaces blackparrot_0/m01_axi] [get_bd_addr_segs hbm_0/SAXI_16/HBM_MEM31] SEG_hbm_0_HBM_MEM3195
   create_bd_addr_seg -range 0x00010000000000000000 -offset 0x00000000 [get_bd_addr_spaces blackparrot_fpga_host_0/m_axi] [get_bd_addr_segs blackparrot_0/s_axi/mem] SEG_blackparrot_0_mem
-  create_bd_addr_seg -range 0x00010000 -offset 0x44A00000 [get_bd_addr_spaces xdma_0/M_AXI_LITE] [get_bd_addr_segs blackparrot_fpga_host_0/s_axil/mem] SEG_blackparrot_fpga_host_0_mem
+  create_bd_addr_seg -range 0x00010000 -offset 0x00000000 [get_bd_addr_spaces xdma_0/M_AXI_LITE] [get_bd_addr_segs blackparrot_fpga_host_0/s_axil/mem] SEG_blackparrot_fpga_host_0_mem
 
   # Restore current instance
   current_bd_instance $oldCurInst
