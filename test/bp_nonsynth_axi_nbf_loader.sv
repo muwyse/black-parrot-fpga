@@ -249,9 +249,28 @@ module bp_nonsynth_axi_nbf_loader
     endcase
   end
 
+  localparam timeout_p = 10000;
+  logic [`BSG_SAFE_CLOG2(timeout_p+1)-1:0] timeout_r;
+  bsg_counter_clear_up
+   #(.max_val_p(timeout_p), .init_val_p(0))
+   nbf_timeout_counter
+    (.clk_i(m_axil_aclk)
+     ,.reset_i(reset)
+     ,.clear_i(next_nbf)
+     ,.up_i(1'b1)
+     ,.count_o(timeout_r)
+     );
+
   always_ff @(negedge m_axil_aclk) begin
     if ((m_axil_rvalid & m_axil_rready) && (state_r == e_read_data_resp)) begin
-      $display("NBF read: %x", m_axil_rdata);
+      $display("NBF read        : %x", m_axil_rdata);
+    end
+    if (next_nbf && (nbf_index_r % 10000 == 0)) begin
+      $display("NBF heartbeat   : %d [%x] (%p)", nbf_index_r, curr_nbf, curr_nbf);
+    end
+    if (timeout_r == timeout_p) begin
+      $display("timeout on loader writes");
+      $finish();
     end
   end
 

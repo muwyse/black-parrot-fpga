@@ -504,7 +504,7 @@ module testbench
   logic [`BSG_SAFE_CLOG2(timeout_p+1)-1:0] timeout_r;
   bsg_counter_clear_up
    #(.max_val_p(timeout_p), .init_val_p(0))
-   nbf_word_counter
+   nbf_timeout_counter
     (.clk_i(clk_i)
      ,.reset_i(reset_i)
      ,.clear_i(s_axil_awvalid & s_axil_awready)
