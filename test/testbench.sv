@@ -15,7 +15,17 @@
 
 module testbench
   import bp_common_pkg::*;
-  #()
+  #(
+    // design parameters
+    parameter bp_params_e bp_params_p = e_bp_default_cfg
+    `declare_bp_proc_params(bp_params_p)
+
+    // COSIM parameters
+    , parameter cosim_p          = 0
+    , parameter checkpoint_p     = 0
+    , parameter cosim_memsize_p  = 0
+    , parameter cosim_instr_p    = 0
+    )
   (output bit reset_i
    );
 
@@ -42,11 +52,25 @@ module testbench
      ,.async_reset_o(reset_i)
      );
 
+  bit cosim_clk_i, cosim_reset_i;
+  bsg_nonsynth_clock_gen
+   #(.cycle_time_p(`SIM_CLK_PERIOD/5))
+   cosim_clk_gen
+    (.o(cosim_clk_i));
+
+  bsg_nonsynth_reset_gen
+   #(.num_clocks_p(1)
+     ,.reset_cycles_lo_p(0)
+     ,.reset_cycles_hi_p(10)
+     )
+   cosim_reset_gen
+    (.clk_i(cosim_clk_i)
+     ,.async_reset_o(cosim_reset_i)
+     );
+
+
   // test params
   localparam nbf_filename_p = "prog.nbf";
-
-  // design parameters
-  localparam bp_params_e bp_params_p = e_bp_default_cfg;
 
   localparam M_AXI_ADDR_WIDTH = 64;
   localparam M_AXI_DATA_WIDTH = 64;
@@ -670,5 +694,56 @@ module testbench
        ,.mhartid_i(cfg_bus_cast_i.core_id)
        ,.*
        );
+
+  wire cosim_en_lo = cosim_p ? 1'b1 : 1'b0;
+  wire cmt_trace_en_lo = 1'b0;
+  wire checkpoint_en_lo = checkpoint_p ? 1'b1 : 1'b0;
+  bind bp_be_top
+    bp_nonsynth_cosim
+     #(.bp_params_p(bp_params_p))
+     cosim
+      (.clk_i(clk_i)
+       ,.reset_i(reset_i)
+       ,.freeze_i(calculator.pipe_sys.csr.cfg_bus_cast_i.freeze)
+
+       // We want to pass these values as parameters, but cannot in Verilator 4.025
+       // Parameter-resolved constants must not use dotted references
+       ,.cosim_en_i(testbench.cosim_en_lo)
+       ,.trace_en_i(testbench.cmt_trace_en_lo)
+       ,.checkpoint_i(testbench.checkpoint_en_lo)
+       ,.num_core_i(testbench.num_core_p)
+       ,.mhartid_i(calculator.pipe_sys.csr.cfg_bus_cast_i.core_id)
+       ,.config_file_i('0) // unused by cosim
+       ,.instr_cap_i(testbench.cosim_instr_p)
+       ,.memsize_i(testbench.cosim_memsize_p)
+       ,.amo_en_i(1'b1) // unused by cosim, now a default
+       ,.finish_i(testbench.host_done)
+
+       ,.decode_i(calculator.dispatch_pkt_cast_i.decode)
+
+       ,.is_debug_mode_i(calculator.pipe_sys.csr.is_debug_mode)
+       ,.commit_pkt_i(calculator.commit_pkt_cast_o)
+
+       ,.priv_mode_i(calculator.pipe_sys.csr.priv_mode_r)
+       ,.mstatus_i(calculator.pipe_sys.csr.mstatus_lo)
+       ,.mcause_i(calculator.pipe_sys.csr.mcause_lo)
+       ,.scause_i(calculator.pipe_sys.csr.scause_lo)
+
+       ,.ird_w_v_i(scheduler.iwb_pkt_cast_i.ird_w_v)
+       ,.ird_addr_i(scheduler.iwb_pkt_cast_i.rd_addr)
+       ,.ird_data_i(scheduler.iwb_pkt_cast_i.rd_data)
+
+       ,.frd_w_v_i(scheduler.fwb_pkt_cast_i.frd_w_v)
+       ,.frd_addr_i(scheduler.fwb_pkt_cast_i.rd_addr)
+       ,.frd_data_i(scheduler.fwb_pkt_cast_i.rd_data)
+
+       ,.cache_req_yumi_i(calculator.pipe_mem.dcache.cache_req_yumi_i)
+       ,.cache_req_nonblocking_i(calculator.pipe_mem.dcache.nonblocking_req)
+       ,.cache_req_complete_i(calculator.pipe_mem.dcache.complete_recv)
+
+       ,.cosim_clk_i(testbench.cosim_clk_i)
+       ,.cosim_reset_i(testbench.cosim_reset_i)
+       );
+
 
 endmodule

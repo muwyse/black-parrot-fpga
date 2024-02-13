@@ -7,10 +7,16 @@
 
 TOP ?= $(shell git rev-parse --show-toplevel)
 
+# cosim
+export CHECKPOINT_P ?= 0
+export COSIM_P ?= 1
+export COSIM_MEMSIZE_P ?= 256
+export COSIM_INSTR_P ?= 0
+
 # Setup paths for this repo
 include $(TOP)/Makefile.common
 # Pull in tools (Verilator)
-include $(BLACKPARROT_TOOLS_DIR)/Makefile.common
+include $(BP_TOOLS_DIR)/Makefile.common
 # test params
 include Makefile.params
 
@@ -92,7 +98,6 @@ $(VCS_LINT_FLIST): $(TEST_FLIST)
 
 export VCS_BUILD_DIR   = $(TEST_DIR)/$(TEST_NAME).build.vcs
 export VCS_FLIST       = $(VCS_BUILD_DIR)/build.flist
-export VCS_CONFIG      = $(VCS_BUILD_DIR)/config.vlt
 export VCS_LOG         = $(VCS_BUILD_DIR)/build.log
 export VCS_TOP        ?= $(TEST_TOP)
 

@@ -71,12 +71,14 @@ VCS_BUILD_DEFAULT_OPTS += -timescale=1ps/1ps    # set timescale
 VCS_BUILD_DEFAULT_OPTS += -diag timescale
 VCS_BUILD_DEFAULT_OPTS += +lint=TFIPC-L
 VCS_BUILD_DEFAULT_OPTS += +plusarg_save
-#VCS_BUILD_DEFAULT_OPTS += -CFLAGS "-I$(BP_TOOLS_DIR)/dromajo/include"
+VCS_BUILD_DEFAULT_OPTS += -CFLAGS "-I$(BP_TOOLS_DIR)/dromajo/include"
 VCS_BUILD_DEFAULT_OPTS += -CFLAGS "-I$(BP_RTL_INSTALL_DIR)/include -std=c++17"
 VCS_BUILD_DEFAULT_OPTS += -CFLAGS "-I$(BASEJUMP_STL_DIR)/bsg_test"
+VCS_BUILD_DEFAULT_OPTS += $(BP_TOOLS_INSTALL_DIR)/lib/libdromajo_cosim.a
+VCS_BUILD_DEFAULT_OPTS += -CFLAGS "-DDROMAJO_COSIM"
 VCS_BUILD_DEFAULT_OPTS += -LDFLAGS "-lpthread"
 VCS_BUILD_DEFAULT_OPTS += -LDFLAGS "-L$(BP_RTL_INSTALL_DIR)/lib -ldramsim3 -Wl,-rpath=$(BP_RTL_INSTALL_DIR)/lib"
-#VCS_BUILD_DEFAULT_OPTS += -LDFLAGS "-L$(BP_RTL_INSTALL_DIR)/lib -ldromajo_cosim -Wl,-rpath=$(BP_RTL_INSTALL_DIR)/lib"
+#VCS_BUILD_DEFAULT_OPTS += -LDFLAGS "-L$(BP_TOOLS_INSTALL_DIR)/lib -ldromajo_cosim -Wl,-rpath=$(BP_TOOLS_INSTALL_DIR)/lib"
 
 VCS_BUILD_OPTS ?= $(VCS_BUILD_DEFAULT_OPTS)
 
@@ -105,11 +107,13 @@ VCS_OPTIONS ?=
 VCS_PLUSARGS ?=
 
 PROG_NBF ?= prog.nbf
+PROG_ELF ?= prog.elf
 
 sim.vcs: build.vcs
 sim.vcs: $(VCS_BUILD_DIR)/run_sim.vcs
 $(VCS_BUILD_DIR)/run_sim.vcs: | $(VCS_BUILD_DIR)
 	cp $(TEST_DIR)/$(PROG_NBF) $(VCS_BUILD_DIR)/$(PROG_NBF)
+	cp $(TEST_DIR)/$(PROG_ELF) $(VCS_BUILD_DIR)/$(PROG_ELF)
 	cd $(@D); ./sim.vcs $(VCS_OPTIONS) $(VCS_PLUSARGS) 2>&1 | tee -i $(VCS_SIM_LOG)
 
 sim_dump.vcs: VCS_OPTS += +memcbk

@@ -29,7 +29,7 @@ vivado_bin                    := $(XILINX_VIVADO)/bin/vivado
 export BLACKPARROT_DIR       := $(abspath $(BASE_DIR)/../black-parrot)
 export BLACKPARROT_SUB_DIR   := $(abspath $(BASE_DIR)/../black-parrot-subsystems)
 export BLACKPARROT_SDK_DIR   := $(abspath $(BASE_DIR)/../black-parrot-sdk)
-export BLACKPARROT_TOOLS_DIR := $(abspath $(BASE_DIR)/../black-parrot-tools)
+export BP_TOOLS_DIR          := $(abspath $(BASE_DIR)/../black-parrot-tools)
 export ZYNQPARROT_DIR        := $(abspath $(BASE_DIR)/../zynq-parrot)
 
 export BASEJUMP_STL_DIR   := $(BLACKPARROT_DIR)/external/basejump_stl
@@ -44,4 +44,3 @@ export BP_RTL_BIN_DIR     := $(BP_RTL_INSTALL_DIR)/bin
 export BP_RTL_LIB_DIR     := $(BP_RTL_INSTALL_DIR)/lib
 export BP_RTL_INCLUDE_DIR := $(BP_RTL_INSTALL_DIR)/include
 
-export BP_TOOLS_INSTALL_DIR := $(BLACKPARROT_TOOLS_DIR)/install
