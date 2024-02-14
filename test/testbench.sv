@@ -29,6 +29,8 @@ module testbench
   (output bit reset_i
    );
 
+  localparam timeout_p = 10000;
+
   export "DPI-C" function get_sim_period;
   function int get_sim_period();
     return (`SIM_CLK_PERIOD);
@@ -404,6 +406,32 @@ module testbench
      ,.*
      );
 
+  bp_nonsynth_if_monitor
+    #(.timeout_p(timeout_p)
+     ,.els_p(5)
+     ,.dev_p("m_axi")
+     )
+    m_axi_timeout
+     (.clk_i(clk_i)
+     ,.reset_i(reset_i)
+     ,.en_i(1'b1)
+     ,.v_i({m_axi_awvalid, m_axi_wvalid, m_axi_bvalid, m_axi_arvalid, m_axi_rvalid})
+     ,.ready_and_i({m_axi_awready, m_axi_wready, m_axi_bready, m_axi_arready, m_axi_rready})
+     );
+
+  bp_nonsynth_if_monitor
+    #(.timeout_p(timeout_p)
+     ,.els_p(5)
+     ,.dev_p("s_axi")
+     )
+    s_axi_timeout
+     (.clk_i(clk_i)
+     ,.reset_i(reset_i)
+     ,.en_i(1'b1)
+     ,.v_i({s_axi_awvalid, s_axi_wvalid, s_axi_bvalid, s_axi_arvalid, s_axi_rvalid})
+     ,.ready_and_i({s_axi_awready, s_axi_wready, s_axi_bready, s_axi_arready, s_axi_rready})
+     );
+
   // bp
   blackparrot
     #(.M_AXI_ADDR_WIDTH(M_AXI_ADDR_WIDTH)
@@ -465,6 +493,19 @@ module testbench
      ,.axi_rready_i(m01_axi_rready)
      );
 
+  bp_nonsynth_if_monitor
+    #(.timeout_p(timeout_p)
+     ,.els_p(5)
+     ,.dev_p("m01_axi")
+     )
+    m01_axi_timeout
+     (.clk_i(clk_i)
+     ,.reset_i(reset_i)
+     ,.en_i(1'b1)
+     ,.v_i({m01_axi_awvalid, m01_axi_wvalid, m01_axi_bvalid, m01_axi_arvalid, m01_axi_rvalid})
+     ,.ready_and_i({m01_axi_awready, m01_axi_wready, m01_axi_bready, m01_axi_arready, m01_axi_rready})
+     );
+
   // test driver
   logic loader_done;
   bp_nonsynth_axi_nbf_loader
@@ -500,7 +541,6 @@ module testbench
      );
 
   // AXIL watchdog
-  localparam timeout_p = 10000;
   logic [`BSG_SAFE_CLOG2(timeout_p+1)-1:0] timeout_r;
   bsg_counter_clear_up
    #(.max_val_p(timeout_p), .init_val_p(0))
@@ -531,6 +571,7 @@ module testbench
      ,.m_axil_rvalid(host_s_axil_rvalid)
      ,.m_axil_rready(host_s_axil_rready)
      ,.m_axil_rresp(host_s_axil_rresp)
+     ,.en_i(loader_done)
      ,.done_o(host_done)
      );
 

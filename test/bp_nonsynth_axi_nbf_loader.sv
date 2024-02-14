@@ -18,6 +18,7 @@ module bp_nonsynth_axi_nbf_loader
    ,parameter M_AXIL_CREDITS = 64
    ,parameter nbf_filename_p = "prog.nbf"
    ,parameter logic [63:0] nbf_host_addr_p = 64'h0
+   ,parameter timeout_p = 10000
    )
   (// M_AXIL
    input logic                               m_axil_aclk
@@ -51,6 +52,7 @@ module bp_nonsynth_axi_nbf_loader
    );
 
   wire reset = ~m_axil_aresetn;
+
 
   localparam [M_AXIL_ADDR_WIDTH-1:0] nbf_resp_cnt_addr_lp = M_AXIL_ADDR_WIDTH'('h10);
   localparam [M_AXIL_ADDR_WIDTH-1:0] nbf_resp_addr_lp = M_AXIL_ADDR_WIDTH'('h14);
@@ -249,8 +251,16 @@ module bp_nonsynth_axi_nbf_loader
     endcase
   end
 
-  localparam timeout_p = 10000;
-  logic [`BSG_SAFE_CLOG2(timeout_p+1)-1:0] timeout_r;
+  // synopsys sync_set_reset "reset"
+  always_ff @(posedge m_axil_aclk) begin
+    if (reset) begin
+      state_r <= e_reset;
+    end else begin
+      state_r <= state_n;
+    end
+  end
+
+  logic [`BSG_SAFE_CLOG2(timeout_p+1)-1:0] nbf_timeout_r;
   bsg_counter_clear_up
    #(.max_val_p(timeout_p), .init_val_p(0))
    nbf_timeout_counter
@@ -258,7 +268,20 @@ module bp_nonsynth_axi_nbf_loader
      ,.reset_i(reset)
      ,.clear_i(next_nbf)
      ,.up_i(1'b1)
-     ,.count_o(timeout_r)
+     ,.count_o(nbf_timeout_r)
+     );
+
+  bp_nonsynth_if_monitor
+    #(.timeout_p(timeout_p)
+     ,.els_p(5)
+     ,.dev_p("nbf_loader")
+     )
+    m_axil_timeout
+     (.clk_i(m_axil_aclk)
+     ,.reset_i(reset)
+     ,.en_i(~done_o)
+     ,.v_i({m_axil_awvalid, m_axil_wvalid, m_axil_bvalid, m_axil_arvalid, m_axil_rvalid})
+     ,.ready_and_i({m_axil_awready, m_axil_wready, m_axil_bready, m_axil_arready, m_axil_rready})
      );
 
   always_ff @(negedge m_axil_aclk) begin
@@ -268,18 +291,9 @@ module bp_nonsynth_axi_nbf_loader
     if (next_nbf && (nbf_index_r % 10000 == 0)) begin
       $display("NBF heartbeat   : %d [%x] (%p)", nbf_index_r, curr_nbf, curr_nbf);
     end
-    if (timeout_r == timeout_p) begin
+    if (nbf_timeout_r == timeout_p) begin
       $display("timeout on loader writes");
       $finish();
-    end
-  end
-
-  // synopsys sync_set_reset "reset"
-  always_ff @(posedge m_axil_aclk) begin
-    if (reset) begin
-      state_r <= e_reset;
-    end else begin
-      state_r <= state_n;
     end
   end
 

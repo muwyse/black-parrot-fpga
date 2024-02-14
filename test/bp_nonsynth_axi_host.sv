@@ -15,6 +15,7 @@ module bp_nonsynth_axi_host
   #(parameter M_AXIL_ADDR_WIDTH = 64
    ,parameter M_AXIL_DATA_WIDTH = 32 // must be 32
    ,parameter M_AXIL_CREDITS = 64
+   ,parameter timeout_p = 10000
    ,parameter bp_params_e bp_params_p = e_bp_default_cfg
    `declare_bp_proc_params(bp_params_p)
    )
@@ -32,6 +33,7 @@ module bp_nonsynth_axi_host
    ,output logic                             m_axil_rready
    ,input logic [1:0]                        m_axil_rresp
 
+   ,input logic                              en_i
    ,output logic                             done_o
    );
 
@@ -172,7 +174,7 @@ module bp_nonsynth_axi_host
 
   // synopsys sync_set_reset "reset"
   always_ff @(posedge m_axil_aclk) begin
-    if (reset) begin
+    if (reset | ~en_i) begin
       poll_state_r <= e_reset;
     end else begin
       poll_state_r <= poll_state_n;
@@ -256,6 +258,19 @@ module bp_nonsynth_axi_host
     end
     $system("stty echo");
   end
+
+  bp_nonsynth_if_monitor
+    #(.timeout_p(timeout_p)
+     ,.els_p(2)
+     ,.dev_p("host")
+     )
+    m_axil_timeout
+     (.clk_i(m_axil_aclk)
+     ,.reset_i(reset)
+     ,.en_i(~done_o)
+     ,.v_i({m_axil_arvalid, m_axil_rvalid})
+     ,.ready_and_i({m_axil_arready, m_axil_rready})
+     );
 
 endmodule
 

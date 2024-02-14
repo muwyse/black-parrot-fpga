@@ -134,7 +134,6 @@ $(VCS_LINT_DIR) $(VCS_BUILD_DIR):
 	mkdir -p $@
 
 clean.vcs: clean_lint.vcs clean_build.vcs
-	rm -rf $(TEST_DIR)/DVEfiles\
 
 clean: clean.vcs
 

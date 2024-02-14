@@ -368,6 +368,7 @@ $BASEJUMP_STL_DIR/bsg_test/bsg_nonsynth_reset_gen.sv
 # testbench files
 $TEST_DIR/testbench.sv
 $TEST_DIR/bp_nonsynth_axi_nbf_loader.sv
+$TEST_DIR/bp_nonsynth_if_monitor.sv
 $TEST_DIR/bp_nonsynth_axi_host.sv
 $BP_TOP_DIR/test/common/bp_nonsynth_core_profiler.sv
 $BP_TOP_DIR/test/common/bp_nonsynth_watchdog.sv
