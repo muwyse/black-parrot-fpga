@@ -8,7 +8,7 @@
 TOP ?= $(shell git rev-parse --show-toplevel)
 
 include $(TOP)/Makefile.common
-include $(BLACKPARROT_TOOLS_DIR)/Makefile.common
+include $(BP_TOOLS_DIR)/Makefile.common
 
 export BASE_DIR           := $(abspath $(TOP))
 export PROJECT_BASE_DIR   := $(BASE_DIR)/vcu128

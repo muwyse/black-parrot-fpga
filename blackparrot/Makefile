@@ -8,7 +8,7 @@
 TOP ?= $(shell git rev-parse --show-toplevel)
 
 include $(TOP)/Makefile.common
-include $(BLACKPARROT_TOOLS_DIR)/Makefile.common
+include $(BP_TOOLS_DIR)/Makefile.common
 
 export IP_NAME             = blackparrot
 export IP_DIR              = $(BASE_DIR)/$(IP_NAME)
