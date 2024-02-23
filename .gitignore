@@ -1,4 +1,4 @@
 *.swp
-vivado.jou
-vivado.log
+*.jou
+*.log
 *.str
