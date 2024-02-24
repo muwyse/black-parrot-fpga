@@ -267,7 +267,7 @@ module bp_nonsynth_axi_nbf_loader
     (.clk_i(m_axil_aclk)
      ,.reset_i(reset)
      ,.clear_i(next_nbf)
-     ,.up_i(1'b1)
+     ,.up_i(~done_o)
      ,.count_o(nbf_timeout_r)
      );
 
