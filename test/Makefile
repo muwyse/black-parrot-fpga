@@ -45,7 +45,7 @@ NBF_UCODE ?=
 NBF_SKIP_ZEROS ?= 1
 NBF_BOOT_PC ?=
 NBF_CONFIG ?= 0
-NBF_DEBUG ?= 0
+NBF_DEBUG ?= 1
 NBF_VERIFY ?= 0
 
 NBF_FLAGS = --ncpus $(NBF_NCPUS) --data_width 64
