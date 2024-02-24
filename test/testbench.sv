@@ -98,6 +98,8 @@ module testbench
   localparam nbf_addr_width_p = 64;
   localparam nbf_data_width_p = 64;
 
+  localparam bootrom_els_p = 2048;
+
   // 512 KiB
   // 2**29 bytes
   localparam MEM_ELS = (2**29)/(M01_AXI_DATA_WIDTH/8);
@@ -304,7 +306,7 @@ module testbench
   assign s_axil_aresetn = ~reset_i;
 
   // host
-  blackparrot_fpga_host
+  bp_nonsynth_axi_fpga_host
     #(.M_AXI_ADDR_WIDTH(M_AXI_ADDR_WIDTH)
       ,.M_AXI_DATA_WIDTH(M_AXI_DATA_WIDTH)
       ,.M_AXI_ID_WIDTH(M_AXI_ID_WIDTH)
@@ -317,8 +319,9 @@ module testbench
       ,.nbf_opcode_width_p(nbf_opcode_width_p)
       ,.nbf_addr_width_p(nbf_addr_width_p)
       ,.nbf_data_width_p(nbf_data_width_p)
+      ,.bootrom_els_p(bootrom_els_p)
       )
-    fpga_host
+    nonsynth_fpga_host
     (// Host to BP
      .m_axi_aclk(s_axi_aclk)
      ,.m_axi_aresetn(s_axi_aresetn)
