@@ -288,7 +288,7 @@ module bp_nonsynth_axi_nbf_loader
     if ((m_axil_rvalid & m_axil_rready) && (state_r == e_read_data_resp)) begin
       $display("NBF read        : %x", m_axil_rdata);
     end
-    if (next_nbf && (nbf_index_r % 10000 == 0)) begin
+    if (next_nbf && (nbf_index_r % 5000 == 0)) begin
       $display("NBF heartbeat   : %d [%x] (%p)", nbf_index_r, curr_nbf, curr_nbf);
     end
     if (nbf_timeout_r == timeout_p) begin
