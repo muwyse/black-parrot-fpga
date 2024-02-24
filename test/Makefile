@@ -82,6 +82,9 @@ RISCV_OBJDUMP ?= $(CROSS_COMPILE)objdump
 %.mem: %.riscv
 	$(RISCV_OBJCOPY) -O verilog $< $@
 
+%.bin: %.riscv
+	$(RISCV_OBJCOPY) -O binary $< $@
+
 %.dump: %.riscv
 	$(RISCV_OBJDUMP) -d -t $< > $@
 
@@ -98,8 +101,9 @@ $(TEST_DIR)/bootrom.riscv: $(BOOTROM_RISCV)
 	cp $< $@
 
 SIM_COLLATERAL = $(TEST_DIR)/bootrom.riscv $(TEST_DIR)/bootrom.dump $(TEST_DIR)/bootrom.mem
+SIM_COLLATERAL += $(TEST_DIR)/bootrom.bin
 SIM_COLLATERAL += $(TEST_DIR)/prog.riscv $(TEST_DIR)/prog.dump $(TEST_DIR)/prog.mem
-SIM_COLLATERAL += $(TEST_DIR)/prog.elf $(TEST_DIR)/prog.nbf
+SIM_COLLATERAL += $(TEST_DIR)/prog.elf $(TEST_DIR)/prog.nbf $(TEST_DIR)/prog.bin
 sim_prep: $(SIM_COLLATERAL)
 
 sim_prep_clean:
