@@ -5,3 +5,5 @@ fpga.lint.vcs
 fpga.build.vcs
 fpga.sim.vcs
 DVEfiles/
+prog.*
+bootrom.*

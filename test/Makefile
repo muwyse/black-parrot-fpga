@@ -13,10 +13,14 @@ export COSIM_P ?= 1
 export COSIM_MEMSIZE_P ?= 256
 export COSIM_INSTR_P ?= 0
 
+export RISCV_TARGET ?= riscv64-unknown-linux-gnu
+
 # Setup paths for this repo
 include $(TOP)/Makefile.common
 # Pull in tools (Verilator)
 include $(BP_TOOLS_DIR)/Makefile.common
+# Pull in BP_SDK
+include $(BP_SDK_DIR)/Makefile.common
 # test params
 include Makefile.params
 
@@ -27,6 +31,81 @@ export TEST_NAME = fpga
 
 export BP_IP_SRC_DIR = $(BASE_DIR)/blackparrot/src
 export BP_FPGA_HOST_IP_SRC_DIR = $(BASE_DIR)/blackparrot_fpga_host/src
+
+################################################################################
+### Bootrom and program files + NBF
+################################################################################
+
+NBF = $(BASE_DIR)/software/nbf.py
+NBF_NCPUS ?= 1
+NBF_MEM_SIZE ?= 64
+NBF_BOOTROM ?= bootrom.mem
+NBF_BOOTROM_SIZE ?= 64
+NBF_UCODE ?=
+NBF_SKIP_ZEROS ?= 1
+NBF_BOOT_PC ?=
+NBF_CONFIG ?= 0
+NBF_DEBUG ?= 0
+NBF_VERIFY ?= 0
+
+NBF_FLAGS = --ncpus $(NBF_NCPUS) --data_width 64
+NBF_FLAGS += --bootrom $(NBF_BOOTROM) --bootrom_size $(NBF_BOOTROM_SIZE)
+ifneq ($(NBF_UCODE),)
+NBF_FLAGS += --ucode $(NBF_UCODE)
+endif
+ifneq ($(NBF_BOOT_PC),)
+NBF_FLAGS += --boot_pc $(NBF_BOOT_PC)
+endif
+ifeq ($(NBF_SKIP_ZEROS),1)
+NBF_FLAGS += --skip_zeros
+endif
+ifeq ($(NBF_CONFIG),1)
+NBF_FLAGS += --config
+endif
+ifeq ($(NBF_DEBUG),1)
+NBF_FLAGS += --debug
+endif
+ifeq ($(NBF_VERIFY),1)
+NBF_FLAGS += --verify
+endif
+NBF_FLAGS += --mem_size $(NBF_MEM_SIZE)
+
+BOOTROM_RISCV ?= $(BP_SDK_DIR)/prog/bootrom/bootrom.riscv
+
+PROG ?= hello_world
+SUITE ?= bp-tests
+PROG_RISCV = $(BP_SDK_DIR)/prog/$(SUITE)/$(PROG).riscv
+
+RISCV_OBJCOPY ?= $(CROSS_COMPILE)objcopy
+RISCV_OBJDUMP ?= $(CROSS_COMPILE)objdump
+
+%.mem: %.riscv
+	$(RISCV_OBJCOPY) -O verilog $< $@
+
+%.dump: %.riscv
+	$(RISCV_OBJDUMP) -d -t $< > $@
+
+%.nbf: %.mem
+	python $(NBF) $(NBF_FLAGS) --mem $< > $@
+
+%.elf: %.riscv
+	cp $< $@
+
+$(TEST_DIR)/prog.riscv: $(PROG_RISCV)
+	cp $< $@
+
+$(TEST_DIR)/bootrom.riscv: $(BOOTROM_RISCV)
+	cp $< $@
+
+SIM_COLLATERAL = $(TEST_DIR)/bootrom.riscv $(TEST_DIR)/bootrom.dump $(TEST_DIR)/bootrom.mem
+SIM_COLLATERAL += $(TEST_DIR)/prog.riscv $(TEST_DIR)/prog.dump $(TEST_DIR)/prog.mem
+SIM_COLLATERAL += $(TEST_DIR)/prog.elf $(TEST_DIR)/prog.nbf
+sim_prep: $(SIM_COLLATERAL)
+
+sim_prep_clean:
+	rm -f $(SIM_COLLATERAL)
+
+clean: sim_prep_clean
 
 ################################################################################
 ### Verilator
