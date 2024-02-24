@@ -38,7 +38,7 @@ export BP_FPGA_HOST_IP_SRC_DIR = $(BASE_DIR)/blackparrot_fpga_host/src
 
 NBF = $(BASE_DIR)/software/nbf.py
 NBF_NCPUS ?= 1
-NBF_MEM_SIZE ?= 64
+NBF_MEM_SIZE ?= 256
 NBF_BOOTROM ?= bootrom.mem
 NBF_BOOTROM_SIZE ?= 64
 NBF_UCODE ?=
