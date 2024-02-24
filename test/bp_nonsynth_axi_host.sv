@@ -211,7 +211,7 @@ module bp_nonsynth_axi_host
       ,.clear_i('0)
       ,.data_o(finish_r)
       );
-  assign done_o = &(finish_r | finish_set);
+  assign done_o = &(finish_r);
 
   integer tmp;
   integer stdout[num_core_p];
