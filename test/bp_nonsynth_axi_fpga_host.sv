@@ -156,12 +156,9 @@ module bp_nonsynth_axi_fpga_host
 
    );
 
-  // AR/R arbitration
+  // Read arbitration
   logic                              s_axi_arvalid_host;
   logic                              s_axi_arready_host;
-
-  logic                              s_axi_arvalid_bootrom;
-  logic                              s_axi_arready_bootrom;
 
   logic [S_AXI_DATA_WIDTH-1:0]       s_axi_rdata_host;
   logic                              s_axi_rvalid_host;
@@ -170,6 +167,9 @@ module bp_nonsynth_axi_fpga_host
   logic                              s_axi_rlast_host;
   logic [1:0]                        s_axi_rresp_host;
 
+  logic                              s_axi_arvalid_bootrom;
+  logic                              s_axi_arready_bootrom;
+
   logic [S_AXI_DATA_WIDTH-1:0]       s_axi_rdata_bootrom;
   logic                              s_axi_rvalid_bootrom;
   logic                              s_axi_rready_bootrom;
@@ -177,22 +177,22 @@ module bp_nonsynth_axi_fpga_host
   logic                              s_axi_rlast_bootrom;
   logic [1:0]                        s_axi_rresp_bootrom;
 
+  wire araddr_bootrom = s_axi_araddr >= 'h110000;
+
   typedef enum logic [1:0] {
-    e_ready
-    ,e_host
-    ,e_bootrom
-  } state_e;
-  state_e state_r, state_n;
+    e_rd_ready
+    ,e_rd_host
+    ,e_rd_bootrom
+  } rd_state_e;
+  rd_state_e rd_state_r, rd_state_n;
 
   always_ff @(posedge s_axi_aclk) begin
     if (~s_axi_aresetn) begin
-      state_r <= e_ready;
+      rd_state_r <= e_rd_ready;
     end else begin
-      state_r <= state_n;
+      rd_state_r <= rd_state_n;
     end
   end
-
-  wire araddr_bootrom = s_axi_araddr >= 'h110000;
 
   always_comb begin
     s_axi_arvalid_host = 1'b0;
@@ -208,34 +208,179 @@ module bp_nonsynth_axi_fpga_host
     s_axi_rlast = s_axi_rlast_host;
     s_axi_rresp = s_axi_rresp_host;
 
-    case (state_r)
-      e_ready: begin
+    case (rd_state_r)
+      e_rd_ready: begin
         s_axi_arready = s_axi_arready_host & s_axi_arready_bootrom;
         s_axi_arvalid_host = s_axi_arvalid & ~araddr_bootrom;
         s_axi_arvalid_bootrom = s_axi_arvalid & araddr_bootrom;
-        state_n = (s_axi_arvalid & s_axi_arready)
+        rd_state_n = (s_axi_arvalid & s_axi_arready)
                   ? araddr_bootrom
-                    ? e_bootrom
-                    : e_host
-                  : state_r;
+                    ? e_rd_bootrom
+                    : e_rd_host
+                  : rd_state_r;
       end
-      e_host: begin
+      e_rd_host: begin
         s_axi_rvalid = s_axi_rvalid_host;
         s_axi_rready_host = s_axi_rready;
         s_axi_rdata = s_axi_rdata_host;
         s_axi_rid   = s_axi_rid_host;
         s_axi_rlast = s_axi_rlast_host;
         s_axi_rresp = s_axi_rresp_host;
-        state_n = (s_axi_rvalid & s_axi_rready & s_axi_rlast) ? e_ready : state_r;
+        rd_state_n = (s_axi_rvalid & s_axi_rready & s_axi_rlast) ? e_rd_ready : rd_state_r;
       end
-      e_bootrom: begin
+      e_rd_bootrom: begin
         s_axi_rvalid = s_axi_rvalid_bootrom;
         s_axi_rready_bootrom = s_axi_rready;
         s_axi_rdata = s_axi_rdata_bootrom;
         s_axi_rid   = s_axi_rid_bootrom;
         s_axi_rlast = s_axi_rlast_bootrom;
         s_axi_rresp = s_axi_rresp_bootrom;
-        state_n = (s_axi_rvalid & s_axi_rready & s_axi_rlast) ? e_ready : state_r;
+        rd_state_n = (s_axi_rvalid & s_axi_rready & s_axi_rlast) ? e_rd_ready : rd_state_r;
+      end
+      default: begin
+      end
+    endcase
+  end
+
+  // Write arbitration
+  logic                              s_axi_awvalid_host;
+  logic                              s_axi_awready_host;
+
+  logic                              s_axi_wvalid_host;
+  logic                              s_axi_wready_host;
+
+  logic                              s_axi_bvalid_host;
+  logic                              s_axi_bready_host;
+  logic [S_AXI_ID_WIDTH-1:0]         s_axi_bid_host;
+  logic [1:0]                        s_axi_bresp_host;
+
+  logic                              s_axi_awvalid_bootrom;
+  logic                              s_axi_awready_bootrom;
+
+  logic                              s_axi_wvalid_bootrom;
+  logic                              s_axi_wready_bootrom;
+
+  logic                              s_axi_bvalid_bootrom;
+  logic                              s_axi_bready_bootrom;
+  logic [S_AXI_ID_WIDTH-1:0]         s_axi_bid_bootrom;
+  logic [1:0]                        s_axi_bresp_bootrom;
+
+  wire awaddr_bootrom = s_axi_awaddr >= 'h110000;
+
+  typedef enum logic [3:0] {
+    e_wr_ready
+    ,e_wr_host
+    ,e_wr_host_addr
+    ,e_wr_host_data
+    ,e_wr_bootrom
+    ,e_wr_bootrom_addr
+    ,e_wr_bootrom_data
+    ,e_b_host
+    ,e_b_bootrom
+  } wr_state_e;
+  wr_state_e wr_state_r, wr_state_n;
+
+  always_ff @(posedge s_axi_aclk) begin
+    if (~s_axi_aresetn) begin
+      wr_state_r <= e_wr_ready;
+    end else begin
+      wr_state_r <= wr_state_n;
+    end
+  end
+
+  always_comb begin
+    s_axi_awvalid_host = 1'b0;
+    s_axi_awvalid_bootrom = 1'b0;
+    s_axi_awready = 1'b0;
+
+    s_axi_wvalid_host = 1'b0;
+    s_axi_wvalid_bootrom = 1'b0;
+    s_axi_wready = 1'b0;
+
+    s_axi_bvalid = 1'b0;
+    s_axi_bready_host = 1'b0;
+    s_axi_bready_bootrom = 1'b0;
+
+    s_axi_bid = s_axi_bid_host;
+    s_axi_bresp = s_axi_bresp_host;
+
+    case (wr_state_r)
+      // wait for address and data to be valid, pick bootrom or host
+      // don't consume anything
+      e_wr_ready: begin
+        wr_state_n = s_axi_awvalid & s_axi_wvalid
+                     ? awaddr_bootrom
+                       ? e_wr_bootrom
+                       : e_wr_host
+                     : wr_state_r;
+      end
+      // consume address and data, send to host
+      e_wr_host: begin
+        s_axi_awvalid_host = s_axi_awvalid;
+        s_axi_awready = s_axi_awready_host;
+        s_axi_wvalid_host = s_axi_wvalid;
+        s_axi_wready = s_axi_wready_host;
+        wr_state_n = (s_axi_awvalid & s_axi_awready) & (s_axi_wvalid & s_axi_wready)
+                     ? e_b_host
+                     : (s_axi_awvalid & s_axi_awready)
+                       ? e_wr_host_data
+                       : (s_axi_wvalid & s_axi_wready)
+                         ? e_wr_host_addr
+                         : wr_state_r;
+      end
+      // data was consumed, still need to send address
+      e_wr_host_addr: begin
+        s_axi_awvalid_host = s_axi_awvalid;
+        s_axi_awready = s_axi_awready_host;
+        wr_state_n = (s_axi_awvalid & s_axi_awready) ? e_b_host : wr_state_r;
+      end
+      // address was consumed, still need to send data
+      e_wr_host_data: begin
+        s_axi_wvalid_host = s_axi_wvalid;
+        s_axi_wready = s_axi_wready_host;
+        wr_state_n = (s_axi_wvalid & s_axi_wready) ? e_b_host : wr_state_r;
+      end
+      // consume address and data, send to bootrom
+      e_wr_bootrom: begin
+        s_axi_awvalid_bootrom = s_axi_awvalid;
+        s_axi_awready = s_axi_awready_bootrom;
+        s_axi_wvalid_bootrom = s_axi_wvalid;
+        s_axi_wready = s_axi_wready_bootrom;
+        wr_state_n = (s_axi_awvalid & s_axi_awready) & (s_axi_wvalid & s_axi_wready)
+                     ? e_b_bootrom
+                     : (s_axi_awvalid & s_axi_awready)
+                       ? e_wr_bootrom_data
+                       : (s_axi_wvalid & s_axi_wready)
+                         ? e_wr_bootrom_addr
+                         : wr_state_r;
+      end
+      // data was consumed, still need to send address
+      e_wr_bootrom_addr: begin
+        s_axi_awvalid_bootrom = s_axi_awvalid;
+        s_axi_awready = s_axi_awready_bootrom;
+        wr_state_n = (s_axi_awvalid & s_axi_awready) ? e_b_bootrom : wr_state_r;
+      end
+      // address was consumed, still need to send data
+      e_wr_bootrom_data: begin
+        s_axi_wvalid_bootrom = s_axi_wvalid;
+        s_axi_wready = s_axi_wready_bootrom;
+        wr_state_n = (s_axi_wvalid & s_axi_wready) ? e_b_bootrom : wr_state_r;
+      end
+      // B response from host
+      e_b_host: begin
+        s_axi_bvalid = s_axi_bvalid_host;
+        s_axi_bready_host = s_axi_bready;
+        s_axi_bid = s_axi_bid_host;
+        s_axi_bresp = s_axi_bresp_host;
+        wr_state_n = (s_axi_bvalid & s_axi_bready) ? e_wr_ready : wr_state_r;
+      end
+      // B response from bootrom
+      e_b_bootrom: begin
+        s_axi_bvalid = s_axi_bvalid_bootrom;
+        s_axi_bready_bootrom = s_axi_bready;
+        s_axi_bid = s_axi_bid_bootrom;
+        s_axi_bresp = s_axi_bresp_bootrom;
+        wr_state_n = (s_axi_bvalid & s_axi_bready) ? e_wr_ready : wr_state_r;
       end
       default: begin
       end
@@ -304,8 +449,8 @@ module bp_nonsynth_axi_fpga_host
      ,.s_axi_aclk(s_axi_aclk)
      ,.s_axi_aresetn(s_axi_aresetn)
      ,.s_axi_awaddr(s_axi_awaddr)
-     ,.s_axi_awvalid(s_axi_awvalid)
-     ,.s_axi_awready(s_axi_awready)
+     ,.s_axi_awvalid(s_axi_awvalid_host)
+     ,.s_axi_awready(s_axi_awready_host)
      ,.s_axi_awid(s_axi_awid)
      ,.s_axi_awlock(s_axi_awlock)
      ,.s_axi_awcache(s_axi_awcache)
@@ -316,14 +461,14 @@ module bp_nonsynth_axi_fpga_host
      ,.s_axi_awqos(s_axi_awqos)
      ,.s_axi_awregion(s_axi_awregion)
      ,.s_axi_wdata(s_axi_wdata)
-     ,.s_axi_wvalid(s_axi_wvalid)
-     ,.s_axi_wready(s_axi_wready)
+     ,.s_axi_wvalid(s_axi_wvalid_host)
+     ,.s_axi_wready(s_axi_wready_host)
      ,.s_axi_wlast(s_axi_wlast)
      ,.s_axi_wstrb(s_axi_wstrb)
-     ,.s_axi_bvalid(s_axi_bvalid)
-     ,.s_axi_bready(s_axi_bready)
-     ,.s_axi_bid(s_axi_bid)
-     ,.s_axi_bresp(s_axi_bresp)
+     ,.s_axi_bvalid(s_axi_bvalid_host)
+     ,.s_axi_bready(s_axi_bready_host)
+     ,.s_axi_bid(s_axi_bid_host)
+     ,.s_axi_bresp(s_axi_bresp_host)
      ,.s_axi_araddr(s_axi_araddr)
      ,.s_axi_arvalid(s_axi_arvalid_host)
      ,.s_axi_arready(s_axi_arready_host)
@@ -358,8 +503,8 @@ module bp_nonsynth_axi_fpga_host
      .s_axi_aclk(s_axi_aclk)
      ,.s_axi_aresetn(s_axi_aresetn)
      ,.s_axi_awaddr(s_axi_awaddr)
-     ,.s_axi_awvalid(1'b0)
-     ,.s_axi_awready()
+     ,.s_axi_awvalid(s_axi_awvalid_bootrom)
+     ,.s_axi_awready(s_axi_awready_bootrom)
      ,.s_axi_awid(s_axi_awid)
      ,.s_axi_awlock(s_axi_awlock)
      ,.s_axi_awcache(s_axi_awcache)
@@ -370,14 +515,14 @@ module bp_nonsynth_axi_fpga_host
      ,.s_axi_awqos(s_axi_awqos)
      ,.s_axi_awregion(s_axi_awregion)
      ,.s_axi_wdata(s_axi_wdata)
-     ,.s_axi_wvalid(1'b0)
-     ,.s_axi_wready()
+     ,.s_axi_wvalid(s_axi_wvalid_bootrom)
+     ,.s_axi_wready(s_axi_wready_bootrom)
      ,.s_axi_wlast(s_axi_wlast)
      ,.s_axi_wstrb(s_axi_wstrb)
-     ,.s_axi_bvalid()
-     ,.s_axi_bready(1'b0)
-     ,.s_axi_bid()
-     ,.s_axi_bresp()
+     ,.s_axi_bvalid(s_axi_bvalid_bootrom)
+     ,.s_axi_bready(s_axi_bready_bootrom)
+     ,.s_axi_bid(s_axi_bid_bootrom)
+     ,.s_axi_bresp(s_axi_bresp_bootrom)
      ,.s_axi_araddr(s_axi_araddr)
      ,.s_axi_arvalid(s_axi_arvalid_bootrom)
      ,.s_axi_arready(s_axi_arready_bootrom)

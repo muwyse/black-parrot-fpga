@@ -72,9 +72,11 @@ module bp_nonsynth_axi_bootrom
 
   // AXI to FIFO converter
   logic [S_AXI_ADDR_WIDTH-1:0] axi_addr;
-  logic axi_v, axi_yumi;
+  logic [S_AXI_DATA_WIDTH-1:0] axi_data;
+  logic [(S_AXI_DATA_WIDTH/8)-1:0] axi_wmask;
+  logic axi_v, axi_w, axi_yumi;
   logic [2:0] axi_size;
-  logic resp_v, resp_ready_and;
+  logic resp_v, resp_w, resp_ready_and;
   logic [S_AXI_DATA_WIDTH-1:0] resp_data;
 
   bp_axi_to_fifo
@@ -86,17 +88,17 @@ module bp_nonsynth_axi_bootrom
      (.clk_i(clk)
       ,.reset_i(reset)
       // to FSM
-      ,.data_o(/* unused */)
+      ,.data_o(axi_data)
       ,.addr_o(axi_addr)
       ,.v_o(axi_v)
-      ,.w_o(/* unused */)
-      ,.wmask_o(/* unused */)
+      ,.w_o(axi_w)
+      ,.wmask_o(axi_wmask)
       ,.size_o(axi_size)
       ,.yumi_i(axi_yumi)
       // response from FSM
       ,.data_i(resp_data)
       ,.v_i(resp_v)
-      ,.w_i(1'b0)
+      ,.w_i(resp_w)
       ,.ready_and_o(resp_ready_and)
       // from S_AXI
       ,.s_axi_awaddr_i(s_axi_awaddr)
@@ -141,7 +143,73 @@ module bp_nonsynth_axi_bootrom
       );
 
   // Bootrom
+  logic [`BSG_SAFE_CLOG2(bootrom_els_p)-1:0] bootrom_addr;
+  logic bootrom_v, bootrom_w;
+  bsg_mem_1rw_sync_mask_write_byte
+    #(.data_width_p(S_AXI_DATA_WIDTH)
+      ,.els_p(bootrom_els_p)
+      ,.latch_last_read_p(1)
+      )
+    bootrom_mem
+     (.clk_i(clk)
+     ,.reset_i(reset)
+     ,.v_i(bootrom_v)
+     ,.w_i(bootrom_w)
+     ,.addr_i(bootrom_addr)
+     ,.data_i(axi_data)
+     ,.write_mask_i(axi_wmask)
+     ,.data_o(resp_data)
+     );
 
+  typedef enum logic [1:0] {
+    e_ready
+    ,e_read
+    ,e_write
+  } state_e;
+  state_e state_r, state_n;
+
+  always_ff @(posedge clk) begin
+    if (reset) begin
+      state_r <= e_ready;
+    end else begin
+      state_r <= state_n;
+    end
+  end
+
+  always_comb begin
+    state_n = state_r;
+    axi_yumi = 1'b0;
+    bootrom_v = 1'b0;
+    bootrom_w = 1'b0;
+    bootrom_addr = axi_addr[3+:`BSG_SAFE_CLOG2(bootrom_els_p)];
+    resp_v = 1'b0;
+    resp_w = 1'b0;
+    case (state_r)
+      e_ready: begin
+        bootrom_v = axi_v;
+        bootrom_w = axi_w;
+        axi_yumi = axi_v;
+        state_n = axi_yumi
+                  ? axi_w
+                    ? e_write
+                    : e_read
+                  : state_r;
+      end
+      e_read: begin
+        resp_v = 1'b1;
+        state_n = resp_ready_and ? e_ready : state_r;
+      end
+      e_write: begin
+        resp_w = 1'b1;
+        resp_v = 1'b1;
+        state_n = resp_ready_and ? e_ready : state_r;
+      end
+      default: begin
+      end
+    endcase
+  end
+
+/*
   // one read at a time
   logic bootrom_r_v, bootrom_r_set, bootrom_r_clear;
   bsg_dff_reset_set_clear
@@ -205,6 +273,6 @@ module bp_nonsynth_axi_bootrom
 
   assign resp_data = bootrom_final_lo;
   assign resp_v = bootrom_r_v;
-
+*/
 endmodule
 
