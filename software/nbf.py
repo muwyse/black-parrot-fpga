@@ -356,7 +356,7 @@ if __name__ == "__main__":
   parser.add_argument('--ncpus', type=int, default=1, help='number of BlackParrot cores')
   parser.add_argument('--ucode', dest='ucode_file', metavar='ucode.mem', help='CCE ucode file')
   parser.add_argument("--mem", dest='mem_file', metavar='prog.mem', help='DRAM verilog file')
-  parser.add_argument("--mem_size", type=int, default=16, help='DRAM size in MiB')
+  parser.add_argument("--mem_size", type=int, default=64, help='DRAM size in MiB')
   parser.add_argument("--bootrom", dest='bootrom_file', metavar='bootrom.mem', help='Bootrom verilog file')
   parser.add_argument("--bootrom_size", type=int, default=64, help='DRAM size in KiB')
   parser.add_argument("--config", dest='config', action='store_true', help='Do config over nbf')
