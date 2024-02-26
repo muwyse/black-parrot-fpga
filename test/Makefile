@@ -86,7 +86,7 @@ RISCV_OBJDUMP ?= $(CROSS_COMPILE)objdump
 	$(RISCV_OBJCOPY) -O binary $< $@
 
 %.dump: %.riscv
-	$(RISCV_OBJDUMP) -d -t $< > $@
+	$(RISCV_OBJDUMP) -D -t $< > $@
 
 %.nbf: %.mem
 	python $(NBF) $(NBF_FLAGS) --mem $< > $@
