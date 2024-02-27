@@ -17,6 +17,7 @@ export IP_PROJECT_DIR      = $(IP_DIR)/$(IP_PROJECT_NAME)
 export IP_SRC_DIR          = $(IP_DIR)/src
 export IP_TOP              = $(IP_NAME)
 export IP_BASE_FLIST       = $(IP_DIR)/base.flist
+export IP_COMMON_FLIST     = $(IP_DIR)/ip_base.flist
 export IP_FLIST            = $(IP_DIR)/ip.flist
 export IP_PROPERTY_TCL     = $(IP_DIR)/ip.tcl
 export IP_VENDOR           = BlackParrot
@@ -48,7 +49,7 @@ export VV_LINT_TOP     ?= $(IP_TOP)
 export VV_BUILD_DIR     = $(IP_DIR)/$(IP_NAME).build.vv
 export VV_SIM_DIR       = $(IP_DIR)/$(IP_NAME).sim.vv
 
-$(VV_LINT_FLIST): $(IP_FLIST)
+$(VV_LINT_FLIST): $(IP_COMMON_FLIST)
 	cp $< $@
 
 $(VV_LINT_CONFIG):
@@ -71,7 +72,7 @@ export VCS_LINT_TOP     ?= $(IP_TOP)
 
 export VCS_BUILD_DIR     = $(IP_DIR)/$(IP_NAME).build.vcs
 
-$(VCS_LINT_FLIST): $(IP_FLIST)
+$(VCS_LINT_FLIST): $(IP_COMMON_FLIST)
 	cp $< $@
 
 ### Include tool Makefile
@@ -83,8 +84,8 @@ include $(MAKE_DIR)/Makefile.vcs
 
 export BUILD_DIR = $(IP_DIR)/$(IP_NAME).build
 
-ip_flist: $(IP_FLIST)
-$(IP_FLIST): $(BP_FLIST) $(IP_BASE_FLIST)
+ip_common_flist: $(IP_COMMON_FLIST)
+$(IP_COMMON_FLIST): $(BP_FLIST) $(IP_BASE_FLIST)
 	# substitute paths in BP flist
 	cat $^ | envsubst >> $@
 	# swap in memories that infer incorrectly in FPGA
@@ -95,6 +96,10 @@ $(IP_FLIST): $(BP_FLIST) $(IP_BASE_FLIST)
 	echo "$(BASEJUMP_STL_DIR)/hard/ultrascale_plus/bsg_mem/bsg_mem_1rw_sync_mask_write_bit.sv" >> $@
 	echo "$(BASE_SRC_DIR)/bsg_mem_1rw_sync_mask_write_byte.sv" >> $@
 	echo "$(BASE_SRC_DIR)/bytewrite_bram.v" >> $@
+
+ip_flist: $(IP_FLIST)
+$(IP_FLIST): $(IP_COMMON_FLIST)
+	cp $< $@
 	# Harden synchronizers and clock muxes
 	sed -i "s#.*bsg_launch_sync_sync.sv#$(BASEJUMP_STL_DIR)/hard/ultrascale_plus/bsg_async/bsg_launch_sync_sync.sv#g" $@
 	sed -i "s#.*bsg_mux.sv#$(BASEJUMP_STL_DIR)/hard/ultrascale_plus/bsg_misc/bsg_mux.sv#g" $@
@@ -110,6 +115,7 @@ clean_ip:
 	rm -rf $(IP_PROJECT_DIR)
 	rm -f $(IP_TAR_GZ)
 	rm -f $(IP_FLIST)
+	rm -f $(IP_COMMON_FLIST)
 	rm -f vivado*
 
 clean: clean_ip
