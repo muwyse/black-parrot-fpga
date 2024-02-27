@@ -4,6 +4,7 @@ config.vlt
 lint.log
 lint.flist
 ip.flist
+ip_base.flist
 .Xil/
 blackparrot_ip_proj/
 *.tar.gz
