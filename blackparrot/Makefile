@@ -95,6 +95,9 @@ $(IP_FLIST): $(BP_FLIST) $(IP_BASE_FLIST)
 	echo "$(BASEJUMP_STL_DIR)/hard/ultrascale_plus/bsg_mem/bsg_mem_1rw_sync_mask_write_bit.sv" >> $@
 	echo "$(BASE_SRC_DIR)/bsg_mem_1rw_sync_mask_write_byte.sv" >> $@
 	echo "$(BASE_SRC_DIR)/bytewrite_bram.v" >> $@
+	# Harden synchronizers and clock muxes
+	sed -i "s#.*bsg_launch_sync_sync.sv#$(BASEJUMP_STL_DIR)/hard/ultrascale_plus/bsg_async/bsg_launch_sync_sync.sv#g" $@
+	sed -i "s#.*bsg_mux.sv#$(BASEJUMP_STL_DIR)/hard/ultrascale_plus/bsg_misc/bsg_mux.sv#g" $@
 
 build_ip: clean_ip | $(IP_FLIST)
 	vivado -source $(BUILD_IP_TCL) -mode batch
