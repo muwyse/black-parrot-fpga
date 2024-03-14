@@ -1,4 +1,6 @@
 /*
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
  * Name:
  *  bsg_mem_1rw_sync_mask_write_byte.v
  *

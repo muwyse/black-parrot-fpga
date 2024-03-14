@@ -1,5 +1,12 @@
-// BRAM with byte-enable on write
-// from Xilinx example code
+/*
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
+ * Name:
+ *   bytewrite_bram.v
+ *
+ * This module creates a BRAM with byte-enables on write for Xilinx FPGAs
+ *
+ */
 
 module bytewrite_bram
   #(parameter SIZE = 1024

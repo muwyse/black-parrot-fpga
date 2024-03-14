@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: BSD-3-Clause
 `verilator_config
 //lint_off -file "$BASEJUMP_STL_DIR/*"
 lint_off -file "*/sva/*"

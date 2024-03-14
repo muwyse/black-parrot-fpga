@@ -1,3 +1,14 @@
+/*
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
+ * Name:
+ *   test.cpp
+ *
+ * Description:
+ *   Verilator testbench for BP and BP FPGA Host IP
+ *
+ */
+
 #include <stdlib.h>
 #include <verilated_fst_c.h>
 #include <verilated_cov.h>

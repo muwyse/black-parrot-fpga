@@ -25,3 +25,7 @@
 * wait for FPGA to finish
   * if running Linux on FPGA, `poweroff` or `CTRL+c` to stop execution
 * reset VCU128 from Raspberry Pi with `sudo python reset_vcu128.py`
+
+-----
+
+<p align="center">Copyright&copy; 2023-2024 University of Washington</p>

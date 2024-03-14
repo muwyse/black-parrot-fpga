@@ -1,4 +1,6 @@
 /*
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
  * Name:
  *  bp_nonsynth_axi_host.sv
  *

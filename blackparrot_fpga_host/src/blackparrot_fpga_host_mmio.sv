@@ -1,4 +1,6 @@
 /*
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
  * Name:
  *  blackparrot_fpga_host_mmio.sv
  *

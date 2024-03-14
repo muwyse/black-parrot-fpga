@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: BSD-3-Clause
+#
+
 # Timing constraint
 create_clock -name pcie_refclk_clk_p -period 10 [get_ports pcie_refclk_clk_p]
 

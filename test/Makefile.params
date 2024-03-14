@@ -1,3 +1,8 @@
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# Makefile.params
+#
+
 export HDL_DEFINES = +define+SIMULATION=1
 export HDL_PARAMS = \
 	-pvalue+cosim_p=$(COSIM_P) \

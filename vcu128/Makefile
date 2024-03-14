@@ -24,7 +24,6 @@ PROJECT_TCL                = $(PROJECT_BASE_DIR)/create_project.tcl
 script_dir := $(abspath $(TOP)/script)
 generate_tcl := $(script_dir)/generate_bitstream.tcl
 program_tcl := $(script_dir)/program_fpga.tcl
-bit_dir := $(PROJECT_BASE_DIR)/bit
 
 BP_IP = blackparrot_ip
 BP_IP_DIR = $(BASE_DIR)/blackparrot
@@ -49,7 +48,7 @@ clean_project:
 	rm -rf $(PROJECT_DIR)
 
 DATE:=$(shell date +"%c")
-BITFILE ?= $(bit_dir)/design_1_wrapper.bit
+BITFILE ?= design_1_wrapper.bit
 program_fpga:
 	sudo $(vivado_bin) -mode batch -source $(program_tcl) -tclargs --bitfile $(BITFILE)
 	@echo "$(DATE): $(shell readlink -f $(BITFILE))" > last_programmed.txt

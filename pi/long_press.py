@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: BSD-3-Clause
+
 import RPi.GPIO as GPIO
 import time
 
