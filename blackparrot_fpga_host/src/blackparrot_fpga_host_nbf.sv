@@ -11,6 +11,7 @@
  * Constraints:
  *  - supports NBF writes of 4 or 8 bytes, reads of 4 bytes, Fence, and Finish
  *  - NBF address and data width must both be 64b
+ *  - supports 64b writes to bootrom
  *
  */
 
@@ -28,6 +29,11 @@ module blackparrot_fpga_host_nbf
    , parameter nbf_data_width_p = 64 // must be 64
 
    , parameter nbf_credits_p = 64
+
+   , parameter bootrom_width_p = 64
+   , parameter bootrom_els_p = 8192
+   , localparam bootrom_addr_width_lp = `BSG_SAFE_CLOG2(bootrom_els_p)
+   , localparam bootrom_addr_offset_lp = `BSG_SAFE_CLOG2((bootrom_width_p/8))
    )
   (//======================== Host to BlackParrot I/O In ========================
    input                                       m_axi_aclk
@@ -89,6 +95,13 @@ module blackparrot_fpga_host_nbf
    , output logic                              nbf_resp_count_v_o
    , output logic [fifo_data_width_p-1:0]      nbf_resp_count_o
    , input                                     nbf_resp_count_yumi_i
+
+   //====================== Bootrom writes from Host ========================
+   , output logic                              bootrom_w_o
+   , output logic [bootrom_addr_width_lp-1:0]  bootrom_addr_o
+   , output logic [bootrom_width_p-1:0]        bootrom_data_o
+   , output logic [(bootrom_width_p/8)-1:0]    bootrom_mask_o
+   , input                                     bootrom_yumi_i
    );
 
   wire reset = ~m_axi_aresetn;
@@ -146,6 +159,11 @@ module blackparrot_fpga_host_nbf
       ,.v_o(nbf_v_lo)
       ,.yumi_i(nbf_yumi_li)
       );
+
+  // bootrom request splitting
+  localparam [nbf_addr_width_p-1:0] bootrom_base_addr_lp = nbf_addr_width_p'(64'h110000);
+  localparam [nbf_addr_width_p-1:0] bootrom_high_addr_lp = nbf_addr_width_p'(64'h11FFFF);
+  wire nbf_is_bootrom = (nbf.addr >= bootrom_base_addr_lp) && (nbf.addr < bootrom_high_addr_lp);
 
   logic [M_AXI_DATA_WIDTH-1:0] m_axi_data;
   logic [M_AXI_ADDR_WIDTH-1:0] m_axi_addr;
@@ -255,6 +273,12 @@ module blackparrot_fpga_host_nbf
 
     nbf_yumi_li = 1'b0;
 
+    // bootrom
+    bootrom_w_o = 1'b0;
+    bootrom_addr_o = nbf.addr[bootrom_addr_offset_lp+:bootrom_addr_width_lp];
+    bootrom_data_o = nbf.data;
+    bootrom_mask_o = '1;
+
     case (state_r)
       e_ready: begin
         case (nbf.opcode)
@@ -271,9 +295,11 @@ module blackparrot_fpga_host_nbf
                           : 8'hF0;
           end
           // 64b write
+          // steer to M_AXI or Bootrom
           8'h3: begin
-            m_axi_v = nbf_v_lo;
-            nbf_yumi_li = m_axi_v & m_axi_ready_and;
+            bootrom_w_o = nbf_v_lo & nbf_is_bootrom;
+            m_axi_v = nbf_v_lo & ~nbf_is_bootrom;
+            nbf_yumi_li = bootrom_yumi_i | (m_axi_v & m_axi_ready_and);
           end
           // 32b read
           8'h12: begin

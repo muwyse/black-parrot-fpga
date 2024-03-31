@@ -81,7 +81,7 @@ class NBF:
 
   # constructor
   def __init__(self, ncpus, ucode_file, mem_file, mem_size, bootrom_file, bootrom_size, checkpoint_file,
-               config, skip_zeros, data_width, boot_pc, debug, verify):
+               config, skip_zeros, data_width, boot_pc, debug, verify, start_cached):
 
     # input parameters
     self.ncpus = ncpus
@@ -98,6 +98,7 @@ class NBF:
     self.boot_pc = boot_pc
     self.debug = debug
     self.verify = verify
+    self.start_cached = start_cached
 
     # Grab various files
     if self.mem_file:
@@ -300,6 +301,12 @@ class NBF:
       self.print_fence()
       self.print_nbf_allcores(2, clint_base_addr + clint_reg_debug, 0)
 
+    if self.start_cached:
+      # Write I$, D$, and CCE modes
+      self.print_nbf_allcores(2, cfg_base_addr + cfg_reg_cce_mode, 1)
+      self.print_nbf_allcores(2, cfg_base_addr + cfg_reg_icache_mode, 1)
+      self.print_nbf_allcores(2, cfg_base_addr + cfg_reg_dcache_mode, 1)
+
     # For regular execution, the CCE ucode and cache/CCE modes are loaded by the bootrom
     if self.config:
       # Write CCE ucode
@@ -367,10 +374,11 @@ if __name__ == "__main__":
   parser.add_argument('--boot_pc', dest='boot_pc', help='The first PC to be fetched')
   parser.add_argument('--debug', dest='debug', action='store_true', help='Whether to start in debug mode')
   parser.add_argument("--verify", dest='verify', action='store_true', help='Read back mode registers')
+  parser.add_argument("--start_cached", dest='start_cached', action='store_true', help='Set LCE and CCE modes to cached before unfreeze')
 
   args = parser.parse_args()
 
   converter = NBF(args.ncpus, args.ucode_file, args.mem_file, args.mem_size, args.bootrom_file, args.bootrom_size,
                   args.checkpoint_file, args.config, args.skip_zeros, args.data_width,
-                  args.boot_pc, args.debug, args.verify)
+                  args.boot_pc, args.debug, args.verify, args.start_cached)
   converter.dump()

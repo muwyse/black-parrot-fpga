@@ -13,6 +13,8 @@ export COSIM_P ?= 1
 export COSIM_MEMSIZE_P ?= 256
 export COSIM_INSTR_P ?= 0
 
+export CFG ?= e_bp_default_cfg
+
 export RISCV_TARGET ?= riscv64-unknown-linux-gnu
 
 # Setup paths for this repo
@@ -28,6 +30,7 @@ export TEST_DIR = $(BASE_DIR)/test
 export TEST_TOP = testbench
 export TEST_FLIST = $(TEST_DIR)/test.flist
 export TEST_NAME = fpga
+export TESTBENCH = $(TEST_DIR)/$(TEST_TOP).sv
 
 export BP_IP_SRC_DIR = $(BASE_DIR)/blackparrot/src
 export BP_FPGA_HOST_IP_SRC_DIR = $(BASE_DIR)/blackparrot_fpga_host/src
@@ -47,6 +50,7 @@ NBF_BOOT_PC ?=
 NBF_CONFIG ?= 0
 NBF_DEBUG ?= 1
 NBF_VERIFY ?= 0
+NBF_START_CACHED ?= 1
 
 NBF_FLAGS = --ncpus $(NBF_NCPUS) --data_width 64
 NBF_FLAGS += --bootrom $(NBF_BOOTROM) --bootrom_size $(NBF_BOOTROM_SIZE)
@@ -67,6 +71,9 @@ NBF_FLAGS += --debug
 endif
 ifeq ($(NBF_VERIFY),1)
 NBF_FLAGS += --verify
+endif
+ifeq ($(NBF_START_CACHED),1)
+NBF_FLAGS += --start_cached
 endif
 NBF_FLAGS += --mem_size $(NBF_MEM_SIZE)
 
@@ -128,6 +135,8 @@ export VV_LINT_TOP     ?= $(TEST_TOP)
 $(VV_LINT_FLIST): $(TEST_FLIST)
 	cat $(TEST_FLIST) | envsubst > $@
 	echo '$$TEST_DIR/test.cpp' | envsubst >> $@
+	sed "s/BP_CFG_FLOWVAR/$(CFG)/g" $(TESTBENCH) > $(VV_LINT_DIR)/$(TEST_TOP).sv
+	@echo $(VV_LINT_DIR)/$(TEST_TOP).sv >> $@
 
 $(VV_LINT_CONFIG):
 	cat $(VV_CONFIG_BASE) | envsubst > $@
@@ -145,6 +154,8 @@ export VV_TOP        ?= $(TEST_TOP)
 $(VV_FLIST): $(TEST_FLIST)
 	cat $(TEST_FLIST) | envsubst > $@
 	@echo "$(TEST_DIR)/test.cpp" >> $@
+	sed "s/BP_CFG_FLOWVAR/$(CFG)/g" $(TESTBENCH) > $(VV_BUILD_DIR)/$(TEST_TOP).sv
+	@echo $(VV_BUILD_DIR)/$(TEST_TOP).sv >> $@
 
 $(VV_CONFIG):
 	cat $(VV_CONFIG_BASE) | envsubst > $@
@@ -174,6 +185,8 @@ export VCS_LINT_TOP     ?= $(TEST_TOP)
 
 $(VCS_LINT_FLIST): $(TEST_FLIST)
 	cat $(TEST_FLIST) | envsubst > $@
+	sed "s/BP_CFG_FLOWVAR/$(CFG)/g" $(TESTBENCH) > $(VCS_LINT_DIR)/$(TEST_TOP).sv
+	@echo $(VCS_LINT_DIR)/$(TEST_TOP).sv >> $@
 
 ################
 ### Building ###
@@ -186,6 +199,8 @@ export VCS_TOP        ?= $(TEST_TOP)
 
 $(VCS_FLIST): $(TEST_FLIST)
 	cat $(TEST_FLIST) | envsubst > $@
+	sed "s/BP_CFG_FLOWVAR/$(CFG)/g" $(TESTBENCH) > $(VCS_BUILD_DIR)/$(TEST_TOP).sv
+	@echo $(VCS_BUILD_DIR)/$(TEST_TOP).sv >> $@
 
 ##################
 ### Simulation ###

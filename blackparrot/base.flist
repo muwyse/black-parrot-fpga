@@ -5,7 +5,8 @@
 # BlackParrot IP project file list
 #
 
-$IP_SRC_DIR/blackparrot.sv
+# included by Makefile after CFG substitution
+#$IP_SRC_DIR/blackparrot.sv
 $BLACKPARROT_SUB_DIR/axi/v/bp_axi4_top.sv
 $BLACKPARROT_SUB_DIR/axi/v/bp_me_axi_manager.sv
 $BLACKPARROT_SUB_DIR/axi/v/bp_me_axi_subordinate.sv

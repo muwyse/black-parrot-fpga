@@ -51,6 +51,9 @@ module blackparrot_fpga_host
    , parameter nbf_opcode_width_p = 8
    , parameter nbf_addr_width_p = 64 // must be 32 or 64
    , parameter nbf_data_width_p = 64 // must be 32 or 64
+
+   , parameter bootrom_width_p = 64
+   , parameter bootrom_els_p = 8192
    )
   (//======================== BlackParrot I/O In ========================
    input                                       m_axi_aclk
@@ -230,6 +233,39 @@ module blackparrot_fpga_host
   assign mmio_resp_data_li = fifo_data_li;
   assign nbf_data_li = fifo_data_li;
 
+  // Bootrom connections
+  wire clk = s_axil_aclk;
+  wire reset = ~s_axil_aresetn;
+  localparam bootrom_addr_width_lp = `BSG_SAFE_CLOG2(bootrom_els_p);
+  logic bootrom_v_li, bootrom_v_lo, bootrom_w_li, bootrom_r_yumi_lo, bootrom_w_yumi_lo, bootrom_r_yumi_li;
+  logic [bootrom_addr_width_lp-1:0] bootrom_r_addr_li, bootrom_w_addr_li;
+  logic [bootrom_width_p-1:0] bootrom_data_li, bootrom_data_lo;
+  logic [(bootrom_width_p/8)-1:0] bootrom_w_mask_li;
+
+  // Bootrom
+  // written by NBF, read by MMIO
+  blackparrot_fpga_host_bootrom
+    #(.bootrom_width_p(bootrom_width_p)
+      ,.bootrom_els_p(bootrom_els_p)
+      )
+    host_bootrom
+     (.clk_i(clk)
+      ,.reset_i(reset)
+      // read port
+      ,.v_i(bootrom_v_li)
+      ,.r_addr_i(bootrom_r_addr_li)
+      ,.r_yumi_o(bootrom_r_yumi_lo)
+      ,.data_o(bootrom_data_lo)
+      ,.v_o(bootrom_v_lo)
+      ,.r_yumi_i(bootrom_r_yumi_li)
+      // write port
+      ,.w_i(bootrom_w_li)
+      ,.w_addr_i(bootrom_w_addr_li)
+      ,.data_i(bootrom_data_li)
+      ,.w_mask_i(bootrom_w_mask_li)
+      ,.w_yumi_o(bootrom_w_yumi_lo)
+      );
+
   // MMIO
   // consumes S_AXI I/O from BP and makes available via CSRs to Host
   blackparrot_fpga_host_mmio
@@ -238,6 +274,8 @@ module blackparrot_fpga_host
       ,.S_AXI_ID_WIDTH(S_AXI_ID_WIDTH)
       ,.fifo_data_width_p(S_AXIL_DATA_WIDTH)
       ,.BP_MMIO_ELS(BP_MMIO_ELS)
+      ,.bootrom_width_p(bootrom_width_p)
+      ,.bootrom_els_p(bootrom_els_p)
       )
     host_mmio
      (.mmio_v_o(mmio_req_v_lo)
@@ -249,6 +287,13 @@ module blackparrot_fpga_host
       ,.mmio_v_i(mmio_resp_v_li)
       ,.mmio_data_i(mmio_resp_data_li)
       ,.mmio_ready_and_o(mmio_resp_ready_and_lo)
+      // read port
+      ,.bootrom_v_o(bootrom_v_li)
+      ,.bootrom_addr_o(bootrom_r_addr_li)
+      ,.bootrom_yumi_i(bootrom_r_yumi_lo)
+      ,.bootrom_data_i(bootrom_data_lo)
+      ,.bootrom_v_i(bootrom_v_lo)
+      ,.bootrom_yumi_o(bootrom_r_yumi_li)
       ,.*
       );
 
@@ -262,6 +307,8 @@ module blackparrot_fpga_host
       ,.nbf_opcode_width_p(nbf_opcode_width_p)
       ,.nbf_addr_width_p(nbf_addr_width_p)
       ,.nbf_data_width_p(nbf_data_width_p)
+      ,.bootrom_width_p(bootrom_width_p)
+      ,.bootrom_els_p(bootrom_els_p)
       )
     host_nbf
      (.nbf_v_i(nbf_v_li)
@@ -273,6 +320,12 @@ module blackparrot_fpga_host
       ,.nbf_resp_count_v_o(nbf_resp_count_v_lo)
       ,.nbf_resp_count_o(nbf_resp_count_lo)
       ,.nbf_resp_count_yumi_i(nbf_resp_count_yumi_li)
+      // write port
+      ,.bootrom_w_o(bootrom_w_li)
+      ,.bootrom_addr_o(bootrom_w_addr_li)
+      ,.bootrom_data_o(bootrom_data_li)
+      ,.bootrom_mask_o(bootrom_w_mask_li)
+      ,.bootrom_yumi_i(bootrom_w_yumi_lo)
       ,.*
       );
 

@@ -21,11 +21,14 @@ $BASEJUMP_STL_DIR/bsg_dataflow/bsg_serial_in_parallel_out_full.sv
 $BASEJUMP_STL_DIR/bsg_dataflow/bsg_two_fifo.sv
 $BASEJUMP_STL_DIR/bsg_mem/bsg_mem_1r1w.sv
 $BASEJUMP_STL_DIR/bsg_mem/bsg_mem_1r1w_synth.sv
+$BASEJUMP_STL_DIR/bsg_mem/bsg_mem_1rw_sync_mask_write_byte.sv
 $BASEJUMP_STL_DIR/bsg_misc/bsg_arb_fixed.sv
 $BASEJUMP_STL_DIR/bsg_misc/bsg_circular_ptr.sv
 $BASEJUMP_STL_DIR/bsg_misc/bsg_counter_clear_up.sv
 $BASEJUMP_STL_DIR/bsg_misc/bsg_counter_up_down.sv
+$BASEJUMP_STL_DIR/bsg_misc/bsg_dff.sv
 $BASEJUMP_STL_DIR/bsg_misc/bsg_dff_en.sv
+$BASEJUMP_STL_DIR/bsg_misc/bsg_dff_en_bypass.sv
 $BASEJUMP_STL_DIR/bsg_misc/bsg_dff_reset.sv
 $BASEJUMP_STL_DIR/bsg_misc/bsg_dff_reset_en.sv
 $BASEJUMP_STL_DIR/bsg_misc/bsg_dff_reset_set_clear.sv
@@ -42,6 +45,7 @@ $BLACKPARROT_SUB_DIR/axi/v/bp_fifo_to_axi.sv
 $BLACKPARROT_SUB_DIR/axi/v/bp_axi_to_fifo.sv
 # IP files
 $IP_SRC_DIR/blackparrot_fpga_host.sv
+$IP_SRC_DIR/blackparrot_fpga_host_bootrom.sv
 $IP_SRC_DIR/blackparrot_fpga_host_mmio.sv
 $IP_SRC_DIR/blackparrot_fpga_host_nbf.sv
 $IP_SRC_DIR/blackparrot_fpga_host_read_to_fifo.sv

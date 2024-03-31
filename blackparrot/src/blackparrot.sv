@@ -43,7 +43,7 @@ module blackparrot
    , parameter M01_AXI_DATA_WIDTH = 128
    , parameter M01_AXI_ID_WIDTH = 4
 
-   , parameter DID = 0
+   , parameter DID = 1
    , parameter HOST_DID = 16'hFFFF
 `ifdef SIMULATION
    , parameter bp_params_e bp_params_p = e_bp_default_cfg
@@ -200,7 +200,7 @@ module blackparrot
   wire [15:0] host_did = 16'(HOST_DID);
 
 `ifndef SIMULATION
-  localparam bp_params_e bp_params_p = e_bp_default_cfg;
+  localparam bp_params_e bp_params_p = BP_CFG_FLOWVAR;
 `endif
 
   logic [M01_AXI_ADDR_WIDTH-1:0] mem_axi_araddr;

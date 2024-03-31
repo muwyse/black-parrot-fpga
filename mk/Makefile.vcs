@@ -17,6 +17,7 @@
 # VCS_FLIST
 # HDL_PARAMS (optional, for -pvalue directives)
 # HDL_DEFINES (optional, for +define+ directives)
+# CFG (optional, specify the BP configuration)
 #
 # Also requires rules defined for $(VCS_LINT_FLIST), if they need to be
 # built dynamically.
@@ -136,4 +137,7 @@ $(VCS_LINT_DIR) $(VCS_BUILD_DIR):
 clean.vcs: clean_lint.vcs clean_build.vcs
 
 clean: clean.vcs
+
+clean_dve:
+	rm -rf $(TEST_DIR)/DVEfiles/
 

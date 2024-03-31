@@ -19,7 +19,7 @@ module testbench
   import bp_common_pkg::*;
   #(
     // design parameters
-    parameter bp_params_e bp_params_p = e_bp_default_cfg
+    parameter bp_params_e bp_params_p = BP_CFG_FLOWVAR
     `declare_bp_proc_params(bp_params_p)
 
     // COSIM parameters
@@ -31,7 +31,7 @@ module testbench
   (output bit reset_i
    );
 
-  localparam timeout_p = 10000;
+  localparam timeout_p = 100000;
 
   export "DPI-C" function get_sim_period;
   function int get_sim_period();
@@ -100,9 +100,10 @@ module testbench
   localparam nbf_addr_width_p = 64;
   localparam nbf_data_width_p = 64;
 
-  localparam bootrom_els_p = 2048;
+  localparam bootrom_width_p = 64;
+  localparam bootrom_els_p = 8192;
 
-  // 512 KiB
+  // 512 MiB
   // 2**29 bytes
   localparam MEM_ELS = (2**29)/(M01_AXI_DATA_WIDTH/8);
 
@@ -308,7 +309,7 @@ module testbench
   assign s_axil_aresetn = ~reset_i;
 
   // host
-  bp_nonsynth_axi_fpga_host
+  blackparrot_fpga_host
     #(.M_AXI_ADDR_WIDTH(M_AXI_ADDR_WIDTH)
       ,.M_AXI_DATA_WIDTH(M_AXI_DATA_WIDTH)
       ,.M_AXI_ID_WIDTH(M_AXI_ID_WIDTH)
@@ -321,9 +322,10 @@ module testbench
       ,.nbf_opcode_width_p(nbf_opcode_width_p)
       ,.nbf_addr_width_p(nbf_addr_width_p)
       ,.nbf_data_width_p(nbf_data_width_p)
+      ,.bootrom_width_p(bootrom_width_p)
       ,.bootrom_els_p(bootrom_els_p)
       )
-    nonsynth_fpga_host
+    fpga_host
     (// Host to BP
      .m_axi_aclk(s_axi_aclk)
      ,.m_axi_aresetn(s_axi_aresetn)
@@ -519,6 +521,7 @@ module testbench
       ,.M_AXIL_CREDITS(64)
       ,.nbf_filename_p(nbf_filename_p)
       ,.nbf_host_addr_p(64'h0)
+      ,.timeout_p(timeout_p)
       )
     nbf_loader
     (.m_axil_aclk(s_axil_aclk)
@@ -742,7 +745,7 @@ module testbench
        );
 
   wire cosim_en_lo = cosim_p ? 1'b1 : 1'b0;
-  wire cmt_trace_en_lo = 1'b0;
+  wire cmt_trace_en_lo = 1'b1;
   wire checkpoint_en_lo = checkpoint_p ? 1'b1 : 1'b0;
   bind bp_be_top
     bp_nonsynth_cosim

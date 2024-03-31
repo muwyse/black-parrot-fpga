@@ -40,7 +40,6 @@ clean_ip:
 	rm -rf $(PROJECT_BASE_DIR)/$(BP_IP)
 	rm -rf $(PROJECT_BASE_DIR)/$(BP_HOST_IP)
 
-
 project: clean_project
 	$(vivado_bin) -source $(PROJECT_TCL) -mode batch
 
@@ -61,6 +60,21 @@ JOBS ?= 8
 generate_bitstream:
 	$(vivado_bin) -mode batch -source $(generate_tcl) -tclargs --project_name $(PROJECT_NAME) --jobs $(JOBS)
 
-clean: clean_project clean_ip
+
+PROJECT_IMPL_DIR = $(PROJECT_DIR)/$(PROJECT_NAME).runs/impl_1
+PROJECT_BITFILE = design_1_wrapper.bit
+PROJECT_LTX = design_1_wrapper.ltx
+PROJECT_RPT = $(notdir $(shell find $(PROJECT_IMPL_DIR) -name '*.rpt'))
+PROJECT_ARCHIVE = $(PROJECT_BASE_DIR)/vcu128_bp.tar.gz
+archive:
+	tar czvf $(PROJECT_ARCHIVE) \
+	  -C $(PROJECT_IMPL_DIR) $(PROJECT_BITFILE) $(PROJECT_LTX) $(PROJECT_RPT) \
+	  -C $(PROJECT_BASE_DIR) $(BP_IP).tar.gz $(BP_HOST_IP).tar.gz
+
+clean_archive:
+	rm -f $(PROJECT_ARCHIVE)
+
+clean: clean_project clean_ip clean_archive
 	rm -f vivado*
 	rm -rf .Xil/
+

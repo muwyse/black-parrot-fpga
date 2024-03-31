@@ -24,6 +24,11 @@ module blackparrot_fpga_host_mmio
    , parameter fifo_data_width_p = 32 // must be 32
 
    , parameter BP_MMIO_ELS = 64
+
+   , parameter bootrom_width_p = 64
+   , parameter bootrom_els_p = 8192
+   , localparam bootrom_addr_width_lp = `BSG_SAFE_CLOG2(bootrom_els_p)
+   , localparam bootrom_addr_offset_lp = `BSG_SAFE_CLOG2((bootrom_width_p/8))
    )
    (//======================== BlackParrot I/O Out to Host ========================
    input                                       s_axi_aclk
@@ -88,6 +93,14 @@ module blackparrot_fpga_host_mmio
    , input                                     mmio_v_i
    , input [fifo_data_width_p-1:0]             mmio_data_i
    , output logic                              mmio_ready_and_o
+
+   //====================== Bootrom writes from Host ========================
+   , output logic                              bootrom_v_o
+   , output logic [bootrom_addr_width_lp-1:0]  bootrom_addr_o
+   , input                                     bootrom_yumi_i
+   , input [bootrom_width_p-1:0]               bootrom_data_i
+   , input                                     bootrom_v_i
+   , output logic                              bootrom_yumi_o
    );
 
   wire reset = ~s_axi_aresetn;
@@ -100,6 +113,11 @@ module blackparrot_fpga_host_mmio
   logic [2:0] axi_size;
   logic resp_v, resp_w, resp_ready_and;
   logic [S_AXI_DATA_WIDTH-1:0] resp_data;
+
+  // bootrom request splitting
+  localparam [S_AXI_ADDR_WIDTH-1:0] bootrom_base_addr_lp = S_AXI_ADDR_WIDTH'(64'h110000);
+  localparam [S_AXI_ADDR_WIDTH-1:0] bootrom_high_addr_lp = S_AXI_ADDR_WIDTH'(64'h11FFFF);
+  wire axi_is_bootrom = (axi_addr >= bootrom_base_addr_lp) && (axi_addr < bootrom_high_addr_lp);
 
   bp_axi_to_fifo
     #(.s_axi_data_width_p(S_AXI_DATA_WIDTH)
@@ -218,11 +236,12 @@ module blackparrot_fpga_host_mmio
       );
 
   // MMIO FSM
-  typedef enum logic [1:0] {
+  typedef enum logic [2:0] {
     e_addr
     ,e_data
     ,e_read_resp
     ,e_write_resp
+    ,e_bootrom_resp
   } state_e;
   state_e state_r, state_n;
 
@@ -258,13 +277,25 @@ module blackparrot_fpga_host_mmio
     resp_w = 1'b0;
     resp_data = {2{mmio_resp_data_lo}};
 
+    // bootrom
+    bootrom_v_o = 1'b0;
+    bootrom_addr_o = '0;
+    bootrom_yumi_o = 1'b0;
+
     case (state_r)
       // send 32b address to BP MMIO Request Buffer
       // do not consume the bp_axi_to_fifo output until data sends
       e_addr: begin
-        mmio_req_v_li = axi_v;
+        bootrom_v_o = axi_v & axi_is_bootrom;
+        bootrom_addr_o = axi_addr[bootrom_addr_offset_lp+:bootrom_addr_width_lp];
+        mmio_req_v_li = axi_v & ~axi_is_bootrom;
         mmio_req_data_li = axi_addr[0+:fifo_data_width_p];
-        state_n = (mmio_req_v_li & mmio_req_ready_and_lo) ? e_data : state_r;
+        axi_yumi = bootrom_yumi_i;
+        state_n = (mmio_req_v_li & mmio_req_ready_and_lo)
+                  ? e_data
+                  : bootrom_yumi_i
+                    ? e_bootrom_resp
+                    : state_r;
       end
       // send 32b data to BP MMIO Request Buffer
       e_data: begin
@@ -289,6 +320,13 @@ module blackparrot_fpga_host_mmio
         resp_w = 1'b1;
         resp_data = '0;
         state_n = (resp_v & resp_ready_and) ? e_addr : state_r;
+      end
+      // wait for bootrom read response and send to FIFO response
+      e_bootrom_resp: begin
+        resp_v = bootrom_v_i;
+        bootrom_yumi_o = resp_v & resp_ready_and;
+        resp_data = bootrom_data_i;
+        state_n = bootrom_yumi_o ? e_addr : state_r;
       end
       default: begin
       end

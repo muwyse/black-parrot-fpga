@@ -86,6 +86,14 @@ ip_flist: $(IP_FLIST)
 $(IP_FLIST): $(IP_BASE_FLIST)
 	# substitute paths in BP flist
 	cat $^ | envsubst >> $@
+	# swap in memories that infer incorrectly in FPGA
+	sed -i "/bsg_mem_1rw_sync_mask_write_bit.sv/d" $@
+	sed -i "/bsg_mem_1rw_sync_mask_write_bit_synth.sv/d" $@
+	sed -i "/bsg_mem_1rw_sync_mask_write_byte.sv/d" $@
+	sed -i "/bsg_mem_1rw_sync_mask_write_byte_synth.sv/d" $@
+	echo "$(BASEJUMP_STL_DIR)/hard/ultrascale_plus/bsg_mem/bsg_mem_1rw_sync_mask_write_bit.sv" >> $@
+	echo "$(BASE_SRC_DIR)/bsg_mem_1rw_sync_mask_write_byte.sv" >> $@
+	echo "$(BASE_SRC_DIR)/bytewrite_bram.v" >> $@
 
 build_ip: clean_ip $(IP_FLIST)
 	vivado -source $(BUILD_IP_TCL) -mode batch

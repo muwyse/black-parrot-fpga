@@ -222,6 +222,7 @@ $BP_BE_DIR/src/v/bp_be_calculator/bp_be_pipe_long.sv
 $BP_BE_DIR/src/v/bp_be_calculator/bp_be_pipe_mem.sv
 $BP_BE_DIR/src/v/bp_be_calculator/bp_be_pipe_sys.sv
 $BP_BE_DIR/src/v/bp_be_calculator/bp_be_ptw.sv
+$BP_BE_DIR/src/v/bp_be_calculator/bp_be_rec_to_raw.sv
 $BP_BE_DIR/src/v/bp_be_calculator/bp_be_reservation.sv
 # Checker
 $BP_BE_DIR/src/v/bp_be_checker/bp_be_cmd_queue.sv
@@ -355,6 +356,7 @@ $BP_IP_SRC_DIR/blackparrot.sv
 
 ### BP FPGA Host IP files
 $BP_FPGA_HOST_IP_SRC_DIR/blackparrot_fpga_host.sv
+$BP_FPGA_HOST_IP_SRC_DIR/blackparrot_fpga_host_bootrom.sv
 $BP_FPGA_HOST_IP_SRC_DIR/blackparrot_fpga_host_mmio.sv
 $BP_FPGA_HOST_IP_SRC_DIR/blackparrot_fpga_host_nbf.sv
 $BP_FPGA_HOST_IP_SRC_DIR/blackparrot_fpga_host_read_to_fifo.sv
@@ -368,12 +370,9 @@ $BASEJUMP_STL_DIR/bsg_test/bsg_nonsynth_dpi_clock_gen.sv
 $BASEJUMP_STL_DIR/bsg_test/bsg_nonsynth_dpi_clock_gen.cpp
 $BASEJUMP_STL_DIR/bsg_test/bsg_nonsynth_reset_gen.sv
 # testbench files
-$TEST_DIR/testbench.sv
 $TEST_DIR/bp_nonsynth_axi_nbf_loader.sv
 $TEST_DIR/bp_nonsynth_if_monitor.sv
 $TEST_DIR/bp_nonsynth_axi_host.sv
-$TEST_DIR/bp_nonsynth_axi_fpga_host.sv
-$TEST_DIR/bp_nonsynth_axi_bootrom.sv
 $BP_TOP_DIR/test/common/bp_nonsynth_core_profiler.sv
 $BP_TOP_DIR/test/common/bp_nonsynth_watchdog.sv
 $BP_BE_DIR/test/common/bp_be_nonsynth_dcache_tracer.sv

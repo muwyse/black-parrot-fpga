@@ -10,3 +10,4 @@ blackparrot_ip_proj/
 *.tar.gz
 blackparrot.lint.vv/
 blackparrot.lint.vcs/
+blackparrot.build/

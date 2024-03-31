@@ -29,6 +29,10 @@ export IP_EXP_DIR          = $(IP_DIR)/$(IP_NAME)_ip
 export PART               ?= xcvu37p-fsvh2892-2L-e-es1
 export BOARD_PART         ?= xilinx.com:vcu128_es:part0:1.1
 
+export IP_TOP_FILE         = $(IP_SRC_DIR)/$(IP_TOP).sv
+
+export CFG                ?= e_bp_default_cfg
+
 BP_FLIST                   = $(BP_TOP_DIR)/syn/flist.vcs
 export IP_TAR_GZ           = $(IP_NAME)_ip.tar.gz
 
@@ -51,6 +55,8 @@ export VV_SIM_DIR       = $(IP_DIR)/$(IP_NAME).sim.vv
 
 $(VV_LINT_FLIST): $(IP_COMMON_FLIST)
 	cp $< $@
+	sed "s/BP_CFG_FLOWVAR/$(CFG)/g" $(IP_TOP_FILE) > $(VV_LINT_DIR)/$(IP_TOP).sv
+	@echo $(VV_LINT_DIR)/$(IP_TOP).sv >> $@
 
 $(VV_LINT_CONFIG):
 	cat $(VV_CONFIG_BASE) | envsubst > $@
@@ -74,6 +80,8 @@ export VCS_BUILD_DIR     = $(IP_DIR)/$(IP_NAME).build.vcs
 
 $(VCS_LINT_FLIST): $(IP_COMMON_FLIST)
 	cp $< $@
+	sed "s/BP_CFG_FLOWVAR/$(CFG)/g" $(IP_TOP_FILE) > $(VCS_LINT_DIR)/$(IP_TOP).sv
+	@echo $(VCS_LINT_DIR)/$(IP_TOP).sv >> $@
 
 ### Include tool Makefile
 include $(MAKE_DIR)/Makefile.vcs
@@ -83,6 +91,8 @@ include $(MAKE_DIR)/Makefile.vcs
 ################
 
 export BUILD_DIR = $(IP_DIR)/$(IP_NAME).build
+$(BUILD_DIR):
+	mkdir -p $@
 
 ip_common_flist: $(IP_COMMON_FLIST)
 $(IP_COMMON_FLIST): $(BP_FLIST) $(IP_BASE_FLIST)
@@ -98,11 +108,13 @@ $(IP_COMMON_FLIST): $(BP_FLIST) $(IP_BASE_FLIST)
 	echo "$(BASE_SRC_DIR)/bytewrite_bram.v" >> $@
 
 ip_flist: $(IP_FLIST)
-$(IP_FLIST): $(IP_COMMON_FLIST)
+$(IP_FLIST): $(IP_COMMON_FLIST) | $(BUILD_DIR)
 	cp $< $@
 	# Harden synchronizers and clock muxes
 	sed -i "s#.*bsg_launch_sync_sync.sv#$(BASEJUMP_STL_DIR)/hard/ultrascale_plus/bsg_async/bsg_launch_sync_sync.sv#g" $@
 	sed -i "s#.*bsg_mux.sv#$(BASEJUMP_STL_DIR)/hard/ultrascale_plus/bsg_misc/bsg_mux.sv#g" $@
+	sed "s/BP_CFG_FLOWVAR/$(CFG)/g" $(IP_TOP_FILE) > $(BUILD_DIR)/$(IP_TOP).sv
+	@echo $(BUILD_DIR)/$(IP_TOP).sv >> $@
 
 build_ip: clean_ip | $(IP_FLIST)
 	vivado -source $(BUILD_IP_TCL) -mode batch
@@ -113,6 +125,7 @@ pack_ip:
 clean_ip:
 	rm -rf $(IP_EXP_DIR)
 	rm -rf $(IP_PROJECT_DIR)
+	rm -rf $(BUILD_DIR)
 	rm -f $(IP_TAR_GZ)
 	rm -f $(IP_FLIST)
 	rm -f $(IP_COMMON_FLIST)
