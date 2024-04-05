@@ -13,6 +13,9 @@ export COSIM_P ?= 1
 export COSIM_MEMSIZE_P ?= 256
 export COSIM_INSTR_P ?= 0
 
+# tracing
+export COMMIT_TRACE_P ?= 0
+
 export CFG ?= e_bp_default_cfg
 
 export RISCV_TARGET ?= riscv64-unknown-linux-gnu

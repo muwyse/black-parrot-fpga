@@ -27,6 +27,8 @@ module testbench
     , parameter checkpoint_p     = 0
     , parameter cosim_memsize_p  = 0
     , parameter cosim_instr_p    = 0
+    // tracing parameters
+    , parameter commit_trace_p   = 0
     )
   (output bit reset_i
    );
@@ -745,7 +747,7 @@ module testbench
        );
 
   wire cosim_en_lo = cosim_p ? 1'b1 : 1'b0;
-  wire cmt_trace_en_lo = 1'b1;
+  wire cmt_trace_en_lo = commit_trace_p ? 1'b1 : 1'b0;
   wire checkpoint_en_lo = checkpoint_p ? 1'b1 : 1'b0;
   bind bp_be_top
     bp_nonsynth_cosim
