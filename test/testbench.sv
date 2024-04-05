@@ -502,6 +502,20 @@ module testbench
      ,.axi_rready_i(m01_axi_rready)
      );
 
+  always_ff @(negedge clk_i) begin
+    if (~reset_i) begin
+      if (m01_axi_awvalid & m01_axi_awaddr >= 64'h10000000) begin
+        $display("memory write above 256MiB: %x", m01_axi_awaddr);
+        $finish();
+      end
+      if (m01_axi_arvalid & m01_axi_araddr >= 64'h10000000) begin
+        $display("memory read above 256MiB: %x", m01_axi_awaddr);
+        $finish();
+      end
+    end
+  end
+
+
   bp_nonsynth_if_monitor
     #(.timeout_p(timeout_p)
      ,.els_p(5)
