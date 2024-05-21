@@ -1,10 +1,6 @@
 ip-test.*/
-fpga.lint.vv
-fpga.build.vv
-fpga.sim.vv
-fpga.lint.vcs
-fpga.build.vcs
-fpga.sim.vcs
+*.verilator/
+*.vcs/
 DVEfiles/
 prog.*
 bootrom.*

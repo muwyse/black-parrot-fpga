@@ -130,50 +130,50 @@ PROG_ELF = $(PROG_NBF:.nbf=.elf)
 ### Linting ###
 ###############
 
-export VV_LINT_DIR      = $(TEST_DIR)/$(TEST_NAME).lint.vv
-export VV_LINT_FLIST    = $(VV_LINT_DIR)/lint.flist
-export VV_LINT_CONFIG   = $(VV_LINT_DIR)/config.vlt
-export VV_LINT_LOG      = $(VV_LINT_DIR)/lint.log
-export VV_LINT_TOP     ?= $(TEST_TOP)
+export VERILATOR_LINT_DIR      = $(TEST_DIR)/$(TEST_NAME).lint.verilator
+export VERILATOR_LINT_FLIST    = $(VERILATOR_LINT_DIR)/lint.flist
+export VERILATOR_LINT_CONFIG   = $(VERILATOR_LINT_DIR)/config.vlt
+export VERILATOR_LINT_LOG      = $(VERILATOR_LINT_DIR)/lint.log
+export VERILATOR_LINT_TOP     ?= $(TEST_TOP)
 
-$(VV_LINT_FLIST): $(TEST_FLIST)
+$(VERILATOR_LINT_FLIST): $(TEST_FLIST)
 	cat $(TEST_FLIST) | envsubst > $@
 	echo '$$TEST_DIR/test.cpp' | envsubst >> $@
-	sed "s/BP_CFG_FLOWVAR/$(CFG)/g" $(TESTBENCH) > $(VV_LINT_DIR)/$(TEST_TOP).sv
-	@echo $(VV_LINT_DIR)/$(TEST_TOP).sv >> $@
+	sed "s/BP_CFG_FLOWVAR/$(CFG)/g" $(TESTBENCH) > $(VERILATOR_LINT_DIR)/$(TEST_TOP).sv
+	@echo $(VERILATOR_LINT_DIR)/$(TEST_TOP).sv >> $@
 
-$(VV_LINT_CONFIG):
-	cat $(VV_CONFIG_BASE) | envsubst > $@
+$(VERILATOR_LINT_CONFIG):
+	cat $(VERILATOR_CONFIG_BASE) | envsubst > $@
 
 ################
 ### Building ###
 ################
 
-export VV_BUILD_DIR   = $(TEST_DIR)/$(TEST_NAME).build.vv
-export VV_FLIST       = $(VV_BUILD_DIR)/build.flist
-export VV_CONFIG      = $(VV_BUILD_DIR)/config.vlt
-export VV_LOG         = $(VV_BUILD_DIR)/build.log
-export VV_TOP        ?= $(TEST_TOP)
+export VERILATOR_BUILD_DIR   = $(TEST_DIR)/$(TEST_NAME).build.verilator
+export VERILATOR_FLIST       = $(VERILATOR_BUILD_DIR)/build.flist
+export VERILATOR_CONFIG      = $(VERILATOR_BUILD_DIR)/config.vlt
+export VERILATOR_LOG         = $(VERILATOR_BUILD_DIR)/build.log
+export VERILATOR_TOP        ?= $(TEST_TOP)
 
-$(VV_FLIST): $(TEST_FLIST)
+$(VERILATOR_FLIST): $(TEST_FLIST)
 	cat $(TEST_FLIST) | envsubst > $@
 	@echo "$(TEST_DIR)/test.cpp" >> $@
-	sed "s/BP_CFG_FLOWVAR/$(CFG)/g" $(TESTBENCH) > $(VV_BUILD_DIR)/$(TEST_TOP).sv
-	@echo $(VV_BUILD_DIR)/$(TEST_TOP).sv >> $@
+	sed "s/BP_CFG_FLOWVAR/$(CFG)/g" $(TESTBENCH) > $(VERILATOR_BUILD_DIR)/$(TEST_TOP).sv
+	@echo $(VERILATOR_BUILD_DIR)/$(TEST_TOP).sv >> $@
 
-$(VV_CONFIG):
-	cat $(VV_CONFIG_BASE) | envsubst > $@
+$(VERILATOR_CONFIG):
+	cat $(VERILATOR_CONFIG_BASE) | envsubst > $@
 
 ##################
 ### Simulation ###
 ##################
 
-export VV_SIM_DIR     = $(TEST_DIR)/$(TEST_NAME).sim.vv
-export VV_SIM_LOG     = $(VV_SIM_DIR)/sim.log
+export VERILATOR_SIM_DIR     = $(TEST_DIR)/$(TEST_NAME).sim.verilator
+export VERILATOR_SIM_LOG     = $(VERILATOR_SIM_DIR)/sim.log
 
-pre_sim.vv:
-	cp $(TEST_DIR)/$(PROG_NBF) $(VV_SIM_DIR)/$(PROG_NBF)
-	cp $(TEST_DIR)/$(PROG_ELF) $(VV_SIM_DIR)/$(PROG_ELF)
+pre_sim.verilator:
+	cp $(TEST_DIR)/$(PROG_NBF) $(VERILATOR_SIM_DIR)/$(PROG_NBF)
+	cp $(TEST_DIR)/$(PROG_ELF) $(VERILATOR_SIM_DIR)/$(PROG_ELF)
 
 ### Include tool Makefile
 include $(MAKE_DIR)/Makefile.verilator

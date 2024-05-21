@@ -3,111 +3,111 @@
 # Makefile.verilator
 #
 # Include this file for verilator-related variables and commands.
-# It sets VV_LINT_OPTS, VV_OPTS to defaults if not already defined.
+# It sets VERILATOR_LINT_OPTS, VERILATOR_OPTS to defaults if not already defined.
 #
 # Requires the following defined in the including Makefile:
 # VERILATOR (usually from black-parrot-tools/Makefile.common)
 # BASE_DIR (usually from Makefile.common)
 # from test Makefile:
-# VV_LINT_DIR
-# VV_LINT_FLIST
-# VV_LINT_CONFIG
-# VV_LINT_LOG
-# VV_LINT_TOP
-# VV_TOP (defaults to testbench)
-# VV_FLIST
-# VV_CONFIG
+# VERILATOR_LINT_DIR
+# VERILATOR_LINT_FLIST
+# VERILATOR_LINT_CONFIG
+# VERILATOR_LINT_LOG
+# VERILATOR_LINT_TOP
+# VERILATOR_TOP (defaults to testbench)
+# VERILATOR_FLIST
+# VERILATOR_CONFIG
 # HDL_PARAMS (optional, for -pvalue directives)
 # HDL_DEFINES (optional, for +define+ directives)
 # CFG (optional, specify the BP configuration)
 #
-# Also requires rules defined for $(VV_LINT_FLIST) and $(VV_LINT_CONFIG), if they need to be
+# Also requires rules defined for $(VERILATOR_LINT_FLIST) and $(VERILATOR_LINT_CONFIG), if they need to be
 # built dynamically.
 
-export VV_CONFIG_BASE := $(BASE_DIR)/lint_settings.verilator
+export VERILATOR_CONFIG_BASE := $(BASE_DIR)/lint_settings.verilator
 
 ## Tools
 CC ?= $(GCC)
-VV ?= $(VERILATOR)
+VERILATOR ?= $(VERILATOR)
 
 ###############
 ### Linting ###
 ###############
 
-VV_LINT_DEFAULT_OPTS = --lint-only -Wall -Wno-unoptflat -Wno-timescalemod
-VV_LINT_DEFAULT_OPTS += --top-module $(VV_LINT_TOP)
-VV_LINT_DEFAULT_OPTS += -f $(VV_LINT_FLIST)
-VV_LINT_DEFAULT_OPTS += $(VV_LINT_CONFIG)
+VERILATOR_LINT_DEFAULT_OPTS = --lint-only -Wall -Wno-unoptflat -Wno-timescalemod
+VERILATOR_LINT_DEFAULT_OPTS += --top-module $(VERILATOR_LINT_TOP)
+VERILATOR_LINT_DEFAULT_OPTS += -f $(VERILATOR_LINT_FLIST)
+VERILATOR_LINT_DEFAULT_OPTS += $(VERILATOR_LINT_CONFIG)
 
-VV_LINT_OPTS         ?= $(VV_LINT_DEFAULT_OPTS)
+VERILATOR_LINT_OPTS         ?= $(VERILATOR_LINT_DEFAULT_OPTS)
 
-$(VV_LINT_CONFIG): | $(VV_LINT_DIR)
-lint_config.vv: $(VV_LINT_CONFIG)
+$(VERILATOR_LINT_CONFIG): | $(VERILATOR_LINT_DIR)
+lint_config.verilator: $(VERILATOR_LINT_CONFIG)
 
-$(VV_LINT_FLIST): | $(VV_LINT_DIR)
-lint_flist.vv: $(VV_LINT_FLIST)
+$(VERILATOR_LINT_FLIST): | $(VERILATOR_LINT_DIR)
+lint_flist.verilator: $(VERILATOR_LINT_FLIST)
 
-lint.vv: $(VV_LINT_FLIST) $(VV_LINT_CONFIG) | $(VV_LINT_DIR)
-	cd $(VV_LINT_DIR); $(VV) $(VV_LINT_OPTS) $(HDL_PARAMS) $(HDL_DEFINES) 2>&1 | tee -i $(VV_LINT_LOG)
+lint.verilator: $(VERILATOR_LINT_FLIST) $(VERILATOR_LINT_CONFIG) | $(VERILATOR_LINT_DIR)
+	cd $(VERILATOR_LINT_DIR); $(VERILATOR) $(VERILATOR_LINT_OPTS) $(HDL_PARAMS) $(HDL_DEFINES) 2>&1 | tee -i $(VERILATOR_LINT_LOG)
 
-clean_lint.vv:
-	rm -rf $(VV_LINT_DIR)
+clean_lint.verilator:
+	rm -rf $(VERILATOR_LINT_DIR)
 
 ################
 ### Building ###
 ################
 
-VV_BUILD_BIN = $(VV_BUILD_DIR)/sim.vv
+VERILATOR_BUILD_BIN = $(VERILATOR_BUILD_DIR)/sim.verilator
 
-VV_TOP ?= testbench
+VERILATOR_TOP ?= testbench
 # Max number of threads to run verilated model with
 # TODO: untested beyond 1
-VV_THREADS ?= 1
+VERILATOR_THREADS ?= 1
 ## Tool options
-VV_DEFAULT_OPTS  = --cc                 # Output in C++
-#VV_DEFAULT_OPTS += --debug --gdbbt     # Debugs and produces stack trace
-VV_DEFAULT_OPTS += -O1
-VV_DEFAULT_OPTS += --x-assign fast --x-initial fast
-VV_DEFAULT_OPTS += --threads $(VV_THREADS)
-VV_DEFAULT_OPTS += --top-module $(VV_TOP)
-VV_DEFAULT_OPTS += -f $(VV_FLIST)
-VV_DEFAULT_OPTS += $(VV_CONFIG)
-VV_DEFAULT_OPTS += --build --exe
-VV_DEFAULT_OPTS += -o sim.vv
-VV_DEFAULT_OPTS += -Wno-timescalemod
-VV_DEFAULT_OPTS += --assert
+VERILATOR_DEFAULT_OPTS  = --cc                 # Output in C++
+#VERILATOR_DEFAULT_OPTS += --debug --gdbbt     # Debugs and produces stack trace
+VERILATOR_DEFAULT_OPTS += -O1
+VERILATOR_DEFAULT_OPTS += --x-assign fast --x-initial fast
+VERILATOR_DEFAULT_OPTS += --threads $(VERILATOR_THREADS)
+VERILATOR_DEFAULT_OPTS += --top-module $(VERILATOR_TOP)
+VERILATOR_DEFAULT_OPTS += -f $(VERILATOR_FLIST)
+VERILATOR_DEFAULT_OPTS += $(VERILATOR_CONFIG)
+VERILATOR_DEFAULT_OPTS += --build --exe
+VERILATOR_DEFAULT_OPTS += -o sim.verilator
+VERILATOR_DEFAULT_OPTS += -Wno-timescalemod
+VERILATOR_DEFAULT_OPTS += --assert
 
-VV_OPTS ?= $(VV_DEFAULT_OPTS)
+VERILATOR_OPTS ?= $(VERILATOR_DEFAULT_OPTS)
 
-VV_BUILD_DEFAULT_OPTS  = --Wno-fatal --Wno-lint --Wno-style --Wno-widthconcat --Wno-unoptflat
-VV_BUILD_DEFAULT_OPTS += -CFLAGS -std=c++14
-VV_BUILD_DEFAULT_OPTS += -CFLAGS "-I$(BP_TOOLS_DIR)/dromajo/include"
-VV_BUILD_DEFAULT_OPTS += -CFLAGS "-I$(BP_RTL_INSTALL_DIR)/include"
-VV_BUILD_DEFAULT_OPTS += -CFLAGS "-I$(BASEJUMP_STL_DIR)/bsg_test"
-VV_BUILD_DEFAULT_OPTS += $(BP_TOOLS_INSTALL_DIR)/lib/libdromajo_cosim.a
-VV_BUILD_DEFAULT_OPTS += -CFLAGS "-DDROMAJO_COSIM"
-VV_BUILD_DEFAULT_OPTS += -LDFLAGS "-lpthread"
-VV_BUILD_DEFAULT_OPTS += -LDFLAGS "-L$(BP_RTL_INSTALL_DIR)/lib -ldramsim3 -Wl,-rpath=$(BP_RTL_INSTALL_DIR)/lib"
-#VV_BUILD_DEFAULT_OPTS += -LDFLAGS "-L$(BP_RTL_INSTALL_DIR)/lib -ldromajo_cosim -Wl,-rpath=$(BP_RTL_INSTALL_DIR)/lib"
+VERILATOR_BUILD_DEFAULT_OPTS  = --Wno-fatal --Wno-lint --Wno-style --Wno-widthconcat --Wno-unoptflat
+VERILATOR_BUILD_DEFAULT_OPTS += -CFLAGS -std=c++14
+VERILATOR_BUILD_DEFAULT_OPTS += -CFLAGS "-I$(BP_TOOLS_DIR)/dromajo/include"
+VERILATOR_BUILD_DEFAULT_OPTS += -CFLAGS "-I$(BP_RTL_INSTALL_DIR)/include"
+VERILATOR_BUILD_DEFAULT_OPTS += -CFLAGS "-I$(BASEJUMP_STL_DIR)/bsg_test"
+VERILATOR_BUILD_DEFAULT_OPTS += $(BP_TOOLS_INSTALL_DIR)/lib/libdromajo_cosim.a
+VERILATOR_BUILD_DEFAULT_OPTS += -CFLAGS "-DDROMAJO_COSIM"
+VERILATOR_BUILD_DEFAULT_OPTS += -LDFLAGS "-lpthread"
+VERILATOR_BUILD_DEFAULT_OPTS += -LDFLAGS "-L$(BP_RTL_INSTALL_DIR)/lib -ldramsim3 -Wl,-rpath=$(BP_RTL_INSTALL_DIR)/lib"
+#VERILATOR_BUILD_DEFAULT_OPTS += -LDFLAGS "-L$(BP_RTL_INSTALL_DIR)/lib -ldromajo_cosim -Wl,-rpath=$(BP_RTL_INSTALL_DIR)/lib"
 
-VV_BUILD_OPTS ?= $(VV_BUILD_DEFAULT_OPTS)
+VERILATOR_BUILD_OPTS ?= $(VERILATOR_BUILD_DEFAULT_OPTS)
 
-$(VV_CONFIG): | $(VV_BUILD_DIR)
-build_config.vv: $(VV_CONFIG)
+$(VERILATOR_CONFIG): | $(VERILATOR_BUILD_DIR)
+build_config.verilator: $(VERILATOR_CONFIG)
 
-$(VV_FLIST): | $(VV_BUILD_DIR)
-build_flist.vv: $(VV_FLIST)
+$(VERILATOR_FLIST): | $(VERILATOR_BUILD_DIR)
+build_flist.verilator: $(VERILATOR_FLIST)
 
-build.vv: $(VV_FLIST) $(VV_CONFIG) | $(VV_BUILD_DIR)
-	cd $(VV_BUILD_DIR); $(VV) $(VV_OPTS) $(VV_BUILD_OPTS) $(HDL_PARAMS) $(HDL_DEFINES) 2>&1 | tee -i $(BUILD_LOG)
+build.verilator: $(VERILATOR_FLIST) $(VERILATOR_CONFIG) | $(VERILATOR_BUILD_DIR)
+	cd $(VERILATOR_BUILD_DIR); $(VERILATOR) $(VERILATOR_OPTS) $(VERILATOR_BUILD_OPTS) $(HDL_PARAMS) $(HDL_DEFINES) 2>&1 | tee -i $(BUILD_LOG)
 
-build_dump.vv: VV_OPTS += --trace-fst
-build_dump.vv: VV_OPTS += --trace-structs
-build_dump.vv: VV_OPTS += --trace-depth 15
-build_dump.vv: build.vv
+build_dump.verilator: VERILATOR_OPTS += --trace-fst
+build_dump.verilator: VERILATOR_OPTS += --trace-structs
+build_dump.verilator: VERILATOR_OPTS += --trace-depth 15
+build_dump.verilator: build.verilator
 
-clean_build.vv:
-	rm -rf $(VV_BUILD_DIR)
+clean_build.verilator:
+	rm -rf $(VERILATOR_BUILD_DIR)
 
 ##################
 ### Simulation ###
@@ -117,36 +117,36 @@ VERILATOR_OPTIONS ?=
 
 VERILATOR_PLUSARGS ?=
 
-pre_sim.vv:
+pre_sim.verilator:
 
-sim.vv: | $(VV_SIM_DIR)
-sim.vv: build.vv pre_sim.vv
-sim.vv: $(VV_SIM_DIR)/run_sim.vv
-$(VV_SIM_DIR)/run_sim.vv: | $(VV_SIM_DIR)
-	#cp $(TEST_DIR)/$(PROG_NBF) $(VV_SIM_DIR)/$(PROG_NBF)
-	#cp $(TEST_DIR)/$(PROG_ELF) $(VV_SIM_DIR)/$(PROG_ELF)
-	cp $(VV_BUILD_DIR)/obj_dir/sim.vv $(VV_SIM_DIR)/
-	cd $(@D); ./sim.vv $(VERILATOR_OPTIONS) $(VERILATOR_PLUSARGS) 2>&1 | tee -i $(VV_SIM_LOG)
+sim.verilator: | $(VERILATOR_SIM_DIR)
+sim.verilator: build.verilator pre_sim.verilator
+sim.verilator: $(VERILATOR_SIM_DIR)/run_sim.verilator
+$(VERILATOR_SIM_DIR)/run_sim.verilator: | $(VERILATOR_SIM_DIR)
+	#cp $(TEST_DIR)/$(PROG_NBF) $(VERILATOR_SIM_DIR)/$(PROG_NBF)
+	#cp $(TEST_DIR)/$(PROG_ELF) $(VERILATOR_SIM_DIR)/$(PROG_ELF)
+	cp $(VERILATOR_BUILD_DIR)/obj_dir/sim.verilator $(VERILATOR_SIM_DIR)/
+	cd $(@D); ./sim.verilator $(VERILATOR_OPTIONS) $(VERILATOR_PLUSARGS) 2>&1 | tee -i $(VERILATOR_SIM_LOG)
 
-sim_dump.vv: VV_OPTS += --trace-fst
-sim_dump.vv: VV_OPTS += --trace-structs
-sim_dump.vv: VV_OPTS += --trace-depth 15
-sim_dump.vv: sim.vv
+sim_dump.verilator: VERILATOR_OPTS += --trace-fst
+sim_dump.verilator: VERILATOR_OPTS += --trace-structs
+sim_dump.verilator: VERILATOR_OPTS += --trace-depth 15
+sim_dump.verilator: sim.verilator
 
-wave.vv: $(VV_SIM_DIR)/wave.vv
-$(VV_SIM_DIR)/wave.vv:
+wave.verilator: $(VERILATOR_SIM_DIR)/wave.verilator
+$(VERILATOR_SIM_DIR)/wave.verilator:
 	$(GTKWAVE) -f $(@D)/dump.fst &
 
-clean_sim.vv:
-	rm -rf $(VV_SIM_DIR)
+clean_sim.verilator:
+	rm -rf $(VERILATOR_SIM_DIR)
 
 ##############
 ### Global ###
 ##############
 
-$(VV_LINT_DIR) $(VV_BUILD_DIR) $(VV_SIM_DIR):
+$(VERILATOR_LINT_DIR) $(VERILATOR_BUILD_DIR) $(VERILATOR_SIM_DIR):
 	mkdir -p $@
 
-clean.vv: clean_lint.vv clean_build.vv clean_sim.vv
-clean: clean.vv
+clean.verilator: clean_lint.verilator clean_build.verilator clean_sim.verilator
+clean: clean.verilator
 
