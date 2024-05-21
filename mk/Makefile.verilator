@@ -117,14 +117,14 @@ VERILATOR_OPTIONS ?=
 
 VERILATOR_PLUSARGS ?=
 
-PROG_NBF ?= prog.nbf
-PROG_ELF = $(PROG_NBF:.nbf=.elf)
+pre_sim.vv:
 
-sim.vv: build.vv
+sim.vv: | $(VV_SIM_DIR)
+sim.vv: build.vv pre_sim.vv
 sim.vv: $(VV_SIM_DIR)/run_sim.vv
 $(VV_SIM_DIR)/run_sim.vv: | $(VV_SIM_DIR)
-	cp $(TEST_DIR)/$(PROG_NBF) $(VV_SIM_DIR)/$(PROG_NBF)
-	cp $(TEST_DIR)/$(PROG_ELF) $(VV_SIM_DIR)/$(PROG_ELF)
+	#cp $(TEST_DIR)/$(PROG_NBF) $(VV_SIM_DIR)/$(PROG_NBF)
+	#cp $(TEST_DIR)/$(PROG_ELF) $(VV_SIM_DIR)/$(PROG_ELF)
 	cp $(VV_BUILD_DIR)/obj_dir/sim.vv $(VV_SIM_DIR)/
 	cd $(@D); ./sim.vv $(VERILATOR_OPTIONS) $(VERILATOR_PLUSARGS) 2>&1 | tee -i $(VV_SIM_LOG)
 

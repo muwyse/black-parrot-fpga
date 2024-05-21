@@ -1,0 +1,30 @@
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# Makefile.test
+#
+# Includable Makefile for testbenches
+#
+
+TOP ?= $(shell git rev-parse --show-toplevel)
+
+# Setup paths for this repo
+include $(TOP)/Makefile.common
+# Pull in tools (Verilator)
+include $(BP_TOOLS_DIR)/Makefile.common
+# Pull in BP_SDK
+include $(BP_SDK_DIR)/Makefile.common
+
+# override these variables for the specific test
+export TEST_TOP ?= testbench
+export TEST_NAME ?= ip-test
+
+# derived testbench variables
+export TEST_BASE_DIR = $(BASE_DIR)/test
+export TEST_BASE_RTL_DIR = $(TEST_BASE_DIR)/v
+export TEST_BASE_SRC_DIR = $(TEST_BASE_DIR)/src
+export TEST_BASE_INCLUDE_DIR = $(TEST_BASE_DIR)/include
+export TEST_BASE_PY_DIR = $(TEST_BASE_DIR)/py
+export TEST_DIR = $(TEST_BASE_DIR)/$(TEST_NAME)
+export TEST_FLIST = $(TEST_DIR)/test.flist
+export TESTBENCH = $(TEST_DIR)/$(TEST_TOP).sv
+

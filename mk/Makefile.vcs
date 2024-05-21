@@ -107,14 +107,14 @@ VCS_OPTIONS ?=
 
 VCS_PLUSARGS ?=
 
-PROG_NBF ?= prog.nbf
-PROG_ELF ?= prog.elf
+pre_sim.vcs:
 
-sim.vcs: build.vcs
+sim.vcs: | $(VCS_BUILD_DIR)
+sim.vcs: build.vcs pre_sim.vcs
 sim.vcs: $(VCS_BUILD_DIR)/run_sim.vcs
 $(VCS_BUILD_DIR)/run_sim.vcs: | $(VCS_BUILD_DIR)
-	cp $(TEST_DIR)/$(PROG_NBF) $(VCS_BUILD_DIR)/$(PROG_NBF)
-	cp $(TEST_DIR)/$(PROG_ELF) $(VCS_BUILD_DIR)/$(PROG_ELF)
+	#cp $(TEST_DIR)/$(PROG_NBF) $(VCS_BUILD_DIR)/$(PROG_NBF)
+	#cp $(TEST_DIR)/$(PROG_ELF) $(VCS_BUILD_DIR)/$(PROG_ELF)
 	cd $(@D); ./sim.vcs $(VCS_OPTIONS) $(VCS_PLUSARGS) 2>&1 | tee -i $(VCS_SIM_LOG)
 
 sim_dump.vcs: VCS_OPTS += +memcbk

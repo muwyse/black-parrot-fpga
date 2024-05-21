@@ -20,20 +20,14 @@ export CFG ?= e_bp_default_cfg
 
 export RISCV_TARGET ?= riscv64-unknown-linux-gnu
 
-# Setup paths for this repo
-include $(TOP)/Makefile.common
-# Pull in tools (Verilator)
-include $(BP_TOOLS_DIR)/Makefile.common
-# Pull in BP_SDK
-include $(BP_SDK_DIR)/Makefile.common
-# test params
-include Makefile.params
-
-export TEST_DIR = $(BASE_DIR)/test
+# testbench stuff
 export TEST_TOP = testbench
-export TEST_FLIST = $(TEST_DIR)/test.flist
-export TEST_NAME = fpga
-export TESTBENCH = $(TEST_DIR)/$(TEST_TOP).sv
+export TEST_NAME = ip-test
+
+include $(TOP)/test/Makefile.test
+
+# test params
+include $(TEST_DIR)/Makefile.params
 
 export BP_IP_SRC_DIR = $(BASE_DIR)/blackparrot/src
 export BP_FPGA_HOST_IP_SRC_DIR = $(BASE_DIR)/blackparrot_fpga_host/src
@@ -122,6 +116,13 @@ sim_prep_clean:
 clean: sim_prep_clean
 
 ################################################################################
+### Common
+################################################################################
+
+PROG_NBF ?= prog.nbf
+PROG_ELF = $(PROG_NBF:.nbf=.elf)
+
+################################################################################
 ### Verilator
 ################################################################################
 
@@ -170,6 +171,10 @@ $(VV_CONFIG):
 export VV_SIM_DIR     = $(TEST_DIR)/$(TEST_NAME).sim.vv
 export VV_SIM_LOG     = $(VV_SIM_DIR)/sim.log
 
+pre_sim.vv:
+	cp $(TEST_DIR)/$(PROG_NBF) $(VV_SIM_DIR)/$(PROG_NBF)
+	cp $(TEST_DIR)/$(PROG_ELF) $(VV_SIM_DIR)/$(PROG_ELF)
+
 ### Include tool Makefile
 include $(MAKE_DIR)/Makefile.verilator
 
@@ -211,6 +216,10 @@ $(VCS_FLIST): $(TEST_FLIST)
 
 # VCS uses the BUILD_DIR as the SIM_DIR
 export VCS_SIM_LOG     = $(VCS_BUILD_DIR)/sim.log
+
+pre_sim.vcs:
+	cp $(TEST_DIR)/$(PROG_NBF) $(VCS_BUILD_DIR)/$(PROG_NBF)
+	cp $(TEST_DIR)/$(PROG_ELF) $(VCS_BUILD_DIR)/$(PROG_ELF)
 
 ### Include tool Makefile
 include $(MAKE_DIR)/Makefile.vcs
