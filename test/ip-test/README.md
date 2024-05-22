@@ -4,9 +4,9 @@ Makefile commands:
 
 ```
 make clean # clean the simulation folder
-make lint.[vv|vcs] CFG=<cfg>
+make lint.[verilator|vcs] CFG=<cfg>
 make sim_prep PROG=<program> SUITE=<suite>
-make build[_dump].[vv|vcs] sim[_dump].[vv|vcs] [CFG=<cfg>] [COSIM_P=0] [COMMIT_TRACE_P=1]
+make build[_dump].[verilator|vcs] sim[_dump].[verilator|vcs] [CFG=<cfg>] [COSIM_P=0] [COMMIT_TRACE_P=1]
 ```
 
 Dromajo cosimulation is enabled by default but can be turned off. Core commit tracing
