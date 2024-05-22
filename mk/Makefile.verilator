@@ -103,7 +103,7 @@ build.verilator: $(VERILATOR_FLIST) $(VERILATOR_CONFIG) | $(VERILATOR_BUILD_DIR)
 
 build_dump.verilator: VERILATOR_OPTS += --trace-fst
 build_dump.verilator: VERILATOR_OPTS += --trace-structs
-build_dump.verilator: VERILATOR_OPTS += --trace-depth 15
+build_dump.verilator: VERILATOR_OPTS += --trace-depth 50
 build_dump.verilator: build.verilator
 
 clean_build.verilator:
