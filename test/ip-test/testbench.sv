@@ -74,6 +74,23 @@ module testbench
      ,.async_reset_o(cosim_reset_i)
      );
 
+  `ifndef VERILATOR
+    initial
+      begin
+        $assertoff();
+        @(posedge clk_i);
+        @(negedge reset_i);
+        $asserton();
+      end
+  `endif
+
+  `ifdef VERILATOR_TRACE
+    initial
+      begin
+        $dumpfile("dump.fst");
+        $dumpvars;
+      end
+  `endif
 
   // test params
   localparam nbf_filename_p = "prog.nbf";

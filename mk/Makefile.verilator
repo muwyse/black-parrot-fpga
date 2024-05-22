@@ -66,21 +66,21 @@ VERILATOR_THREADS ?= 1
 ## Tool options
 VERILATOR_DEFAULT_OPTS  = --cc                 # Output in C++
 #VERILATOR_DEFAULT_OPTS += --debug --gdbbt     # Debugs and produces stack trace
-VERILATOR_DEFAULT_OPTS += -O1
+VERILATOR_DEFAULT_OPTS += -O2
 VERILATOR_DEFAULT_OPTS += --x-assign fast --x-initial fast
 VERILATOR_DEFAULT_OPTS += --threads $(VERILATOR_THREADS)
 VERILATOR_DEFAULT_OPTS += --top-module $(VERILATOR_TOP)
 VERILATOR_DEFAULT_OPTS += -f $(VERILATOR_FLIST)
 VERILATOR_DEFAULT_OPTS += $(VERILATOR_CONFIG)
-VERILATOR_DEFAULT_OPTS += --build --exe
+VERILATOR_DEFAULT_OPTS += --binary
 VERILATOR_DEFAULT_OPTS += -o sim.verilator
 VERILATOR_DEFAULT_OPTS += -Wno-timescalemod
-VERILATOR_DEFAULT_OPTS += --assert
+#VERILATOR_DEFAULT_OPTS += --assert
 
 VERILATOR_OPTS ?= $(VERILATOR_DEFAULT_OPTS)
 
 VERILATOR_BUILD_DEFAULT_OPTS  = --Wno-fatal --Wno-lint --Wno-style --Wno-widthconcat --Wno-unoptflat
-VERILATOR_BUILD_DEFAULT_OPTS += -CFLAGS -std=c++14
+VERILATOR_BUILD_DEFAULT_OPTS += -CFLAGS -std=c++17
 VERILATOR_BUILD_DEFAULT_OPTS += -CFLAGS "-I$(BP_TOOLS_DIR)/dromajo/include"
 VERILATOR_BUILD_DEFAULT_OPTS += -CFLAGS "-I$(BP_RTL_INSTALL_DIR)/include"
 VERILATOR_BUILD_DEFAULT_OPTS += -CFLAGS "-I$(BASEJUMP_STL_DIR)/bsg_test"
@@ -104,6 +104,7 @@ build.verilator: $(VERILATOR_FLIST) $(VERILATOR_CONFIG) | $(VERILATOR_BUILD_DIR)
 build_dump.verilator: VERILATOR_OPTS += --trace-fst
 build_dump.verilator: VERILATOR_OPTS += --trace-structs
 build_dump.verilator: VERILATOR_OPTS += --trace-depth 50
+build_dump.verilator: HDL_DEFINES += +define+VERILATOR_TRACE=1
 build_dump.verilator: build.verilator
 
 clean_build.verilator:
@@ -130,7 +131,8 @@ $(VERILATOR_SIM_DIR)/run_sim.verilator: | $(VERILATOR_SIM_DIR)
 
 sim_dump.verilator: VERILATOR_OPTS += --trace-fst
 sim_dump.verilator: VERILATOR_OPTS += --trace-structs
-sim_dump.verilator: VERILATOR_OPTS += --trace-depth 15
+sim_dump.verilator: VERILATOR_OPTS += --trace-depth 50
+sim_dump.verilator: HDL_DEFINES += +define+VERILATOR_TRACE=1
 sim_dump.verilator: sim.verilator
 
 wave.verilator: $(VERILATOR_SIM_DIR)/wave.verilator

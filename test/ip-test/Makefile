@@ -138,7 +138,6 @@ export VERILATOR_LINT_TOP     ?= $(TEST_TOP)
 
 $(VERILATOR_LINT_FLIST): $(TEST_FLIST)
 	cat $(TEST_FLIST) | envsubst > $@
-	echo '$$TEST_DIR/test.cpp' | envsubst >> $@
 	sed "s/BP_CFG_FLOWVAR/$(CFG)/g" $(TESTBENCH) > $(VERILATOR_LINT_DIR)/$(TEST_TOP).sv
 	@echo $(VERILATOR_LINT_DIR)/$(TEST_TOP).sv >> $@
 
@@ -157,7 +156,6 @@ export VERILATOR_TOP        ?= $(TEST_TOP)
 
 $(VERILATOR_FLIST): $(TEST_FLIST)
 	cat $(TEST_FLIST) | envsubst > $@
-	@echo "$(TEST_DIR)/test.cpp" >> $@
 	sed "s/BP_CFG_FLOWVAR/$(CFG)/g" $(TESTBENCH) > $(VERILATOR_BUILD_DIR)/$(TEST_TOP).sv
 	@echo $(VERILATOR_BUILD_DIR)/$(TEST_TOP).sv >> $@
 
