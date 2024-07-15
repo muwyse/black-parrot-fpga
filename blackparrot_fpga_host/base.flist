@@ -31,6 +31,7 @@ $BASEJUMP_STL_DIR/bsg_misc/bsg_dff_en.sv
 $BASEJUMP_STL_DIR/bsg_misc/bsg_dff_en_bypass.sv
 $BASEJUMP_STL_DIR/bsg_misc/bsg_dff_reset.sv
 $BASEJUMP_STL_DIR/bsg_misc/bsg_dff_reset_en.sv
+$BASEJUMP_STL_DIR/bsg_misc/bsg_dff_reset_en_bypass.sv
 $BASEJUMP_STL_DIR/bsg_misc/bsg_dff_reset_set_clear.sv
 $BASEJUMP_STL_DIR/bsg_misc/bsg_mux.sv
 $BASEJUMP_STL_DIR/bsg_misc/bsg_mux_one_hot.sv
