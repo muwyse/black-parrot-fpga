@@ -104,6 +104,7 @@ $(IP_COMMON_FLIST): $(BP_FLIST) $(IP_BASE_FLIST)
 	sed -i "/bsg_mem_1rw_sync_mask_write_byte.sv/d" $@
 	sed -i "/bsg_mem_1rw_sync_mask_write_byte_synth.sv/d" $@
 	echo "$(BASEJUMP_STL_DIR)/hard/ultrascale_plus/bsg_mem/bsg_mem_1rw_sync_mask_write_bit.sv" >> $@
+	echo "$(BASEJUMP_STL_DIR)/bsg_mem/bsg_mem_1rw_sync_mask_write_bit_from_1r1w.sv" >> $@
 	echo "$(BASE_SRC_DIR)/bsg_mem_1rw_sync_mask_write_byte.sv" >> $@
 	echo "$(BASE_SRC_DIR)/bytewrite_bram.v" >> $@
 
