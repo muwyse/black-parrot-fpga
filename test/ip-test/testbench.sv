@@ -702,9 +702,9 @@ module testbench
 
       ,.br_ovr_i(fe.pc_gen.ovr_btaken | fe.pc_gen.ovr_jmp)
       ,.ret_ovr_i(fe.pc_gen.ovr_ret)
-      ,.realigner_i(fe.if2_instr_v & ~fe.fetch_instr_v_lo)
+      ,.realigner_i(1'b0)
 
-      ,.icache_data_v_i(fe.icache.data_v_o)
+      ,.icache_data_v_i(fe.icache.hit_v_o)
       ,.icache_v_i(fe.icache.v_i)
       ,.icache_yumi_i(fe.icache.yumi_o)
 
