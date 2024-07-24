@@ -38,20 +38,20 @@ export IP_TAR_GZ           = $(IP_NAME)_ip.tar.gz
 ### Linting ###
 ###############
 
-export VV_LINT_DIR      = $(IP_DIR)/$(IP_NAME).lint.vv
-export VV_LINT_FLIST    = $(VV_LINT_DIR)/lint.flist
-export VV_LINT_CONFIG   = $(VV_LINT_DIR)/config.vlt
-export VV_LINT_LOG      = $(VV_LINT_DIR)/lint.log
-export VV_LINT_TOP     ?= $(IP_TOP)
+export VERILATOR_LINT_DIR      = $(IP_DIR)/$(IP_NAME).lint.verilator
+export VERILATOR_LINT_FLIST    = $(VERILATOR_LINT_DIR)/lint.flist
+export VERILATOR_LINT_CONFIG   = $(VERILATOR_LINT_DIR)/config.vlt
+export VERILATOR_LINT_LOG      = $(VERILATOR_LINT_DIR)/lint.log
+export VERILATOR_LINT_TOP     ?= $(IP_TOP)
 
-export VV_BUILD_DIR     = $(IP_DIR)/$(IP_NAME).build.vv
-export VV_SIM_DIR       = $(IP_DIR)/$(IP_NAME).sim.vv
+export VERILATOR_BUILD_DIR     = $(IP_DIR)/$(IP_NAME).build.verilator
+export VERILATOR_SIM_DIR       = $(IP_DIR)/$(IP_NAME).sim.verilator
 
-$(VV_LINT_FLIST): $(IP_FLIST)
+$(VERILATOR_LINT_FLIST): $(IP_FLIST)
 	cp $< $@
 
-$(VV_LINT_CONFIG):
-	cat $(VV_CONFIG_BASE) | envsubst > $@
+$(VERILATOR_LINT_CONFIG):
+	cat $(VERILATOR_CONFIG_BASE) | envsubst > $@
 
 include $(MAKE_DIR)/Makefile.verilator
 
