@@ -183,7 +183,6 @@ $BASEJUMP_STL_DIR/bsg_noc/bsg_wormhole_router_input_control.sv
 $BASEJUMP_STL_DIR/bsg_noc/bsg_wormhole_router_output_control.sv
 
 # HardFloat files
-$HARDFLOAT_DIR/source/addRecFN.v
 $HARDFLOAT_DIR/source/compareRecFN.v
 $HARDFLOAT_DIR/source/divSqrtRecFN.v
 $HARDFLOAT_DIR/source/divSqrtRecFN_medium.v
@@ -244,7 +243,7 @@ $BP_FE_DIR/src/v/bp_fe_bht.sv
 $BP_FE_DIR/src/v/bp_fe_btb.sv
 $BP_FE_DIR/src/v/bp_fe_controller.sv
 $BP_FE_DIR/src/v/bp_fe_icache.sv
-$BP_FE_DIR/src/v/bp_fe_instr_scan.sv
+$BP_FE_DIR/src/v/bp_fe_scan.sv
 $BP_FE_DIR/src/v/bp_fe_pc_gen.sv
 $BP_FE_DIR/src/v/bp_fe_realigner.sv
 $BP_FE_DIR/src/v/bp_fe_top.sv
