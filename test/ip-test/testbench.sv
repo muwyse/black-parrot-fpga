@@ -671,8 +671,8 @@ module testbench
     bp_nonsynth_watchdog
      #(.bp_params_p(bp_params_p)
        ,.stall_cycles_p(100000)
-       ,.halt_cycles_p(10000)
-       ,.heartbeat_instr_p(10000)
+       ,.halt_cycles_p(100000)
+       ,.heartbeat_instr_p(100000000)
        )
      watchdog
       (.clk_i(clk_i)
