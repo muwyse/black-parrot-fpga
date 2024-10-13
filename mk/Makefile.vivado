@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# Makefile.vivado
+#
+# Include this file to setup paths for Vivado
+#
+
+export VIVADO_VERSION         := 2019.1
+XILINX_PATH                   ?= /gro/cad/Xilinx
+VIVADO_PATH                   ?= $(XILINX_PATH)/Vivado
+XILINX_VIVADO                 ?= $(VIVADO_PATH)/$(VIVADO_VERSION)
+vivado_bin                    := $(XILINX_VIVADO)/bin/vivado
+

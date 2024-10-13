@@ -90,6 +90,8 @@ include $(MAKE_DIR)/Makefile.vcs
 ### Building ###
 ################
 
+include $(MAKE_DIR)/Makefile.vivado
+
 export BUILD_DIR = $(IP_DIR)/$(IP_NAME).build
 $(BUILD_DIR):
 	mkdir -p $@

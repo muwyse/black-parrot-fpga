@@ -80,6 +80,8 @@ include $(MAKE_DIR)/Makefile.vcs
 ### Building ###
 ################
 
+include $(MAKE_DIR)/Makefile.vivado
+
 export BUILD_DIR = $(IP_DIR)/$(IP_NAME).build
 
 ip_flist: $(IP_FLIST)

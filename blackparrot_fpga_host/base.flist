@@ -41,9 +41,9 @@ $BASEJUMP_STL_DIR/bsg_misc/bsg_scan.sv
 # Common files
 $BP_COMMON_DIR/src/v/bsg_bus_pack.sv
 # BP Subsystem files
-$BLACKPARROT_SUB_DIR/axi/v/bp_axi_pump.sv
-$BLACKPARROT_SUB_DIR/axi/v/bp_fifo_to_axi.sv
-$BLACKPARROT_SUB_DIR/axi/v/bp_axi_to_fifo.sv
+$BP_SUB_DIR/axi/v/bp_axi_pump.sv
+$BP_SUB_DIR/axi/v/bp_fifo_to_axi.sv
+$BP_SUB_DIR/axi/v/bp_axi_to_fifo.sv
 # IP files
 $IP_SRC_DIR/blackparrot_fpga_host.sv
 $IP_SRC_DIR/blackparrot_fpga_host_bootrom.sv

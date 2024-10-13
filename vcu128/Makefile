@@ -9,6 +9,7 @@ TOP ?= $(shell git rev-parse --show-toplevel)
 
 include $(TOP)/Makefile.common
 include $(BP_TOOLS_DIR)/Makefile.common
+include $(MAKE_DIR)/Makefile.vivado
 
 export BASE_DIR           := $(abspath $(TOP))
 export PROJECT_BASE_DIR   := $(BASE_DIR)/vcu128
@@ -42,6 +43,9 @@ clean_ip:
 
 project: clean_project
 	$(vivado_bin) -source $(PROJECT_TCL) -mode batch
+
+open_vivado:
+	$(vivado_bin) &
 
 clean_project:
 	rm -rf $(PROJECT_DIR)
