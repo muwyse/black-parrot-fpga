@@ -96,7 +96,7 @@ $(IP_FLIST): $(IP_BASE_FLIST)
 	echo "$(BASE_SRC_DIR)/bytewrite_bram.v" >> $@
 
 build_ip: clean_ip $(IP_FLIST)
-	vivado -source $(BUILD_IP_TCL) -mode batch
+	$(vivado_bin) -source $(BUILD_IP_TCL) -mode batch
 
 pack_ip:
 	tar -czvf $(IP_TAR_GZ) $(IP_NAME)_ip

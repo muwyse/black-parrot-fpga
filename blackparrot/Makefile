@@ -118,7 +118,7 @@ $(IP_FLIST): $(IP_COMMON_FLIST) | $(BUILD_DIR)
 	@echo $(BUILD_DIR)/$(IP_TOP).sv >> $@
 
 build_ip: clean_ip | $(IP_FLIST)
-	vivado -source $(BUILD_IP_TCL) -mode batch
+	$(vivado_bin) -source $(BUILD_IP_TCL) -mode batch
 
 pack_ip:
 	tar -czvf $(IP_TAR_GZ) $(IP_NAME)_ip
