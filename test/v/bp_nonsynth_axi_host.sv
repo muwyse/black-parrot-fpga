@@ -6,8 +6,9 @@
  *
  * Description:
  *  This module polls the BP MMIO out buffers using M_AXIL read channel.
+ *  It can respond to limited reads using M_AXIL write channel to send
+ *  responses to the MMIO response buffer (offset 0x4)
  *
- *  This module only issues reads (i.e., BP cannot issue a getchar)
  */
 
 `include "bsg_defines.sv"
@@ -18,12 +19,27 @@ module bp_nonsynth_axi_host
    ,parameter M_AXIL_DATA_WIDTH = 32 // must be 32
    ,parameter M_AXIL_CREDITS = 64
    ,parameter timeout_p = 10000
+   ,parameter logic [63:0] mmio_in_host_addr_p = 64'h0
    ,parameter bp_params_e bp_params_p = e_bp_default_cfg
    `declare_bp_proc_params(bp_params_p)
    )
   (// M_AXIL
    input logic                               m_axil_aclk
    ,input logic                              m_axil_aresetn
+
+   ,output logic [M_AXIL_ADDR_WIDTH-1:0]     m_axil_awaddr
+   ,output logic                             m_axil_awvalid
+   ,input logic                              m_axil_awready
+   ,output logic [2:0]                       m_axil_awprot
+
+   ,output logic [M_AXIL_DATA_WIDTH-1:0]     m_axil_wdata
+   ,output logic                             m_axil_wvalid
+   ,input logic                              m_axil_wready
+   ,output logic [(M_AXIL_DATA_WIDTH/8)-1:0] m_axil_wstrb
+
+   ,input logic                              m_axil_bvalid
+   ,output logic                             m_axil_bready
+   ,input logic [1:0]                        m_axil_bresp
 
    ,output logic [M_AXIL_ADDR_WIDTH-1:0]     m_axil_araddr
    ,output logic                             m_axil_arvalid
@@ -185,8 +201,6 @@ module bp_nonsynth_axi_host
 
 
   // CMD processing
-  // the SIPO output is sunk immediately
-  assign sipo_yumi_li = sipo_v_lo;
   // split MMIO request into address and data
   wire [M_AXIL_DATA_WIDTH-1:0] cmd_addr = {{(32-dev_addr_width_gp)'(1'b0)}, sipo_data_lo[0][0+:dev_addr_width_gp]};
   wire [M_AXIL_DATA_WIDTH-1:0] cmd_data = sipo_data_lo[1];
@@ -195,6 +209,81 @@ module bp_nonsynth_axi_host
   wire putchar_w_v_li = sipo_v_lo & (cmd_addr inside {putchar_match_addr_gp});
   wire putch_core_w_v_li = sipo_v_lo & (cmd_addr inside {putch_core_match_addr_gp});
   wire finish_w_v_li = sipo_v_lo & (cmd_addr inside {finish_match_addr_gp});
+
+  // MMIO reads
+  wire paramrom_addr_match_li = (cmd_addr inside {paramrom_match_addr_gp});
+  wire paramrom_r_v_li = sipo_v_lo & paramrom_addr_match_li;
+  wire paramrom_cc_x_dim = (cmd_addr[0+:12] & 12'hFFF) == 12'h000;
+  wire paramrom_cc_y_dim = (cmd_addr[0+:12] & 12'hFFF) == 12'h004;
+
+  typedef enum logic[1:0] {
+    e_resp_ready
+    ,e_resp_send_addr
+    ,e_resp_send_data
+  } resp_state_e;
+  resp_state_e resp_state_r, resp_state_n;
+
+  logic resp_sipo_yumi_li;
+  assign sipo_yumi_li = resp_sipo_yumi_li | (sipo_v_lo & ~paramrom_addr_match_li);
+
+  always_comb begin
+    resp_sipo_yumi_li = 1'b0;
+
+    m_axil_awaddr = mmio_in_host_addr_p;
+    m_axil_awvalid = 1'b0;
+    m_axil_awprot = '0;
+
+    m_axil_wdata = 1'b0;
+    m_axil_wdata = (paramrom_cc_x_dim)
+                   ? num_core_p
+                   : (paramrom_cc_y_dim)
+                     ? 1
+                     : 0;
+    m_axil_wvalid = 1'b0;
+    m_axil_wstrb = '1;
+
+    // sink all write responses, unconditionally
+    m_axil_bready = 1'b1;
+
+    resp_state_n = resp_state_r;
+    case (resp_state_r)
+      e_resp_ready: begin
+        m_axil_awvalid = paramrom_r_v_li;
+        m_axil_wvalid = paramrom_r_v_li;
+        resp_sipo_yumi_li = m_axil_wvalid & m_axil_wready & m_axil_awvalid & m_axil_awready;
+        resp_state_n = resp_sipo_yumi_li
+                       ? resp_state_r
+                       : (m_axil_awvalid & m_axil_awready)
+                         ? e_resp_send_data
+                         : (m_axil_wvalid & m_axil_wready)
+                           ? e_resp_send_addr
+                           : resp_state_r;
+      end
+      e_resp_send_addr: begin
+        m_axil_awvalid = paramrom_r_v_li;
+        resp_sipo_yumi_li = m_axil_awvalid & m_axil_awready;
+        resp_state_n = resp_sipo_yumi_li ? e_resp_ready : resp_state_r;
+      end
+      e_resp_send_data: begin
+        m_axil_wvalid = paramrom_r_v_li;
+        resp_sipo_yumi_li = m_axil_wvalid & m_axil_wready;
+        resp_state_n = resp_sipo_yumi_li ? e_resp_ready : resp_state_r;
+      end
+      default: begin
+        // do nothing
+      end
+    endcase
+  end
+
+  // synopsys sync_set_reset "reset"
+  always_ff @(posedge m_axil_aclk) begin
+    if (reset | ~en_i) begin
+      resp_state_r <= e_resp_ready;
+    end else begin
+      resp_state_r <= resp_state_n;
+    end
+  end
+
 
   // extract core ID from MMIO address
   localparam byte_offset_width_lp = 3;

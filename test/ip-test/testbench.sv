@@ -296,6 +296,20 @@ module testbench
   logic [1:0]                        s_axil_rresp;
 
   // nbf loader to FPGA host
+  logic [S_AXIL_ADDR_WIDTH-1:0]      nbf_s_axil_awaddr;
+  logic                              nbf_s_axil_awvalid;
+  logic                              nbf_s_axil_awready;
+  logic [2:0]                        nbf_s_axil_awprot;
+
+  logic [S_AXIL_DATA_WIDTH-1:0]      nbf_s_axil_wdata;
+  logic                              nbf_s_axil_wvalid;
+  logic                              nbf_s_axil_wready;
+  logic [(S_AXIL_DATA_WIDTH/8)-1:0]  nbf_s_axil_wstrb;
+
+  logic                              nbf_s_axil_bvalid;
+  logic                              nbf_s_axil_bready;
+  logic [1:0]                        nbf_s_axil_bresp;
+
   logic [S_AXIL_ADDR_WIDTH-1:0]      nbf_s_axil_araddr;
   logic                              nbf_s_axil_arvalid;
   logic                              nbf_s_axil_arready;
@@ -307,6 +321,20 @@ module testbench
   logic [1:0]                        nbf_s_axil_rresp;
 
   // axi host to FPGA host
+  logic [S_AXIL_ADDR_WIDTH-1:0]      host_s_axil_awaddr;
+  logic                              host_s_axil_awvalid;
+  logic                              host_s_axil_awready;
+  logic [2:0]                        host_s_axil_awprot;
+
+  logic [S_AXIL_DATA_WIDTH-1:0]      host_s_axil_wdata;
+  logic                              host_s_axil_wvalid;
+  logic                              host_s_axil_wready;
+  logic [(S_AXIL_DATA_WIDTH/8)-1:0]  host_s_axil_wstrb;
+
+  logic                              host_s_axil_bvalid;
+  logic                              host_s_axil_bready;
+  logic [1:0]                        host_s_axil_bresp;
+
   logic [S_AXIL_ADDR_WIDTH-1:0]      host_s_axil_araddr;
   logic                              host_s_axil_arvalid;
   logic                              host_s_axil_arready;
@@ -559,17 +587,19 @@ module testbench
     nbf_loader
     (.m_axil_aclk(s_axil_aclk)
      ,.m_axil_aresetn(s_axil_aresetn)
-     ,.m_axil_awaddr(s_axil_awaddr)
-     ,.m_axil_awvalid(s_axil_awvalid)
-     ,.m_axil_awready(s_axil_awready)
-     ,.m_axil_awprot(s_axil_awprot)
-     ,.m_axil_wdata(s_axil_wdata)
-     ,.m_axil_wvalid(s_axil_wvalid)
-     ,.m_axil_wready(s_axil_wready)
-     ,.m_axil_wstrb(s_axil_wstrb)
-     ,.m_axil_bvalid(s_axil_bvalid)
-     ,.m_axil_bready(s_axil_bready)
-     ,.m_axil_bresp(s_axil_bresp)
+     // AW/W/B
+     ,.m_axil_awaddr(nbf_s_axil_awaddr)
+     ,.m_axil_awvalid(nbf_s_axil_awvalid)
+     ,.m_axil_awready(nbf_s_axil_awready)
+     ,.m_axil_awprot(nbf_s_axil_awprot)
+     ,.m_axil_wdata(nbf_s_axil_wdata)
+     ,.m_axil_wvalid(nbf_s_axil_wvalid)
+     ,.m_axil_wready(nbf_s_axil_wready)
+     ,.m_axil_wstrb(nbf_s_axil_wstrb)
+     ,.m_axil_bvalid(nbf_s_axil_bvalid)
+     ,.m_axil_bready(nbf_s_axil_bready)
+     ,.m_axil_bresp(nbf_s_axil_bresp)
+     // AR/R
      ,.m_axil_araddr(nbf_s_axil_araddr)
      ,.m_axil_arvalid(nbf_s_axil_arvalid)
      ,.m_axil_arready(nbf_s_axil_arready)
@@ -604,6 +634,19 @@ module testbench
     nonsynth_host
     (.m_axil_aclk(s_axil_aclk)
      ,.m_axil_aresetn(s_axil_aresetn)
+     // AW/W/B
+     ,.m_axil_awaddr(host_s_axil_awaddr)
+     ,.m_axil_awvalid(host_s_axil_awvalid)
+     ,.m_axil_awready(host_s_axil_awready)
+     ,.m_axil_awprot(host_s_axil_awprot)
+     ,.m_axil_wdata(host_s_axil_wdata)
+     ,.m_axil_wvalid(host_s_axil_wvalid)
+     ,.m_axil_wready(host_s_axil_wready)
+     ,.m_axil_wstrb(host_s_axil_wstrb)
+     ,.m_axil_bvalid(host_s_axil_bvalid)
+     ,.m_axil_bready(host_s_axil_bready)
+     ,.m_axil_bresp(host_s_axil_bresp)
+     // AR/R
      ,.m_axil_araddr(host_s_axil_araddr)
      ,.m_axil_arvalid(host_s_axil_arvalid)
      ,.m_axil_arready(host_s_axil_arready)
@@ -616,31 +659,60 @@ module testbench
      ,.done_o(host_done)
      );
 
-  // NBF loader connects to AR/R until loader is done,
+  // NBF loader connects to s_axil until loader is done,
   // then host connects
   always_comb begin
-    // data and resp can always be connected
+    // default to NBF connected until loader done
+    // AW
+    s_axil_awaddr = nbf_s_axil_awaddr;
+    s_axil_awvalid = nbf_s_axil_awvalid;
+    s_axil_awprot = nbf_s_axil_awprot;
+    nbf_s_axil_awready = s_axil_awready;
+    // W
+    s_axil_wvalid = nbf_s_axil_wvalid;
+    s_axil_wdata = nbf_s_axil_wdata;
+    s_axil_wstrb = nbf_s_axil_wstrb;
+    nbf_s_axil_wready = s_axil_wready;
+    // B
+    s_axil_bready = nbf_s_axil_bready;
+    nbf_s_axil_bvalid = s_axil_bvalid;
+    nbf_s_axil_bresp = s_axil_bresp;
+    // AR
+    s_axil_araddr = nbf_s_axil_araddr;
+    s_axil_arprot = nbf_s_axil_arprot;
+    s_axil_arvalid = nbf_s_axil_arvalid;
+    nbf_s_axil_arready = s_axil_arready;
+    // R
+    s_axil_rready = nbf_s_axil_rready;
+    nbf_s_axil_rvalid = s_axil_rvalid;
     nbf_s_axil_rdata = s_axil_rdata;
     nbf_s_axil_rresp = s_axil_rresp;
+
+    // connect to host when loader is done
+    // defaults for inputs
+    host_s_axil_awready = 1'b0;
+    host_s_axil_wready = 1'b0;
+    host_s_axil_bvalid = 1'b0;
+    host_s_axil_bresp = s_axil_bresp;
+    host_s_axil_arready = 1'b0;
+    host_s_axil_rvalid = 1'b0;
     host_s_axil_rdata = s_axil_rdata;
     host_s_axil_rresp = s_axil_rresp;
 
-    // defaults
-    nbf_s_axil_arready = 1'b0;
-    nbf_s_axil_rvalid = 1'b0;
-    host_s_axil_arready = 1'b0;
-    host_s_axil_rvalid = 1'b0;
-
-    if (~loader_done) begin
-      // AR
-      s_axil_araddr = nbf_s_axil_araddr;
-      s_axil_arprot = nbf_s_axil_arprot;
-      s_axil_arvalid = nbf_s_axil_arvalid;
-      nbf_s_axil_arready = s_axil_arready;
-      // R
-      s_axil_rready = nbf_s_axil_rready;
-      nbf_s_axil_rvalid = s_axil_rvalid;
-    end else begin
+    if (loader_done) begin
+      // AW
+      s_axil_awaddr = host_s_axil_awaddr;
+      s_axil_awvalid = host_s_axil_awvalid;
+      s_axil_awprot = host_s_axil_awprot;
+      host_s_axil_awready = s_axil_awready;
+      // W
+      s_axil_wvalid = host_s_axil_wvalid;
+      s_axil_wdata = host_s_axil_wdata;
+      s_axil_wstrb = host_s_axil_wstrb;
+      host_s_axil_wready = s_axil_wready;
+      // B
+      host_s_axil_bvalid = s_axil_bvalid;
+      s_axil_bready = host_s_axil_bready;
       // AR
       s_axil_araddr = host_s_axil_araddr;
       s_axil_arprot = host_s_axil_arprot;

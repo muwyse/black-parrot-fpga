@@ -7,6 +7,8 @@
 
 TOP ?= $(shell git rev-parse --show-toplevel)
 
+-include $(BSG_CADENV_DIR)/cadenv.mk
+
 # cosim
 export CHECKPOINT_P ?= 0
 export COSIM_P ?= 1
