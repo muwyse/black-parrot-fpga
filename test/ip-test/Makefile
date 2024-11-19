@@ -17,6 +17,8 @@ export COSIM_INSTR_P ?= 0
 
 # tracing
 export COMMIT_TRACE_P ?= 0
+export LCE_TRACE_P ?= 0
+export CCE_TRACE_P ?= 0
 
 export CFG ?= e_bp_default_cfg
 

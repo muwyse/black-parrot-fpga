@@ -388,5 +388,7 @@ $BP_TOP_DIR/test/common/bp_nonsynth_watchdog.sv
 $BP_BE_DIR/test/common/bp_be_nonsynth_dcache_tracer.sv
 $BP_TOP_DIR/test/common/bp_nonsynth_cosim.sv
 $BP_TOP_DIR/test/common/dromajo_cosim.cpp
-
+$BP_ME_DIR/test/common/bp_me_nonsynth_pkg.sv
+$BP_ME_DIR/test/common/bp_me_nonsynth_cce_tracer.sv
+$BP_ME_DIR/test/common/bp_me_nonsynth_lce_tracer.sv
 

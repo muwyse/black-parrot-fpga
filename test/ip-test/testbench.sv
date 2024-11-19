@@ -29,6 +29,8 @@ module testbench
     , parameter cosim_instr_p    = 0
     // tracing parameters
     , parameter commit_trace_p   = 0
+    , parameter cce_trace_p   = 0
+    , parameter lce_trace_p   = 0
     )
   (output bit reset_i
    );
@@ -899,5 +901,90 @@ module testbench
        ,.cosim_reset_i(testbench.cosim_reset_i)
        );
 
+  wire lce_trace_en_lo = lce_trace_p ? 1'b1 : 1'b0;
+  wire cce_trace_en_lo = cce_trace_p ? 1'b1 : 1'b0;
+  if (cce_type_p != e_cce_uce) begin
+    bind bp_cce_wrapper
+      bp_me_nonsynth_cce_tracer
+       #(.bp_params_p(bp_params_p))
+       cce_tracer
+        (.clk_i(clk_i & testbench.cce_trace_en_lo)
+        ,.reset_i(reset_i)
+
+        ,.cce_id_i(cfg_bus_cast_i.cce_id)
+
+        // LCE-CCE Interface
+        // BedRock Burst protocol: ready&valid
+        ,.lce_req_header_i(lce_req_header_i)
+        ,.lce_req_data_i(lce_req_data_i)
+        ,.lce_req_v_i(lce_req_v_i)
+        ,.lce_req_ready_and_i(lce_req_ready_and_o)
+
+        ,.lce_cmd_header_i(lce_cmd_header_o)
+        ,.lce_cmd_data_i(lce_cmd_data_o)
+        ,.lce_cmd_v_i(lce_cmd_v_o)
+        ,.lce_cmd_ready_and_i(lce_cmd_ready_and_i)
+
+        ,.lce_resp_header_i(lce_resp_header_i)
+        ,.lce_resp_data_i(lce_resp_data_i)
+        ,.lce_resp_v_i(lce_resp_v_i)
+        ,.lce_resp_ready_and_i(lce_resp_ready_and_o)
+
+        // CCE-MEM Interface
+        // BedRock Stream protocol: ready&valid
+        ,.mem_rev_header_i(mem_rev_header_i)
+        ,.mem_rev_data_i(mem_rev_data_i)
+        ,.mem_rev_v_i(mem_rev_v_i)
+        ,.mem_rev_ready_and_i(mem_rev_ready_and_o)
+
+        ,.mem_fwd_header_i(mem_fwd_header_o)
+        ,.mem_fwd_data_i(mem_fwd_data_o)
+        ,.mem_fwd_v_i(mem_fwd_v_o)
+        ,.mem_fwd_ready_and_i(mem_fwd_ready_and_i)
+        );
+
+    bind bp_lce
+      bp_me_nonsynth_lce_tracer
+        #(.bp_params_p(bp_params_p)
+          ,.sets_p(sets_p)
+          ,.assoc_p(assoc_p)
+          ,.block_width_p(block_width_p)
+          ,.fill_width_p(fill_width_p)
+          ,.data_width_p(data_width_p)
+          )
+        lce_tracer
+        (.clk_i(clk_i & testbench.lce_trace_en_lo)
+        ,.reset_i(reset_i)
+
+        ,.lce_id_i(lce_id_i)
+
+        ,.lce_req_header_i(lce_req_header_o)
+        ,.lce_req_data_i(lce_req_data_o)
+        ,.lce_req_v_i(lce_req_v_o)
+        ,.lce_req_ready_and_i(lce_req_ready_and_i)
+
+        ,.lce_cmd_header_i(lce_cmd_header_i)
+        ,.lce_cmd_data_i(lce_cmd_data_i)
+        ,.lce_cmd_v_i(lce_cmd_v_i)
+        ,.lce_cmd_ready_and_i(lce_cmd_ready_and_o)
+
+        ,.lce_fill_header_i(lce_fill_header_i)
+        ,.lce_fill_data_i(lce_fill_data_i)
+        ,.lce_fill_v_i(lce_fill_v_i)
+        ,.lce_fill_ready_and_i(lce_fill_ready_and_o)
+
+        ,.lce_fill_o_header_i(lce_fill_header_o)
+        ,.lce_fill_o_data_i(lce_fill_data_o)
+        ,.lce_fill_o_v_i(lce_fill_v_o)
+        ,.lce_fill_o_ready_and_i(lce_fill_ready_and_i)
+
+        ,.lce_resp_header_i(lce_resp_header_o)
+        ,.lce_resp_data_i(lce_resp_data_o)
+        ,.lce_resp_v_i(lce_resp_v_o)
+        ,.lce_resp_ready_and_i(lce_resp_ready_and_i)
+
+        ,.cache_req_last_i(cache_req_last_o)
+        );
+  end
 
 endmodule

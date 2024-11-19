@@ -9,5 +9,7 @@ export HDL_PARAMS = \
 	-pvalue+checkpoint_p=$(CHECKPOINT_P) \
 	-pvalue+cosim_memsize_p=$(COSIM_MEMSIZE_P) \
 	-pvalue+cosim_instr_p=$(COSIM_INSTR_P) \
-	-pvalue+commit_trace_p=$(COMMIT_TRACE_P)
+	-pvalue+commit_trace_p=$(COMMIT_TRACE_P) \
+	-pvalue+lce_trace_p=$(LCE_TRACE_P) \
+	-pvalue+cce_trace_p=$(CCE_TRACE_P) \
 
