@@ -19,7 +19,7 @@ module bp_nonsynth_axi_host
    ,parameter M_AXIL_DATA_WIDTH = 32 // must be 32
    ,parameter M_AXIL_CREDITS = 64
    ,parameter timeout_p = 10000
-   ,parameter logic [63:0] mmio_in_host_addr_p = 64'h0
+   ,parameter logic [63:0] mmio_in_host_addr_p = 64'h4
    ,parameter bp_params_e bp_params_p = e_bp_default_cfg
    `declare_bp_proc_params(bp_params_p)
    )

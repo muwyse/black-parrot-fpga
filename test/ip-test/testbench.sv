@@ -707,21 +707,26 @@ module testbench
       s_axil_awvalid = host_s_axil_awvalid;
       s_axil_awprot = host_s_axil_awprot;
       host_s_axil_awready = s_axil_awready;
+      nbf_s_axil_awready = 1'b0;
       // W
       s_axil_wvalid = host_s_axil_wvalid;
       s_axil_wdata = host_s_axil_wdata;
       s_axil_wstrb = host_s_axil_wstrb;
       host_s_axil_wready = s_axil_wready;
+      nbf_s_axil_wready = 1'b0;
       // B
       host_s_axil_bvalid = s_axil_bvalid;
+      nbf_s_axil_bvalid = 1'b0;
       s_axil_bready = host_s_axil_bready;
       // AR
       s_axil_araddr = host_s_axil_araddr;
       s_axil_arprot = host_s_axil_arprot;
       s_axil_arvalid = host_s_axil_arvalid;
       host_s_axil_arready = s_axil_arready;
+      nbf_s_axil_arready = 1'b0;
       // R
       s_axil_rready = host_s_axil_rready;
+      nbf_s_axil_rvalid = 1'b0;
       host_s_axil_rvalid = s_axil_rvalid;
     end
   end
