@@ -992,4 +992,24 @@ module testbench
         );
   end
 
+  wire mem_trace_en_lo = 1'b1;
+  bind bsg_nonsynth_axi_mem
+    bsg_nonsynth_axi_mem_tracer
+      #(.axi_addr_width_p(axi_addr_width_p)
+        ,.axi_data_width_p(axi_data_width_p)
+        ,.mem_els_p(mem_els_p)
+        ,.trace_file_p("mem")
+        )
+      axi_mem_tracer
+      (.clk_i(clk_i & testbench.mem_trace_en_lo)
+      ,.reset_i(reset_i)
+      ,.wr_v_i(wfifo_yumi_li)
+      ,.wr_idx_i(wr_ram_idx)
+      ,.wr_data_raw_i(wfifo_data_lo)
+      ,.wr_data_i(wfifo_data_lo)
+      ,.rd_v_i(axi_rvalid_o & axi_rready_i)
+      ,.rd_idx_i(rd_ram_idx)
+      ,.rd_data_i(axi_rdata_o)
+      );
+
 endmodule
