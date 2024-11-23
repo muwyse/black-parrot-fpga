@@ -240,5 +240,5 @@ run_local: COSIM_MEMSIZE_P := 64
 run_local: COMMIT_TRACE_P := 1
 run_local: NBF_MEM_SIZE := 64
 run_local: NBF_NCPUS := 1
-run_local: clean sim_prep build.verilator sim.verilator
+run_local: clean sim_prep build_dump.vcs sim_dump.vcs
 
