@@ -35,6 +35,25 @@ module testbench
   (output bit reset_i
    );
 
+  bp_proc_param_s proc_param;
+  assign proc_param = all_cfgs_gp[bp_params_p];
+
+  initial begin
+    $display("########### BP Parameter Verification ##############");
+    `ifndef VERILATOR
+    $display("bp_params_e %s: bp_proc_param_s %p", bp_params_p.name(), proc_param);
+    `endif
+    if (icache_fill_width_p != 64 || dcache_fill_width_p != 64 || acache_fill_width_p != 64)
+      $error("Error: Cache fill widths must be 64b");
+    if (bedrock_fill_width_p != 64)
+      $error("Error: BedRock fill width must be 64b");
+    if (l2_fill_width_p != 64 || l2_data_width_p != 64)
+      $error("Error: L2 fill and data widths must be 64b");
+    if (bedrock_block_width_p != 512 || l2_block_width_p != 512
+        || dcache_block_width_p != 512 || icache_block_width_p != 512 || acache_block_width_p != 512)
+      $error("Error: cache block widths must be 512b");
+  end
+
   localparam timeout_p = 100000;
 
   export "DPI-C" function get_sim_period;
