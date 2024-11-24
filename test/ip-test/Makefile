@@ -236,9 +236,9 @@ include $(MAKE_DIR)/Makefile.vcs
 # make clean sim_prep build.verilator sim.verilator PROG=hello_world SUITE=bp-tests COSIM_MEMSIZE_P=64 COMMIT_TRACE_P=1 NBF_MEM_SIZE=64 NBF_NCPUS=1
 run_local: PROG := hello_world
 run_local: SUITE := bp-tests
-run_local: COSIM_MEMSIZE_P := 64
+run_local: COSIM_MEMSIZE_P := 256
 run_local: COMMIT_TRACE_P := 1
-run_local: NBF_MEM_SIZE := 64
+run_local: NBF_MEM_SIZE := 256
 run_local: NBF_NCPUS := 1
 run_local: clean sim_prep build_dump.vcs sim_dump.vcs
 
