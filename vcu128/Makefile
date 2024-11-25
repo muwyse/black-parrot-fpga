@@ -25,6 +25,7 @@ PROJECT_TCL                = $(PROJECT_BASE_DIR)/create_project.tcl
 script_dir := $(abspath $(TOP)/script)
 generate_tcl := $(script_dir)/generate_bitstream.tcl
 program_tcl := $(script_dir)/program_fpga.tcl
+archive_tcl := $(script_dir)/archive_project.tcl
 
 BP_IP = blackparrot_ip
 BP_IP_DIR = $(BASE_DIR)/blackparrot
@@ -78,7 +79,13 @@ archive:
 clean_archive:
 	rm -f $(PROJECT_ARCHIVE)
 
-clean: clean_project clean_ip clean_archive
+archive_vivado_project:
+	$(vivado_bin) -mode batch -source $(archive_tcl) -tclargs --project_name $(PROJECT_NAME)
+
+clean_vivado_archive:
+	rm -f $(PROJECT_NAME).zip
+
+clean: clean_project clean_ip clean_archive clean_vivado_archive
 	rm -f vivado*
 	rm -rf .Xil/
 

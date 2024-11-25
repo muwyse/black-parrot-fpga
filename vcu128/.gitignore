@@ -6,3 +6,4 @@ last_programmed.txt
 *.bit
 .Xil/
 *.tar.gz
+*.zip
