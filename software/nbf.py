@@ -293,6 +293,14 @@ class NBF:
 
     # Freeze set
     self.print_nbf_allcores(2, cfg_base_addr + cfg_reg_freeze, 1)
+
+    # Write CCE ucode
+    if self.ucode_file:
+      for core in range(self.ncpus):
+        for i in range(len(self.ucode)):
+          full_addr = cfg_base_addr + cfg_mem_base_cce_ucode + (core << cfg_core_offset) + i*8
+          self.print_nbf(3, full_addr, self.ucode[i])
+
     # Boot PC set
     if self.boot_pc:
       self.print_nbf_allcores(2, cfg_base_addr + cfg_reg_npc, int(self.boot_pc, 16))
