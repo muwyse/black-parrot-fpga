@@ -41,8 +41,8 @@ lint_flist.vcs: $(VCS_LINT_FLIST)
 
 lint.vcs: $(VCS_LINT_FLIST) | $(VCS_LINT_DIR)
 	cd $(VCS_LINT_DIR); \
-		$(VCS) $(VCS_BUILD_OPTS) $(VCS_LINT_OPTS) $(HDL_PARAMS) $(HDL_DEFINES) -o $(VCS_LINT_DIR)/$@ 2>&1
-		#| tee -i $(VCS_LINT_LOG)
+		$(VCS) $(VCS_BUILD_OPTS) $(VCS_LINT_OPTS) $(HDL_PARAMS) $(HDL_DEFINES) -o $(VCS_LINT_DIR)/$@ 2>&1 \
+		| tee -i $(VCS_LINT_LOG)
 
 clean_lint.vcs:
 	rm -rf $(VCS_LINT_DIR)
@@ -89,8 +89,8 @@ build_flist.vcs: $(VCS_FLIST)
 
 build.vcs: $(VCS_FLIST) | $(VCS_BUILD_DIR)
 	cd $(VCS_BUILD_DIR); \
-		$(VCS) $(VCS_OPTS) $(VCS_BUILD_OPTS) -top $(VCS_TOP) $(HDL_PARAMS) $(HDL_DEFINES) -o sim.vcs 2>&1
-		#| tee -i $(BUILD_LOG)
+		$(VCS) $(VCS_OPTS) $(VCS_BUILD_OPTS) -top $(VCS_TOP) $(HDL_PARAMS) $(HDL_DEFINES) -o sim.vcs 2>&1 \
+		| tee -i $(BUILD_LOG)
 
 build_dump.vcs: VCS_BUILD_OPTS += -debug_pp
 build_dump.vcs: VCS_BUILD_OPTS += +vcs+vcdpluson
@@ -117,8 +117,8 @@ sim.vcs: $(VCS_BUILD_DIR)/run_sim.vcs
 $(VCS_BUILD_DIR)/run_sim.vcs: | $(VCS_BUILD_DIR)
 	#cp $(TEST_DIR)/$(PROG_NBF) $(VCS_BUILD_DIR)/$(PROG_NBF)
 	#cp $(TEST_DIR)/$(PROG_ELF) $(VCS_BUILD_DIR)/$(PROG_ELF)
-	cd $(@D); ./sim.vcs $(VCS_OPTIONS) $(VCS_PLUSARGS) 2>&1
-	#| tee -i $(VCS_SIM_LOG)
+	cd $(@D); ./sim.vcs $(VCS_OPTIONS) $(VCS_PLUSARGS) 2>&1 \
+	| tee -i $(VCS_SIM_LOG)
 
 sim_dump.vcs: VCS_OPTS += +memcbk
 sim_dump.vcs: VCS_OPTS += +vcs+vcdpluson
