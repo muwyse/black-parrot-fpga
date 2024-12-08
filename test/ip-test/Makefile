@@ -53,6 +53,8 @@ NBF_DEBUG ?= 1
 NBF_VERIFY ?= 0
 NBF_START_CACHED ?= 1
 
+COH_PROTO ?= none
+
 NBF_FLAGS = --ncpus $(NBF_NCPUS) --data_width 64
 NBF_FLAGS += --bootrom $(NBF_BOOTROM) --bootrom_size $(NBF_BOOTROM_SIZE)
 ifneq ($(NBF_UCODE),)
@@ -78,7 +80,7 @@ NBF_FLAGS += --start_cached
 endif
 NBF_FLAGS += --mem_size $(NBF_MEM_SIZE)
 
-BOOTROM_RISCV ?= $(BP_SDK_DIR)/prog/bootrom/bootrom.riscv
+BOOTROM_RISCV ?= $(BP_SDK_DIR)/prog/bootrom/bootrom.$(COH_PROTO).riscv
 
 PROG ?= hello_world
 SUITE ?= bp-tests
